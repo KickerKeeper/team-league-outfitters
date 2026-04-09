@@ -20,6 +20,14 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
   <title>{title}</title>
   <meta name="description" content={description} />
   <link rel="canonical" href={canonicalURL} />
+  <!-- Open Graph -->
+  <meta property="og:title" content={title} />
+  <meta property="og:description" content={description} />
+  <meta property="og:url" content={canonicalURL} />
+  <meta property="og:image" content="https://teamleagueoutfitters.com/images/logo/logo-stacked.png" />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Team & League Outfitters" />
+  <meta name="twitter:card" content="summary" />
   <link rel="icon" type="image/x-icon" href="/favicon.ico" />
   <link rel="apple-touch-icon" sizes="180x180" href="/images/logo/logo-icon.png" />
   <!-- Analytics (Plausible — privacy-friendly, no cookies) -->
@@ -56,7 +64,7 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
       { "@type": "OpeningHoursSpecification", "dayOfWeek": "Saturday", "opens": "08:00", "closes": "12:00" }
     ],
     "priceRange": "$$",
-    "image": "/images/logo/logo-horizontal.png",
+    "image": "https://teamleagueoutfitters.com/images/logo/logo-horizontal.png",
     "foundingDate": "2013"
   })} />
 </head>

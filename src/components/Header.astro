@@ -48,9 +48,9 @@ const navLinks = [
 
   <!-- Mobile Menu -->
   <div class="mobile-menu" id="mobile-menu" aria-hidden="true">
-    <div class="mobile-menu-overlay" id="mobile-overlay" onclick="document.getElementById('mobile-menu').classList.remove('open');document.body.style.overflow=''"></div>
+    <div class="mobile-menu-overlay" id="mobile-overlay" onclick="var m=document.getElementById('mobile-menu');m.classList.remove('open');m.setAttribute('aria-hidden','true');document.getElementById('menu-toggle').setAttribute('aria-expanded','false');document.body.style.overflow=''"></div>
     <div class="mobile-menu-panel" role="dialog" aria-label="Navigation menu">
-      <button class="mobile-close" id="menu-close" aria-label="Close menu" onclick="document.getElementById('mobile-menu').classList.remove('open');document.body.style.overflow=''">&times;</button>
+      <button class="mobile-close" id="menu-close" aria-label="Close menu" onclick="var m=document.getElementById('mobile-menu');m.classList.remove('open');m.setAttribute('aria-hidden','true');document.getElementById('menu-toggle').setAttribute('aria-expanded','false');document.body.style.overflow=''">&times;</button>
       <a href="/order" class="btn btn-primary mobile-cta">Get Started</a>
       <ul role="list">
         {navLinks.map(link => (
@@ -200,7 +200,12 @@ const navLinks = [
     cursor: pointer;
     color: var(--color-neutral-900);
     line-height: 1;
-    padding: 4px;
+    padding: 8px;
+    min-width: 48px;
+    min-height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 
   .mobile-cta {

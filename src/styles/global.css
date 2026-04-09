@@ -60,7 +60,7 @@
 
   /* Layout */
   --max-width: 1200px;
-  --header-height: 72px;
+  --header-height: 88px;
 }
 
 /* --- Reset --- */
@@ -101,7 +101,7 @@ h1 {
 }
 
 h2 {
-  font-size: var(--text-3xl);
+  font-size: var(--text-2xl);
   font-weight: 700;
 }
 
@@ -319,5 +319,6 @@ textarea.error {
 /* --- Responsive --- */
 @media (min-width: 768px) {
   h1 { font-size: var(--text-4xl); }
+  h2 { font-size: var(--text-3xl); }
   .section { padding: var(--space-24) 0; }
 }
