@@ -1,0 +1,270 @@
+---
+const pathname = Astro.url.pathname;
+
+const navLinks = [
+  { href: '/', label: 'Home' },
+  { href: '/services', label: 'Services' },
+  { href: '/gallery', label: 'Gallery' },
+  { href: '/about', label: 'About' },
+  { href: '/contact', label: 'Contact' },
+];
+---
+
+<header class="site-header" id="site-header">
+  <nav class="header-nav container" aria-label="Main navigation">
+    <a href="/" class="logo" aria-label="Team & League Outfitters — Home">
+      <img src="/images/logo/logo-horizontal.png" alt="Team & League Outfitters" width="280" height="67" />
+    </a>
+
+    <ul class="nav-links" role="list">
+      {navLinks.map(link => (
+        <li>
+          <a
+            href={link.href}
+            class:list={[{ active: pathname === link.href || (link.href !== '/' && pathname.startsWith(link.href)) }]}
+          >
+            {link.label}
+          </a>
+        </li>
+      ))}
+      <li>
+        <a href="/order" class="btn btn-primary nav-cta">Get Started</a>
+      </li>
+    </ul>
+
+    <button
+      class="hamburger"
+      id="menu-toggle"
+      aria-label="Open menu"
+      aria-expanded="false"
+      aria-controls="mobile-menu"
+    >
+      <span class="hamburger-line"></span>
+      <span class="hamburger-line"></span>
+      <span class="hamburger-line"></span>
+    </button>
+  </nav>
+
+  <!-- Mobile Menu -->
+  <div class="mobile-menu" id="mobile-menu" aria-hidden="true">
+    <div class="mobile-menu-overlay" id="mobile-overlay"></div>
+    <div class="mobile-menu-panel" role="dialog" aria-label="Navigation menu">
+      <button class="mobile-close" id="menu-close" aria-label="Close menu">&times;</button>
+      <a href="/order" class="btn btn-primary mobile-cta">Get Started</a>
+      <ul role="list">
+        {navLinks.map(link => (
+          <li>
+            <a
+              href={link.href}
+              class:list={[{ active: pathname === link.href || (link.href !== '/' && pathname.startsWith(link.href)) }]}
+            >
+              {link.label}
+            </a>
+          </li>
+        ))}
+      </ul>
+    </div>
+  </div>
+</header>
+
+<style>
+  .site-header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: #fff;
+    border-bottom: 1px solid var(--color-neutral-200);
+  }
+
+  .header-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 88px;
+  }
+
+  .logo img {
+    height: 72px;
+    width: auto;
+  }
+
+  /* Desktop nav */
+  .nav-links {
+    display: flex;
+    align-items: center;
+    gap: 28px;
+    list-style: none;
+  }
+
+  .nav-links a {
+    font-family: var(--font-heading);
+    font-weight: 500;
+    font-size: var(--text-base);
+    color: var(--color-neutral-900);
+    text-decoration: none;
+    transition: color var(--transition-fast);
+    padding-bottom: 4px;
+    border-bottom: 2px solid transparent;
+  }
+
+  .nav-links a:hover {
+    color: var(--color-primary);
+  }
+
+  .nav-links a.active {
+    color: var(--color-primary);
+    border-bottom-color: var(--color-primary);
+  }
+
+  .nav-cta {
+    padding: 10px 22px !important;
+    font-size: var(--text-sm) !important;
+    border-bottom: none !important;
+    color: #fff !important;
+  }
+
+  .nav-cta:hover {
+    color: #fff !important;
+  }
+
+  /* Hamburger */
+  .hamburger {
+    display: none;
+    flex-direction: column;
+    gap: 5px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 8px;
+  }
+
+  .hamburger-line {
+    display: block;
+    width: 24px;
+    height: 2px;
+    background: var(--color-neutral-900);
+    border-radius: 2px;
+    transition: transform var(--transition-fast);
+  }
+
+  /* Mobile menu */
+  .mobile-menu {
+    display: none;
+  }
+
+  .mobile-menu.open {
+    display: block;
+  }
+
+  .mobile-menu-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4);
+    z-index: 200;
+  }
+
+  .mobile-menu-panel {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 280px;
+    background: #fff;
+    z-index: 201;
+    padding: var(--space-8) var(--space-6);
+    transform: translateX(100%);
+    transition: transform var(--transition-base);
+    overflow-y: auto;
+  }
+
+  .mobile-menu.open .mobile-menu-panel {
+    transform: translateX(0);
+  }
+
+  .mobile-close {
+    position: absolute;
+    top: var(--space-4);
+    right: var(--space-4);
+    background: none;
+    border: none;
+    font-size: 2rem;
+    cursor: pointer;
+    color: var(--color-neutral-900);
+    line-height: 1;
+    padding: 4px;
+  }
+
+  .mobile-cta {
+    display: block;
+    text-align: center;
+    margin-bottom: var(--space-8);
+    margin-top: var(--space-8);
+  }
+
+  .mobile-menu-panel ul {
+    list-style: none;
+  }
+
+  .mobile-menu-panel li {
+    border-bottom: 1px solid var(--color-neutral-200);
+  }
+
+  .mobile-menu-panel a {
+    display: block;
+    padding: var(--space-4) 0;
+    font-family: var(--font-heading);
+    font-weight: 500;
+    font-size: var(--text-lg);
+    color: var(--color-neutral-900);
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+  }
+
+  .mobile-menu-panel a.active {
+    color: var(--color-primary);
+  }
+
+  @media (max-width: 767px) {
+    .nav-links {
+      display: none;
+    }
+
+    .hamburger {
+      display: flex;
+    }
+  }
+</style>
+
+<script>
+  const toggle = document.getElementById('menu-toggle') as HTMLButtonElement;
+  const closeBtn = document.getElementById('menu-close') as HTMLButtonElement;
+  const overlay = document.getElementById('mobile-overlay') as HTMLElement;
+  const menu = document.getElementById('mobile-menu') as HTMLElement;
+
+  function openMenu() {
+    menu.classList.add('open');
+    menu.setAttribute('aria-hidden', 'false');
+    toggle.setAttribute('aria-expanded', 'true');
+    document.body.style.overflow = 'hidden';
+    closeBtn.focus();
+  }
+
+  function closeMenu() {
+    menu.classList.remove('open');
+    menu.setAttribute('aria-hidden', 'true');
+    toggle.setAttribute('aria-expanded', 'false');
+    document.body.style.overflow = '';
+    toggle.focus();
+  }
+
+  toggle.addEventListener('click', openMenu);
+  closeBtn.addEventListener('click', closeMenu);
+  overlay.addEventListener('click', closeMenu);
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && menu.classList.contains('open')) {
+      closeMenu();
+    }
+  });
+</script>

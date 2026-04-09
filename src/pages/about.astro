@@ -1,0 +1,132 @@
+---
+import Base from '../layouts/Base.astro';
+import CTABanner from '../components/CTABanner.astro';
+---
+
+<Base
+  title="About Us — Team & League Outfitters"
+  description="Family-owned since 2013. Rob and Jen Dziadosz outfit youth sports teams across Georgetown and the North Shore."
+>
+  <!-- Page Header -->
+  <section class="page-header">
+    <div class="container">
+      <h1>About Us</h1>
+      <p>A family-run shop that's been outfitting Georgetown teams since 2013.</p>
+    </div>
+  </section>
+
+  <!-- Story -->
+  <section class="section">
+    <div class="container about-content">
+      <div class="about-text">
+        <h2>Our Story</h2>
+        <p>Team & League Outfitters started in 2013 as The Soccer Shoppe — a small operation focused on getting local soccer teams suited up. Over the years, Rob and Jen Dziadosz expanded to serve basketball, baseball, and every other youth sport in the Georgetown and North Shore area.</p>
+        <p>We're a two-person shop. Rob handles the fittings and customization. Jen keeps everything running. We're not a warehouse or a call center — we're the people you'll actually talk to when you walk through the door.</p>
+        <p>Our process is simple: the coach gives us the team details, and we handle everything else. Fittings, numbers, names, customization, pickup. That's what full-service means to us.</p>
+
+        <h2>What Makes Us Different</h2>
+        <ul class="diff-list">
+          <li>
+            <strong>In-person fittings.</strong> Two fitting rooms right in the shop. No more chasing parents for sizes — send your players to us and we get it right.
+          </li>
+          <li>
+            <strong>Full-service from start to finish.</strong> You tell us what you need. We handle the rest. Heat press, embroidery, screen printing — whatever the job calls for.
+          </li>
+          <li>
+            <strong>Local and personal.</strong> We know the Georgetown youth sports community because we're part of it. Proud supplier for GYSA, Boxford Athletic Association, and Masco Youth Soccer.
+          </li>
+          <li>
+            <strong>No hassle.</strong> We work with coaches, not spreadsheets. Tell us the team, the colors, the numbers — done.
+          </li>
+        </ul>
+      </div>
+      <div class="about-image">
+        <img src="/images/photos/photo-03.png" alt="Youth sports team outfitted by Team & League Outfitters" width="600" height="400" loading="lazy" />
+      </div>
+    </div>
+  </section>
+
+  <CTABanner
+    headline="Ready to get started?"
+    subtext="Whether you're a league board, a coach, or a parent — we'd love to help."
+    buttonText="Get Started"
+  />
+</Base>
+
+<style>
+  .page-header {
+    background: var(--color-primary);
+    color: #fff;
+    padding: var(--space-12) var(--space-6);
+    text-align: center;
+  }
+
+  .page-header h1 {
+    color: #fff;
+    margin-bottom: var(--space-3);
+  }
+
+  .page-header p {
+    opacity: 0.9;
+    max-width: 520px;
+    margin: 0 auto;
+  }
+
+  .about-content {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--space-8);
+    align-items: start;
+  }
+
+  .about-text h2 {
+    font-size: var(--text-3xl);
+    margin-bottom: var(--space-4);
+  }
+
+  .about-text h2:not(:first-child) {
+    margin-top: var(--space-8);
+  }
+
+  .about-text p {
+    color: var(--color-neutral-600);
+    margin-bottom: var(--space-4);
+  }
+
+  .diff-list {
+    list-style: none;
+    margin-top: var(--space-4);
+  }
+
+  .diff-list li {
+    padding: var(--space-4) 0;
+    border-bottom: 1px solid var(--color-neutral-200);
+    color: var(--color-neutral-600);
+  }
+
+  .diff-list li:last-child {
+    border-bottom: none;
+  }
+
+  .diff-list strong {
+    color: var(--color-neutral-900);
+  }
+
+  .about-image {
+    border-radius: var(--radius-xl);
+    overflow: hidden;
+  }
+
+  .about-image img {
+    width: 100%;
+    height: auto;
+    object-fit: cover;
+  }
+
+  @media (min-width: 768px) {
+    .about-content {
+      grid-template-columns: 1.2fr 0.8fr;
+      gap: var(--space-12);
+    }
+  }
+</style>

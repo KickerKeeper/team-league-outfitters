@@ -1,0 +1,167 @@
+---
+const currentYear = new Date().getFullYear();
+---
+
+<footer class="site-footer">
+  <div class="footer-grid container">
+    <div class="footer-col">
+      <h4>Contact</h4>
+      <p>
+        <a href="tel:+19783528240">(978) 352-8240</a><br />
+        <a href="tel:+19783604359">(978) 360-4359</a><br />
+        <a href="mailto:teamleagueoutfitters@comcast.net">teamleagueoutfitters@comcast.net</a>
+      </p>
+    </div>
+    <div class="footer-col">
+      <h4>Hours</h4>
+      <p>
+        Wednesday &ndash; Friday: 11am &ndash; 5pm<br />
+        Saturday: 8am &ndash; Noon<br />
+        Sunday &ndash; Tuesday: Closed
+      </p>
+    </div>
+    <div class="footer-col">
+      <h4>Quick Links</h4>
+      <ul role="list">
+        <li><a href="/services">Services</a></li>
+        <li><a href="/gallery">Our Teams</a></li>
+        <li><a href="/order">Get Started</a></li>
+        <li><a href="/contact">Contact</a></li>
+        <li><a href="/privacy">Privacy Policy</a></li>
+      </ul>
+    </div>
+  </div>
+  <!-- Newsletter -->
+  <div class="footer-newsletter container">
+    <div class="newsletter-inner">
+      <h4>Get Seasonal Updates</h4>
+      <p>Sign up and we'll let you know when it's time to order for the next season.</p>
+      <form class="newsletter-form" action="https://comcast.us1.list-manage.com/subscribe/post" method="POST" target="_blank" rel="noopener">
+        <label for="newsletter-email" class="sr-only">Email address</label>
+        <input type="email" id="newsletter-email" name="EMAIL" placeholder="Your email" required />
+        <button type="submit" class="btn btn-accent newsletter-btn">Subscribe</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="footer-bottom container">
+    <p>&copy; {currentYear} Team & League Outfitters. All rights reserved.</p>
+  </div>
+</footer>
+
+<style>
+  .site-footer {
+    background: var(--color-primary-dark);
+    color: #fff;
+    padding: var(--space-12) 0 var(--space-6);
+  }
+
+  .footer-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--space-8);
+    margin-bottom: var(--space-8);
+  }
+
+  .footer-col h4 {
+    font-family: var(--font-heading);
+    font-weight: 600;
+    font-size: var(--text-base);
+    color: var(--color-accent);
+    margin-bottom: var(--space-3);
+  }
+
+  .footer-col p,
+  .footer-col a {
+    color: rgba(255, 255, 255, 0.8);
+    font-size: var(--text-sm);
+    line-height: 1.8;
+    text-decoration: none;
+  }
+
+  .footer-col a:hover {
+    color: var(--color-accent);
+  }
+
+  .footer-col ul {
+    list-style: none;
+  }
+
+  .footer-col li {
+    line-height: 1.8;
+  }
+
+  /* Newsletter */
+  .footer-newsletter {
+    padding: var(--space-8) 0;
+    margin-bottom: var(--space-6);
+    border-top: 1px solid rgba(255, 255, 255, 0.15);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+  }
+
+  .newsletter-inner {
+    max-width: 480px;
+    margin: 0 auto;
+    text-align: center;
+  }
+
+  .newsletter-inner h4 {
+    font-family: var(--font-heading);
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: var(--space-1);
+  }
+
+  .newsletter-inner p {
+    font-size: var(--text-sm);
+    color: rgba(255, 255, 255, 0.7);
+    margin-bottom: var(--space-4);
+  }
+
+  .newsletter-form {
+    display: flex;
+    gap: var(--space-2);
+  }
+
+  .newsletter-form input {
+    flex: 1;
+    padding: 10px 14px;
+    border-radius: var(--radius-lg);
+    border: none;
+    font-size: var(--text-sm);
+  }
+
+  .newsletter-btn {
+    padding: 10px 20px !important;
+    font-size: var(--text-sm) !important;
+    white-space: nowrap;
+  }
+
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    border: 0;
+  }
+
+  .footer-bottom {
+    text-align: center;
+    padding-top: var(--space-6);
+    border-top: 1px solid rgba(255, 255, 255, 0.15);
+  }
+
+  .footer-bottom p {
+    font-size: var(--text-xs);
+    color: rgba(255, 255, 255, 0.5);
+  }
+
+  @media (min-width: 768px) {
+    .footer-grid {
+      grid-template-columns: repeat(3, 1fr);
+    }
+  }
+</style>

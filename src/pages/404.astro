@@ -1,0 +1,60 @@
+---
+import Base from '../layouts/Base.astro';
+---
+
+<Base
+  title="Page Not Found — Team & League Outfitters"
+  description="The page you're looking for doesn't exist."
+>
+  <section class="not-found">
+    <div class="container not-found-inner">
+      <h1>404</h1>
+      <p class="not-found-msg">Looks like this page doesn't exist.</p>
+      <p class="not-found-sub">No worries — let's get you back on track.</p>
+      <div class="not-found-actions">
+        <a href="/" class="btn btn-primary">Go Home</a>
+        <a href="/contact" class="btn btn-secondary">Contact Us</a>
+      </div>
+    </div>
+  </section>
+</Base>
+
+<style>
+  .not-found {
+    padding: var(--space-24) var(--space-6);
+    text-align: center;
+    min-height: 50vh;
+    display: flex;
+    align-items: center;
+  }
+
+  .not-found-inner {
+    max-width: 480px;
+    margin: 0 auto;
+  }
+
+  .not-found h1 {
+    font-size: 6rem;
+    color: var(--color-primary);
+    line-height: 1;
+    margin-bottom: var(--space-4);
+  }
+
+  .not-found-msg {
+    font-size: var(--text-xl);
+    color: var(--color-neutral-900);
+    margin-bottom: var(--space-2);
+  }
+
+  .not-found-sub {
+    color: var(--color-neutral-600);
+    margin-bottom: var(--space-8);
+  }
+
+  .not-found-actions {
+    display: flex;
+    gap: var(--space-4);
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+</style>

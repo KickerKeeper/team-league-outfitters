@@ -1,0 +1,178 @@
+---
+import Base from '../layouts/Base.astro';
+import ServiceCard from '../components/ServiceCard.astro';
+import CTABanner from '../components/CTABanner.astro';
+---
+
+<Base
+  title="Services — Team & League Outfitters"
+  description="Team uniforms, custom apparel, embroidery, and heat-press customization. Full-service outfitting for youth sports teams in Georgetown, MA."
+>
+  <!-- Page Header -->
+  <section class="page-header">
+    <div class="container">
+      <h1>What We Do</h1>
+      <p>Full-service team outfitting for youth sports. From jerseys to embroidered warm-ups, we handle it all.</p>
+    </div>
+  </section>
+
+  <!-- Services -->
+  <section class="section">
+    <div class="container">
+      <div class="services-grid">
+        <ServiceCard
+          icon="👕"
+          title="Team Uniforms"
+          description="Complete uniform kits for soccer, basketball, baseball, and more. Jerseys, shorts, socks — custom colors, numbers, and names for every player on the roster."
+        />
+        <ServiceCard
+          icon="🧥"
+          title="Custom Apparel"
+          description="Sweatshirts, t-shirts, jackets, and warm-ups with your team's branding. Great for coaches, parents, and fans who want to rep the team."
+        />
+        <ServiceCard
+          icon="🎽"
+          title="Spirit Wear"
+          description="Team-branded casual wear for game days and beyond. Show your team pride off the field with custom spirit wear for the whole family."
+        />
+        <ServiceCard
+          icon="🧵"
+          title="Embroidery"
+          description="Professional embroidered logos, names, and team crests on hats, polos, Carhartt jackets — you name it. Clean, durable, and sharp."
+        />
+        <ServiceCard
+          icon="🖨️"
+          title="Screen Printing"
+          description="High-quality screen-printed apparel for teams and organizations. Ideal for large orders where you need consistent, vibrant results."
+        />
+        <ServiceCard
+          icon="⭐"
+          title="Heat Press"
+          description="Vinyl heat-press customization for numbers, letters, and logos. Fast turnaround for last-minute additions or individual player customization."
+        />
+      </div>
+    </div>
+  </section>
+
+  <!-- How It Works (detailed) -->
+  <section class="section section-alt">
+    <div class="container">
+      <h2 class="section-title">How It Works</h2>
+      <p class="section-sub">We make it simple so you can focus on coaching.</p>
+      <div class="process">
+        <div class="process-step">
+          <div class="process-num">1</div>
+          <div class="process-content">
+            <h3>Tell Us What You Need</h3>
+            <p>Fill out our online order form or call us. Give us the basics: sport, team colors, number of players, and any customization you want. Don't have all the details yet? No problem — we'll work through it with you.</p>
+          </div>
+        </div>
+        <div class="process-step">
+          <div class="process-num">2</div>
+          <div class="process-content">
+            <h3>In-Person Fittings</h3>
+            <p>Send your players to the shop for fittings. We've got two fitting rooms and flexible hours. No more chasing parents for sizes — they come to us and we get it right the first time.</p>
+          </div>
+        </div>
+        <div class="process-step">
+          <div class="process-num">3</div>
+          <div class="process-content">
+            <h3>We Customize Everything</h3>
+            <p>Heat press, embroidery, screen printing — whatever the job calls for. Numbers, names, logos, team crests. We handle the production so you don't have to think about it.</p>
+          </div>
+        </div>
+        <div class="process-step">
+          <div class="process-num">4</div>
+          <div class="process-content">
+            <h3>Pick Up or Ship</h3>
+            <p>Swing by the shop in Georgetown to pick up your order, or we'll ship it to you. We'll schedule a pickup time that works for the whole team.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <CTABanner
+    headline="Let's get your team suited up"
+    subtext="Fill out our order form and we'll take it from there. It only takes a few minutes."
+    buttonText="Start Your Order"
+  />
+</Base>
+
+<style>
+  .page-header {
+    background: var(--color-primary);
+    color: #fff;
+    padding: var(--space-12) var(--space-6);
+    text-align: center;
+  }
+
+  .page-header h1 {
+    color: #fff;
+    margin-bottom: var(--space-3);
+  }
+
+  .page-header p {
+    opacity: 0.9;
+    max-width: 520px;
+    margin: 0 auto;
+  }
+
+  .services-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--space-6);
+  }
+
+  @media (min-width: 768px) {
+    .services-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .services-grid {
+      grid-template-columns: repeat(3, 1fr);
+    }
+  }
+
+  /* Process */
+  .process {
+    max-width: 700px;
+    margin: 0 auto;
+  }
+
+  .process-step {
+    display: flex;
+    gap: var(--space-6);
+    margin-bottom: var(--space-8);
+  }
+
+  .process-step:last-child {
+    margin-bottom: 0;
+  }
+
+  .process-num {
+    flex-shrink: 0;
+    width: 48px;
+    height: 48px;
+    background: var(--color-primary);
+    color: #fff;
+    font-family: var(--font-heading);
+    font-weight: 700;
+    font-size: var(--text-xl);
+    border-radius: var(--radius-full);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .process-content h3 {
+    font-size: var(--text-xl);
+    margin-bottom: var(--space-2);
+  }
+
+  .process-content p {
+    color: var(--color-neutral-600);
+  }
+</style>

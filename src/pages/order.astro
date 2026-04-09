@@ -1,0 +1,353 @@
+---
+import Base from '../layouts/Base.astro';
+---
+
+<Base
+  title="Get Started — Team & League Outfitters"
+  description="Ready to outfit your team? Submit your order details and we'll handle the rest. Georgetown, MA."
+>
+  <!-- Page Header -->
+  <section class="page-header">
+    <div class="container">
+      <h1>Get Started</h1>
+      <p>Tell us about your team and we'll handle the rest. We'll contact you within 1 business day.</p>
+    </div>
+  </section>
+
+  <!-- Form -->
+  <section class="section">
+    <div class="container order-layout">
+      <div class="form-area">
+        <form
+          name="order"
+          method="POST"
+          data-netlify="true"
+          netlify-honeypot="bot-field"
+          id="order-form"
+        >
+          <input type="hidden" name="form-name" value="order" />
+          <p class="hidden" aria-hidden="true">
+            <label>Don't fill this out: <input name="bot-field" /></label>
+          </p>
+
+          <!-- Section 1: Your Info -->
+          <fieldset class="form-section">
+            <legend>Your Info</legend>
+            <div class="form-grid">
+              <div class="form-field">
+                <label for="name">Contact Name <span class="req" aria-hidden="true">*</span></label>
+                <input type="text" id="name" name="name" required autocomplete="name" />
+              </div>
+              <div class="form-field">
+                <label for="email">Email <span class="req" aria-hidden="true">*</span></label>
+                <input type="email" id="email" name="email" required autocomplete="email" />
+              </div>
+              <div class="form-field">
+                <label for="phone">Phone <span class="req" aria-hidden="true">*</span></label>
+                <input type="tel" id="phone" name="phone" required autocomplete="tel" />
+              </div>
+            </div>
+          </fieldset>
+
+          <!-- Section 2: Team Details -->
+          <fieldset class="form-section">
+            <legend>Team Details</legend>
+            <div class="form-grid">
+              <div class="form-field">
+                <label for="team">Team / Organization Name <span class="req" aria-hidden="true">*</span></label>
+                <input type="text" id="team" name="team" required />
+              </div>
+              <div class="form-field">
+                <label for="sport">Sport <span class="req" aria-hidden="true">*</span></label>
+                <select id="sport" name="sport" required>
+                  <option value="">Select a sport</option>
+                  <option value="Soccer">Soccer</option>
+                  <option value="Basketball">Basketball</option>
+                  <option value="Baseball">Baseball</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+              <div class="form-field">
+                <label for="colors">Team Colors <span class="req" aria-hidden="true">*</span></label>
+                <input type="text" id="colors" name="colors" required placeholder="e.g., Royal blue and gold" />
+              </div>
+              <div class="form-field">
+                <label for="players">Number of Players <span class="req" aria-hidden="true">*</span></label>
+                <input type="text" id="players" name="players" required placeholder="e.g., 15 or 12-15" />
+              </div>
+              <div class="form-field full-width">
+                <label for="sizes">Sizes & Quantities</label>
+                <textarea id="sizes" name="sizes" rows="3" placeholder="List sizes and how many of each, e.g., 4 Youth M, 6 Youth L, 3 Adult S"></textarea>
+              </div>
+              <div class="form-field full-width">
+                <label for="numbers">Uniform Numbers</label>
+                <textarea id="numbers" name="numbers" rows="2" placeholder="List player numbers if known, e.g., 1, 3, 7, 10, 12..."></textarea>
+              </div>
+            </div>
+          </fieldset>
+
+          <!-- Section 3: How You Want It -->
+          <fieldset class="form-section">
+            <legend>How You Want It</legend>
+            <div class="form-grid">
+              <div class="form-field full-width">
+                <label>Customization Type</label>
+                <div class="checkbox-group">
+                  <label class="checkbox-label">
+                    <input type="checkbox" name="customization" value="Heat Press" /> Heat Press
+                  </label>
+                  <label class="checkbox-label">
+                    <input type="checkbox" name="customization" value="Embroidery" /> Embroidery
+                  </label>
+                  <label class="checkbox-label">
+                    <input type="checkbox" name="customization" value="Screen Printing" /> Screen Printing
+                  </label>
+                </div>
+              </div>
+              <div class="form-field full-width">
+                <label>Pickup or Ship <span class="req" aria-hidden="true">*</span></label>
+                <div class="radio-group">
+                  <label class="radio-label">
+                    <input type="radio" name="fulfillment" value="In-store pickup" required /> In-store pickup (Georgetown)
+                  </label>
+                  <label class="radio-label">
+                    <input type="radio" name="fulfillment" value="Ship to me" /> Ship to me
+                  </label>
+                </div>
+              </div>
+              <div class="form-field full-width">
+                <label for="notes">Additional Notes</label>
+                <textarea id="notes" name="notes" rows="3" placeholder="Anything else we should know?"></textarea>
+              </div>
+            </div>
+          </fieldset>
+
+          <button type="submit" class="btn btn-primary submit-btn">Submit Order Details</button>
+        </form>
+
+        <!-- Success state -->
+        <div class="form-success" id="form-success" hidden>
+          <div class="success-icon">&#10003;</div>
+          <h2>Got it!</h2>
+          <p>We'll be in touch within 1 business day to go over the details and next steps.</p>
+          <a href="/" class="btn btn-secondary">Back to Home</a>
+        </div>
+
+        <!-- Error state -->
+        <div class="form-error" id="form-error" hidden>
+          <h2>Something went wrong</h2>
+          <p>Please call us at <a href="tel:+19783528240">(978) 352-8240</a> and we'll get you sorted.</p>
+        </div>
+      </div>
+
+      <!-- Sidebar -->
+      <aside class="order-sidebar">
+        <div class="sidebar-card card">
+          <h3>Prefer to call?</h3>
+          <p>We're happy to help over the phone.</p>
+          <p class="sidebar-phone"><a href="tel:+19783528240">(978) 352-8240</a></p>
+          <p class="sidebar-phone"><a href="tel:+19783604359">(978) 360-4359</a></p>
+          <hr />
+          <h4>Hours</h4>
+          <p>Wed &ndash; Fri: 11am &ndash; 5pm<br />Sat: 8am &ndash; Noon</p>
+          <hr />
+          <h4>Visit Us</h4>
+          <p>103 E Main St #2<br />Georgetown, MA 01833</p>
+        </div>
+      </aside>
+    </div>
+  </section>
+</Base>
+
+<style>
+  .page-header {
+    background: var(--color-primary);
+    color: #fff;
+    padding: var(--space-12) var(--space-6);
+    text-align: center;
+  }
+
+  .page-header h1 { color: #fff; margin-bottom: var(--space-3); }
+  .page-header p { opacity: 0.9; max-width: 520px; margin: 0 auto; }
+
+  .order-layout {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--space-8);
+  }
+
+  @media (min-width: 768px) {
+    .order-layout {
+      grid-template-columns: 1fr 300px;
+      align-items: start;
+    }
+  }
+
+  /* Form sections */
+  .form-section {
+    border: 1px solid var(--color-neutral-200);
+    border-radius: var(--radius-xl);
+    padding: var(--space-6);
+    margin-bottom: var(--space-6);
+  }
+
+  .form-section legend {
+    font-family: var(--font-heading);
+    font-weight: 600;
+    font-size: var(--text-xl);
+    color: var(--color-primary);
+    padding: 0 var(--space-2);
+  }
+
+  .form-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--space-4);
+    margin-top: var(--space-4);
+  }
+
+  @media (min-width: 768px) {
+    .form-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+    .form-field.full-width {
+      grid-column: 1 / -1;
+    }
+  }
+
+  .form-field label {
+    margin-bottom: var(--space-1);
+  }
+
+  .req { color: var(--color-error); }
+
+  .hidden { display: none !important; }
+
+  /* Checkboxes and radios */
+  .checkbox-group,
+  .radio-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-4);
+    margin-top: var(--space-2);
+  }
+
+  .checkbox-label,
+  .radio-label {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-weight: 400;
+    font-size: var(--text-base);
+    cursor: pointer;
+  }
+
+  .checkbox-label input,
+  .radio-label input {
+    width: auto;
+    margin: 0;
+  }
+
+  /* Submit */
+  .submit-btn {
+    width: 100%;
+    padding: 16px;
+    font-size: var(--text-lg);
+  }
+
+  /* Success / Error states */
+  .form-success,
+  .form-error {
+    text-align: center;
+    padding: var(--space-12) var(--space-6);
+  }
+
+  .success-icon {
+    width: 64px;
+    height: 64px;
+    background: var(--color-success);
+    color: #fff;
+    font-size: 2rem;
+    border-radius: var(--radius-full);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto var(--space-4);
+  }
+
+  .form-success h2,
+  .form-error h2 {
+    margin-bottom: var(--space-3);
+  }
+
+  .form-success p,
+  .form-error p {
+    color: var(--color-neutral-600);
+    margin-bottom: var(--space-6);
+  }
+
+  /* Sidebar */
+  .sidebar-card {
+    position: sticky;
+    top: calc(var(--header-height) + var(--space-6));
+  }
+
+  .sidebar-card h3 {
+    font-size: var(--text-xl);
+    margin-bottom: var(--space-2);
+  }
+
+  .sidebar-card h4 {
+    font-size: var(--text-base);
+    margin-bottom: var(--space-1);
+  }
+
+  .sidebar-card p {
+    font-size: var(--text-sm);
+    color: var(--color-neutral-600);
+  }
+
+  .sidebar-phone a {
+    font-family: var(--font-heading);
+    font-weight: 600;
+    font-size: var(--text-lg);
+    color: var(--color-primary);
+  }
+
+  .sidebar-card hr {
+    border: none;
+    border-top: 1px solid var(--color-neutral-200);
+    margin: var(--space-4) 0;
+  }
+</style>
+
+<script>
+  const form = document.getElementById('order-form') as HTMLFormElement;
+  const successDiv = document.getElementById('form-success') as HTMLElement;
+  const errorDiv = document.getElementById('form-error') as HTMLElement;
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const formData = new FormData(form);
+
+    try {
+      const response = await fetch('/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams(formData as any).toString(),
+      });
+
+      if (response.ok) {
+        form.hidden = true;
+        successDiv.hidden = false;
+        successDiv.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      } else {
+        throw new Error('Server error');
+      }
+    } catch {
+      errorDiv.hidden = false;
+      errorDiv.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  });
+</script>

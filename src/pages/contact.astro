@@ -1,0 +1,168 @@
+---
+import Base from '../layouts/Base.astro';
+---
+
+<Base
+  title="Contact Us — Team & League Outfitters"
+  description="Visit us at 103 E Main St, Georgetown, MA. Call (978) 352-8240. Wed-Fri 11-5, Sat 8-Noon."
+>
+  <!-- Page Header -->
+  <section class="page-header">
+    <div class="container">
+      <h1>Contact Us</h1>
+      <p>Stop by, give us a call, or send us a message. We'd love to hear from you.</p>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container contact-layout">
+      <!-- Contact Info -->
+      <div class="contact-info">
+        <div class="info-block">
+          <h2>Phone</h2>
+          <p class="phone-link"><a href="tel:+19783528240">(978) 352-8240</a></p>
+          <p class="phone-link"><a href="tel:+19783604359">(978) 360-4359</a></p>
+        </div>
+
+        <div class="info-block">
+          <h2>Email</h2>
+          <p><a href="mailto:teamleagueoutfitters@comcast.net">teamleagueoutfitters@comcast.net</a></p>
+        </div>
+
+        <div class="info-block">
+          <h2>Hours</h2>
+          <table class="hours-table">
+            <tbody>
+              <tr><td>Wednesday</td><td>11am &ndash; 5pm</td></tr>
+              <tr><td>Thursday</td><td>11am &ndash; 5pm</td></tr>
+              <tr><td>Friday</td><td>11am &ndash; 5pm</td></tr>
+              <tr><td>Saturday</td><td>8am &ndash; Noon</td></tr>
+              <tr class="closed"><td>Sun &ndash; Tue</td><td>Closed</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="info-block">
+          <h2>Visit Us</h2>
+          <p>
+            103 E Main St #2<br />
+            Georgetown Building Supply Plaza<br />
+            Georgetown, MA 01833
+          </p>
+          <p class="directions-note">Plenty of parking. Easy to find right on Route 133.</p>
+        </div>
+
+        <div class="info-block">
+          <a href="/order" class="btn btn-primary">Ready to order? Get Started</a>
+        </div>
+      </div>
+
+      <!-- Map -->
+      <div class="contact-map">
+        <iframe
+          src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2935.5!2d-70.9767!3d42.7251!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x89e30a6b7f1b7f6b%3A0x1234567890abcdef!2s103+E+Main+St%2C+Georgetown%2C+MA+01833!5e0!3m2!1sen!2sus!4v1"
+          width="100%"
+          height="450"
+          style="border:0; border-radius: 12px;"
+          allowfullscreen
+          loading="lazy"
+          referrerpolicy="no-referrer-when-downgrade"
+          title="Team & League Outfitters location on Google Maps"
+        ></iframe>
+        <noscript>
+          <p>
+            <a href="https://maps.google.com/maps?q=103+E+Main+St,+Georgetown,+MA+01833" target="_blank" rel="noopener">
+              Get directions on Google Maps
+            </a>
+          </p>
+        </noscript>
+      </div>
+    </div>
+  </section>
+</Base>
+
+<style>
+  .page-header {
+    background: var(--color-primary);
+    color: #fff;
+    padding: var(--space-12) var(--space-6);
+    text-align: center;
+  }
+
+  .page-header h1 { color: #fff; margin-bottom: var(--space-3); }
+  .page-header p { opacity: 0.9; max-width: 520px; margin: 0 auto; }
+
+  .contact-layout {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--space-8);
+  }
+
+  @media (min-width: 768px) {
+    .contact-layout {
+      grid-template-columns: 1fr 1fr;
+      gap: var(--space-12);
+    }
+  }
+
+  .info-block {
+    margin-bottom: var(--space-8);
+  }
+
+  .info-block:last-child {
+    margin-bottom: 0;
+  }
+
+  .info-block h2 {
+    font-size: var(--text-xl);
+    margin-bottom: var(--space-2);
+  }
+
+  .phone-link a {
+    font-family: var(--font-heading);
+    font-weight: 600;
+    font-size: var(--text-xl);
+    color: var(--color-primary);
+  }
+
+  .hours-table {
+    width: 100%;
+    max-width: 300px;
+    border-collapse: collapse;
+  }
+
+  .hours-table td {
+    padding: var(--space-2) 0;
+    border-bottom: 1px solid var(--color-neutral-200);
+  }
+
+  .hours-table td:first-child {
+    font-weight: 600;
+    padding-right: var(--space-6);
+  }
+
+  .hours-table .closed td {
+    color: var(--color-neutral-600);
+  }
+
+  .directions-note {
+    font-size: var(--text-sm);
+    color: var(--color-neutral-600);
+    margin-top: var(--space-2);
+  }
+
+  .contact-map {
+    min-height: 350px;
+  }
+
+  .contact-map iframe {
+    width: 100%;
+    min-height: 350px;
+  }
+
+  @media (min-width: 768px) {
+    .contact-map iframe {
+      min-height: 450px;
+    }
+  }
+</style>

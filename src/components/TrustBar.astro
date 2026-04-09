@@ -1,0 +1,51 @@
+---
+const items = [
+  { stat: '13+', label: 'Years Outfitting Teams' },
+  { stat: 'A+', label: 'BBB Rating' },
+  { stat: 'GYSA', label: 'Approved Supplier' },
+  { stat: '100%', label: 'Custom, Made to Order' },
+];
+---
+
+<section class="trust-bar" aria-label="Trust signals">
+  <div class="trust-bar-inner container">
+    {items.map(item => (
+      <div class="trust-item">
+        <div class="trust-stat">{item.stat}</div>
+        <div class="trust-label">{item.label}</div>
+      </div>
+    ))}
+  </div>
+</section>
+
+<style>
+  .trust-bar {
+    border-bottom: 1px solid var(--color-neutral-200);
+    padding: var(--space-8) 0;
+  }
+
+  .trust-bar-inner {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: var(--space-8) var(--space-12);
+  }
+
+  .trust-item {
+    text-align: center;
+  }
+
+  .trust-stat {
+    font-family: var(--font-heading);
+    font-weight: 700;
+    font-size: var(--text-3xl);
+    color: var(--color-primary);
+    line-height: 1.1;
+  }
+
+  .trust-label {
+    font-size: var(--text-sm);
+    color: var(--color-neutral-600);
+    margin-top: var(--space-1);
+  }
+</style>

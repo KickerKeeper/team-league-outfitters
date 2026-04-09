@@ -1,0 +1,50 @@
+---
+interface Props {
+  headline?: string;
+  subtext?: string;
+  buttonText?: string;
+  buttonHref?: string;
+}
+
+const {
+  headline = "Ready to suit up your team?",
+  subtext = "Tell us what you need — sport, colors, sizes, numbers. We'll take care of the rest.",
+  buttonText = "Get Started",
+  buttonHref = "/order",
+} = Astro.props;
+---
+
+<section class="cta-banner">
+  <div class="container cta-inner">
+    <h2>{headline}</h2>
+    <p>{subtext}</p>
+    <a href={buttonHref} class="btn btn-accent">{buttonText}</a>
+  </div>
+</section>
+
+<style>
+  .cta-banner {
+    background: var(--color-primary);
+    color: #fff;
+    text-align: center;
+    padding: var(--space-16) var(--space-6);
+  }
+
+  .cta-inner h2 {
+    font-size: var(--text-3xl);
+    color: #fff;
+    margin-bottom: var(--space-3);
+  }
+
+  .cta-inner p {
+    opacity: 0.9;
+    max-width: 480px;
+    margin: 0 auto var(--space-8);
+  }
+
+  @media (min-width: 768px) {
+    .cta-banner {
+      padding: var(--space-24) var(--space-6);
+    }
+  }
+</style>
