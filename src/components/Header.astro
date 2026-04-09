@@ -131,20 +131,26 @@ const navLinks = [
   .hamburger {
     display: none;
     flex-direction: column;
-    gap: 5px;
+    gap: 6px;
     background: none;
     border: none;
     cursor: pointer;
-    padding: 8px;
+    padding: 12px;
+    min-width: 48px;
+    min-height: 48px;
+    align-items: center;
+    justify-content: center;
+    -webkit-tap-highlight-color: transparent;
   }
 
   .hamburger-line {
     display: block;
-    width: 24px;
-    height: 2px;
+    width: 26px;
+    height: 3px;
     background: var(--color-neutral-900);
     border-radius: 2px;
     transition: transform var(--transition-fast);
+    pointer-events: none;
   }
 
   /* Mobile menu */
@@ -236,35 +242,3 @@ const navLinks = [
   }
 </style>
 
-<script>
-  const toggle = document.getElementById('menu-toggle') as HTMLButtonElement;
-  const closeBtn = document.getElementById('menu-close') as HTMLButtonElement;
-  const overlay = document.getElementById('mobile-overlay') as HTMLElement;
-  const menu = document.getElementById('mobile-menu') as HTMLElement;
-
-  function openMenu() {
-    menu.classList.add('open');
-    menu.setAttribute('aria-hidden', 'false');
-    toggle.setAttribute('aria-expanded', 'true');
-    document.body.style.overflow = 'hidden';
-    closeBtn.focus();
-  }
-
-  function closeMenu() {
-    menu.classList.remove('open');
-    menu.setAttribute('aria-hidden', 'true');
-    toggle.setAttribute('aria-expanded', 'false');
-    document.body.style.overflow = '';
-    toggle.focus();
-  }
-
-  toggle.addEventListener('click', openMenu);
-  closeBtn.addEventListener('click', closeMenu);
-  overlay.addEventListener('click', closeMenu);
-
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && menu.classList.contains('open')) {
-      closeMenu();
-    }
-  });
-</script>
