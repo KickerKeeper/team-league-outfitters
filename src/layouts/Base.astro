@@ -67,37 +67,5 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
     <slot />
   </main>
   <Footer />
-  <script is:inline>
-  (function() {
-    var toggle = document.getElementById('menu-toggle');
-    var closeBtn = document.getElementById('menu-close');
-    var overlay = document.getElementById('mobile-overlay');
-    var menu = document.getElementById('mobile-menu');
-    if (!toggle || !menu) return;
-
-    toggle.onclick = function() {
-      menu.classList.add('open');
-      menu.setAttribute('aria-hidden', 'false');
-      toggle.setAttribute('aria-expanded', 'true');
-      document.body.style.overflow = 'hidden';
-      if (closeBtn) closeBtn.focus();
-    };
-
-    if (closeBtn) closeBtn.onclick = close;
-    if (overlay) overlay.onclick = close;
-
-    function close() {
-      menu.classList.remove('open');
-      menu.setAttribute('aria-hidden', 'true');
-      toggle.setAttribute('aria-expanded', 'false');
-      document.body.style.overflow = '';
-      toggle.focus();
-    }
-
-    document.onkeydown = function(e) {
-      if (e.key === 'Escape' && menu.classList.contains('open')) close();
-    };
-  })();
-  </script>
 </body>
 </html>
