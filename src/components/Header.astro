@@ -89,9 +89,9 @@ const navLinks = [
     width: auto;
   }
 
-  /* Desktop nav */
+  /* Nav links — hidden on mobile, shown on desktop */
   .nav-links {
-    display: flex;
+    display: none;
     align-items: center;
     gap: 28px;
     list-style: none;
@@ -128,9 +128,9 @@ const navLinks = [
     color: #fff !important;
   }
 
-  /* Hamburger */
+  /* Hamburger — shown on mobile, hidden on desktop */
   .hamburger {
-    display: none;
+    display: flex;
     flex-direction: column;
     gap: 6px;
     background: none;
@@ -142,6 +142,8 @@ const navLinks = [
     align-items: center;
     justify-content: center;
     -webkit-tap-highlight-color: transparent;
+    position: relative;
+    z-index: 10;
   }
 
   .hamburger-line {
@@ -232,13 +234,13 @@ const navLinks = [
     color: var(--color-primary);
   }
 
-  @media (max-width: 767px) {
+  @media (min-width: 768px) {
     .nav-links {
-      display: none;
+      display: flex;
     }
 
     .hamburger {
-      display: flex;
+      display: none;
     }
   }
 </style>
