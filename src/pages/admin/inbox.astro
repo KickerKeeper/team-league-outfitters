@@ -442,16 +442,6 @@ import Admin from '../../layouts/Admin.astro';
     margin-bottom: var(--space-4);
   }
 
-  .reply-to {
-    padding: var(--space-2) var(--space-4);
-    font-size: var(--text-sm);
-    color: var(--color-neutral-600);
-    border-bottom: 1px solid var(--color-neutral-200);
-    background: var(--color-neutral-50);
-  }
-
-  .reply-to strong { color: var(--color-neutral-900); }
-
   .reply-textarea {
     width: 100%;
     min-height: 100px;
@@ -489,18 +479,7 @@ import Admin from '../../layouts/Admin.astro';
   .reply-send:hover { background: var(--color-primary-dark); }
   .reply-send:disabled { opacity: 0.6; cursor: not-allowed; }
 
-  .no-email {
-    font-size: var(--text-sm);
-    color: var(--color-neutral-600);
-    font-style: italic;
-    padding: var(--space-3);
-    background: #fff;
-    border-radius: var(--radius-md);
-    border: 1px dashed var(--color-neutral-200);
-    text-align: center;
-  }
-
-  /* Reply history */
+  /* Notes history */
   .reply-thread { margin-top: var(--space-4); }
 
   .reply-thread-title {
@@ -731,24 +710,19 @@ import Admin from '../../layouts/Admin.astro';
       sectionsHtml += '</div></div>';
     }
 
-    // Build reply thread
+    // Build notes thread
     var threadHtml = '';
     if (sub.replies && sub.replies.length > 0) {
-      threadHtml = '<div class="reply-thread"><div class="reply-thread-title">Conversation History</div>';
+      threadHtml = '<div class="reply-thread"><div class="reply-thread-title">Notes</div>';
       sub.replies.forEach(function(r) {
         var rDate = new Date(r.sentAt).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
-        threadHtml += '<div class="reply-bubble"><div class="reply-bubble-header"><span class="reply-bubble-to">To: ' + esc(r.to) + '</span><span class="reply-bubble-date">' + rDate + '</span></div><div class="reply-bubble-body">' + esc(r.body) + '</div></div>';
+        threadHtml += '<div class="reply-bubble"><div class="reply-bubble-header"><span class="reply-bubble-to">Note</span><span class="reply-bubble-date">' + rDate + '</span></div><div class="reply-bubble-body">' + esc(r.body) + '</div></div>';
       });
       threadHtml += '</div>';
     }
 
-    // Build reply composer
-    var replyHtml = '';
-    if (email) {
-      replyHtml = '<div class="reply-compose"><div class="reply-to">To: <strong>' + esc(email) + '</strong></div><textarea class="reply-textarea" id="reply-body" placeholder="Write your reply..."></textarea><div class="reply-toolbar"><button class="reply-send" id="reply-send" onclick="sendReply(\'' + id + '\', \'' + esc(email) + '\')">Send Reply</button></div></div>';
-    } else {
-      replyHtml = '<div class="no-email">No email address provided — reply by phone</div>';
-    }
+    // Build notes composer
+    var notesHtml = '<div class="reply-compose"><textarea class="reply-textarea" id="reply-body" placeholder="Add a note about this order..."></textarea><div class="reply-toolbar"><button class="reply-send" id="reply-send" onclick="addNote(\'' + id + '\')">Add Note</button></div></div>';
 
     detail.innerHTML =
       '<div class="detail-top">' +
@@ -763,8 +737,8 @@ import Admin from '../../layouts/Admin.astro';
       '</div>' +
       '<div class="detail-body">' + sectionsHtml + '</div>' +
       '<div class="reply-section">' +
-        '<div class="reply-section-title">Reply</div>' +
-        replyHtml +
+        '<div class="reply-section-title">Notes & Activity</div>' +
+        notesHtml +
         threadHtml +
       '</div>';
   }
@@ -783,19 +757,19 @@ import Admin from '../../layouts/Admin.astro';
     });
   }
 
-  function sendReply(id, to) {
+  function addNote(id) {
     var bodyEl = document.getElementById('reply-body');
     var body = bodyEl.value;
     if (!body.trim()) return;
 
     var btn = document.getElementById('reply-send');
     btn.disabled = true;
-    btn.textContent = 'Sending...';
+    btn.textContent = 'Saving...';
 
     fetch('/api/inbox/reply', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: id, to: to, body: body })
+      body: JSON.stringify({ id: id, body: body })
     })
     .then(function(r) {
       if (r.ok) return r.json();
