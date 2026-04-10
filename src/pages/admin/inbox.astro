@@ -344,6 +344,15 @@ import Admin from '../../layouts/Admin.astro';
     color: var(--color-neutral-600);
   }
 
+  .action-btn.delete-btn {
+    color: var(--color-neutral-600);
+  }
+
+  .action-btn.delete-btn:hover {
+    color: var(--color-error);
+    border-color: var(--color-error);
+  }
+
   .completed-badge {
     display: inline-flex;
     align-items: center;
@@ -714,6 +723,7 @@ import Admin from '../../layouts/Admin.astro';
     } else {
       actionsHtml = '<button class="action-btn complete-btn" onclick="updateStatus(\'' + id + '\', \'completed\')">&#10003; Mark Done</button>';
     }
+    actionsHtml += '<button class="action-btn delete-btn" onclick="deleteSubmission(\'' + id + '\')">&#128465; Delete</button>';
 
     // Build field sections
     var sectionsHtml = '';
@@ -802,6 +812,22 @@ import Admin from '../../layouts/Admin.astro';
       updateCounts();
       renderList();
       showDetail(id);
+    });
+  }
+
+  function deleteSubmission(id) {
+    if (!confirm('Delete this submission? This cannot be undone.')) return;
+
+    fetch('/api/inbox/delete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: id })
+    }).then(function() {
+      allSubmissions = allSubmissions.filter(function(s) { return s.id !== id; });
+      selectedId = null;
+      updateCounts();
+      renderList();
+      document.getElementById('inbox-detail').innerHTML = '<div class="detail-placeholder"><div class="placeholder-icon">&#9993;</div><p>Select a submission to view details</p></div>';
     });
   }
 
