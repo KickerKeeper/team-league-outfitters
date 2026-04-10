@@ -442,6 +442,35 @@ import Admin from '../../layouts/Admin.astro';
     margin-bottom: var(--space-4);
   }
 
+  .compose-tabs {
+    display: flex;
+    border-bottom: 1px solid var(--color-neutral-200);
+  }
+
+  .compose-tab {
+    flex: 1;
+    padding: 10px;
+    font-family: var(--font-heading);
+    font-size: var(--text-xs);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border: none;
+    background: var(--color-neutral-50);
+    color: var(--color-neutral-600);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+  }
+
+  .compose-tab:first-child { border-right: 1px solid var(--color-neutral-200); }
+
+  .compose-tab.active {
+    background: #fff;
+    color: var(--color-primary);
+  }
+
+  .compose-tab:hover:not(.active) { color: var(--color-neutral-900); }
+
   .reply-textarea {
     width: 100%;
     min-height: 100px;
@@ -500,15 +529,18 @@ import Admin from '../../layouts/Admin.astro';
     position: relative;
   }
 
-  .reply-bubble::before {
-    content: '';
-    position: absolute;
-    left: -1px;
-    top: 0;
-    bottom: 0;
-    width: 3px;
-    background: var(--color-primary);
-    border-radius: 3px 0 0 3px;
+  .reply-bubble.msg-sent {
+    border-left: 3px solid var(--color-primary);
+  }
+
+  .reply-bubble.msg-received {
+    border-left: 3px solid var(--color-accent);
+    background: var(--color-accent-light);
+  }
+
+  .reply-bubble.msg-note {
+    border-left: 3px solid var(--color-neutral-200);
+    background: var(--color-neutral-50);
   }
 
   .reply-bubble-header {
@@ -710,19 +742,35 @@ import Admin from '../../layouts/Admin.astro';
       sectionsHtml += '</div></div>';
     }
 
-    // Build notes thread
+    // Build message thread
+    var msgs = sub.messages || sub.replies || [];
     var threadHtml = '';
-    if (sub.replies && sub.replies.length > 0) {
-      threadHtml = '<div class="reply-thread"><div class="reply-thread-title">Notes</div>';
-      sub.replies.forEach(function(r) {
-        var rDate = new Date(r.sentAt).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
-        threadHtml += '<div class="reply-bubble"><div class="reply-bubble-header"><span class="reply-bubble-to">Note</span><span class="reply-bubble-date">' + rDate + '</span></div><div class="reply-bubble-body">' + esc(r.body) + '</div></div>';
+    if (msgs.length > 0) {
+      threadHtml = '<div class="reply-thread"><div class="reply-thread-title">Conversation</div>';
+      // Show oldest first
+      var sorted = msgs.slice().sort(function(a, b) { return new Date(a.timestamp || a.sentAt).getTime() - new Date(b.timestamp || b.sentAt).getTime(); });
+      sorted.forEach(function(m) {
+        var mDate = new Date(m.timestamp || m.sentAt).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+        var msgType = m.type || 'note';
+        var label = msgType === 'sent' ? 'You &rarr; ' + esc(m.to || email) : msgType === 'received' ? esc(m.from || email) + ' &rarr; You' : 'Internal Note';
+        threadHtml += '<div class="reply-bubble msg-' + msgType + '"><div class="reply-bubble-header"><span class="reply-bubble-to">' + label + '</span><span class="reply-bubble-date">' + mDate + '</span></div><div class="reply-bubble-body">' + esc(m.body) + '</div></div>';
       });
       threadHtml += '</div>';
     }
 
-    // Build notes composer
-    var notesHtml = '<div class="reply-compose"><textarea class="reply-textarea" id="reply-body" placeholder="Add a note about this order..."></textarea><div class="reply-toolbar"><button class="reply-send" id="reply-send" onclick="addNote(\'' + id + '\')">Add Note</button></div></div>';
+    // Build composer — tabs for Email vs Note
+    var composerHtml = '<div class="reply-compose">';
+    if (email) {
+      composerHtml += '<div class="compose-tabs">' +
+        '<button class="compose-tab active" data-mode="email" onclick="setComposeMode(\'email\')">Email ' + esc(email) + '</button>' +
+        '<button class="compose-tab" data-mode="note" onclick="setComposeMode(\'note\')">Internal Note</button>' +
+      '</div>';
+    }
+    composerHtml += '<textarea class="reply-textarea" id="reply-body" placeholder="' + (email ? 'Write your email...' : 'Add a note...') + '"></textarea>' +
+      '<div class="reply-toolbar">' +
+        '<input type="hidden" id="compose-mode" value="' + (email ? 'email' : 'note') + '" />' +
+        '<button class="reply-send" id="reply-send" onclick="sendMessage(\'' + id + '\', \'' + esc(email) + '\')">' + (email ? 'Send Email' : 'Add Note') + '</button>' +
+      '</div></div>';
 
     detail.innerHTML =
       '<div class="detail-top">' +
@@ -737,8 +785,8 @@ import Admin from '../../layouts/Admin.astro';
       '</div>' +
       '<div class="detail-body">' + sectionsHtml + '</div>' +
       '<div class="reply-section">' +
-        '<div class="reply-section-title">Notes & Activity</div>' +
-        notesHtml +
+        '<div class="reply-section-title">Messages & Notes</div>' +
+        composerHtml +
         threadHtml +
       '</div>';
   }
@@ -757,31 +805,55 @@ import Admin from '../../layouts/Admin.astro';
     });
   }
 
-  function addNote(id) {
+  function setComposeMode(mode) {
+    document.getElementById('compose-mode').value = mode;
+    var btn = document.getElementById('reply-send');
+    var textarea = document.getElementById('reply-body');
+    document.querySelectorAll('.compose-tab').forEach(function(t) { t.classList.remove('active'); });
+    document.querySelector('.compose-tab[data-mode="' + mode + '"]').classList.add('active');
+    if (mode === 'email') {
+      btn.textContent = 'Send Email';
+      textarea.placeholder = 'Write your email...';
+    } else {
+      btn.textContent = 'Add Note';
+      textarea.placeholder = 'Add an internal note...';
+    }
+  }
+
+  function sendMessage(id, email) {
     var bodyEl = document.getElementById('reply-body');
     var body = bodyEl.value;
     if (!body.trim()) return;
 
+    var mode = document.getElementById('compose-mode').value;
     var btn = document.getElementById('reply-send');
     btn.disabled = true;
-    btn.textContent = 'Saving...';
+    btn.textContent = mode === 'email' ? 'Sending...' : 'Saving...';
+
+    var payload = { id: id, body: body };
+    if (mode === 'email' && email) {
+      payload.to = email;
+      payload.type = 'sent';
+    } else {
+      payload.type = 'note';
+    }
 
     fetch('/api/inbox/reply', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: id, body: body })
+      body: JSON.stringify(payload)
     })
     .then(function(r) {
       if (r.ok) return r.json();
-      throw new Error('Failed');
+      return r.json().then(function(e) { throw new Error(e.error || 'Failed'); });
     })
     .then(function(updated) {
       var sub = allSubmissions.find(function(s) { return s.id === id; });
-      if (sub && updated.replies) sub.replies = updated.replies;
+      if (sub && updated.messages) sub.messages = updated.messages;
       showDetail(id);
     })
-    .catch(function() {
-      btn.textContent = 'Failed — try again';
+    .catch(function(err) {
+      btn.textContent = err.message || 'Failed — try again';
       btn.disabled = false;
     });
   }

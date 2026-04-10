@@ -6,13 +6,16 @@ export interface Submission {
   data: Record<string, string>;
   createdAt: string;
   status: 'new' | 'read' | 'completed';
-  replies: Reply[];
+  messages: Message[];
 }
 
-export interface Reply {
+export interface Message {
+  type: 'note' | 'sent' | 'received';
   body: string;
-  sentAt: string;
-  to: string;
+  timestamp: string;
+  from?: string;
+  to?: string;
+  subject?: string;
 }
 
 export async function getSubmissions(): Promise<Submission[]> {
@@ -28,24 +31,56 @@ export async function getSubmissions(): Promise<Submission[]> {
     for (const id of ids) {
       try {
         const data = await store.get(`submission/${id}`);
-        if (data) submissions.push(JSON.parse(data));
+        if (data) {
+          const sub = JSON.parse(data);
+          // Migrate old format: convert 'replies' to 'messages'
+          if (sub.replies && !sub.messages) {
+            sub.messages = sub.replies.map((r: any) => ({
+              type: r.to === 'internal' ? 'note' : 'sent',
+              body: r.body,
+              timestamp: r.sentAt,
+              to: r.to === 'internal' ? undefined : r.to,
+            }));
+            delete sub.replies;
+          }
+          if (!sub.messages) sub.messages = [];
+          submissions.push(sub);
+        }
       } catch { /* skip missing */ }
     }
 
-    // Sort newest first
     return submissions.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   } catch {
     return [];
   }
 }
 
+export async function getSubmission(id: string): Promise<Submission | null> {
+  const store = getStore('inbox');
+  try {
+    const data = await store.get(`submission/${id}`);
+    if (!data) return null;
+    const sub = JSON.parse(data);
+    if (sub.replies && !sub.messages) {
+      sub.messages = sub.replies.map((r: any) => ({
+        type: r.to === 'internal' ? 'note' : 'sent',
+        body: r.body,
+        timestamp: r.sentAt,
+        to: r.to === 'internal' ? undefined : r.to,
+      }));
+      delete sub.replies;
+    }
+    if (!sub.messages) sub.messages = [];
+    return sub;
+  } catch {
+    return null;
+  }
+}
+
 export async function saveSubmission(sub: Submission) {
   const store = getStore('inbox');
-
-  // Save the submission
   await store.set(`submission/${sub.id}`, JSON.stringify(sub));
 
-  // Update the index
   let ids: string[] = [];
   try {
     const index = await store.get('index');
@@ -69,14 +104,22 @@ export async function updateSubmissionStatus(id: string, status: Submission['sta
   return sub;
 }
 
-export async function addReply(id: string, reply: Reply) {
+export async function addMessage(id: string, message: Message) {
   const store = getStore('inbox');
   const data = await store.get(`submission/${id}`);
   if (!data) return null;
 
   const sub: Submission = JSON.parse(data);
-  sub.replies.push(reply);
-  sub.status = 'read';
+  if (!sub.messages) sub.messages = [];
+  sub.messages.push(message);
+  if (message.type === 'received') sub.status = 'new'; // Mark as new when customer replies
   await store.set(`submission/${id}`, JSON.stringify(sub));
   return sub;
+}
+
+// Find a submission by customer email (for matching inbound replies)
+export async function findByEmail(email: string): Promise<Submission | null> {
+  const submissions = await getSubmissions();
+  // Find the most recent submission from this email
+  return submissions.find(s => s.data.email?.toLowerCase() === email.toLowerCase()) || null;
 }
