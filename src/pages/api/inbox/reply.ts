@@ -21,6 +21,8 @@ export const POST: APIRoute = async ({ request }) => {
   if (messageType === 'sent' && to) {
     const resendKey = import.meta.env.RESEND_API_KEY;
     const fromAddress = import.meta.env.RESEND_FROM || 'Team & League Outfitters <orders@teamleagueoutfitters.com>';
+    const inboundDomain = import.meta.env.RESEND_INBOUND_DOMAIN || 'niwhoig.resend.app';
+    const replyTo = `orders@${inboundDomain}`;
 
     if (resendKey) {
       try {
@@ -32,6 +34,7 @@ export const POST: APIRoute = async ({ request }) => {
           },
           body: JSON.stringify({
             from: fromAddress,
+            reply_to: replyTo,
             to: [to],
             subject: 'Your Order — Team & League Outfitters',
             text: msgBody + '\n\n—\nTeam & League Outfitters\n(978) 352-8240\n103 E Main St #2, Georgetown, MA 01833',

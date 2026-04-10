@@ -37,6 +37,8 @@ export const POST: APIRoute = async ({ request }) => {
     const email = data.email;
     const resendKey = import.meta.env.RESEND_API_KEY;
     const fromAddress = import.meta.env.RESEND_FROM || 'Team & League Outfitters <orders@teamleagueoutfitters.com>';
+    const inboundDomain = import.meta.env.RESEND_INBOUND_DOMAIN || 'niwhoig.resend.app';
+    const replyTo = `orders@${inboundDomain}`;
 
     if (email && resendKey) {
       const name = data.name || 'there';
@@ -81,6 +83,7 @@ Team & League Outfitters
           },
           body: JSON.stringify({
             from: fromAddress,
+            reply_to: replyTo,
             to: [email],
             subject: 'We got your order details — Team & League Outfitters',
             text: emailBody,
