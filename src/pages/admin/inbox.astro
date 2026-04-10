@@ -906,4 +906,27 @@ import Admin from '../../layouts/Admin.astro';
   });
 
   loadInbox();
+
+  // Auto-refresh every 30 seconds
+  setInterval(function() {
+    fetch('/api/inbox/submissions')
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        var hadNew = allSubmissions.filter(function(s) { return s.status === 'new'; }).length;
+        allSubmissions = data;
+        var hasNew = allSubmissions.filter(function(s) { return s.status === 'new'; }).length;
+        updateCounts();
+        renderList();
+        // If viewing a detail, refresh it too
+        if (selectedId) {
+          var current = allSubmissions.find(function(s) { return s.id === selectedId; });
+          if (current) showDetail(selectedId);
+        }
+        // Flash tab title if new submissions arrived
+        if (hasNew > hadNew) {
+          document.title = '(' + hasNew + ') Inbox — TLO Admin';
+        }
+      })
+      .catch(function() { /* silent fail on refresh */ });
+  }, 30000);
 </script>
