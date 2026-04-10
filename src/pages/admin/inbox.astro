@@ -5,24 +5,31 @@ import Admin from '../../layouts/Admin.astro';
 
 <Admin title="Inbox" activeTab="inbox">
   <div class="inbox-header">
-    <h1>Inbox</h1>
-    <div class="inbox-filters">
+    <div class="inbox-header-left">
+      <h1>Inbox</h1>
+      <span class="inbox-count" id="inbox-count"></span>
+    </div>
+    <div class="inbox-filters" id="inbox-filters">
       <button class="filter-btn active" data-filter="all">All</button>
-      <button class="filter-btn" data-filter="new">New</button>
-      <button class="filter-btn" data-filter="read">Read</button>
-      <button class="filter-btn" data-filter="completed">Completed</button>
+      <button class="filter-btn" data-filter="new">New <span class="filter-count" id="count-new"></span></button>
+      <button class="filter-btn" data-filter="read">In Progress</button>
+      <button class="filter-btn" data-filter="completed">Done</button>
     </div>
   </div>
 
   <div class="inbox-layout">
-    <!-- List -->
+    <!-- List panel -->
     <div class="inbox-list" id="inbox-list">
-      <div class="inbox-loading">Loading submissions...</div>
+      <div class="inbox-loading" id="inbox-loading">
+        <div class="loading-dot"></div>
+        <p>Loading submissions...</p>
+      </div>
     </div>
 
     <!-- Detail panel -->
     <div class="inbox-detail" id="inbox-detail">
-      <div class="detail-empty">
+      <div class="detail-placeholder" id="detail-placeholder">
+        <div class="placeholder-icon">&#9993;</div>
         <p>Select a submission to view details</p>
       </div>
     </div>
@@ -30,6 +37,7 @@ import Admin from '../../layouts/Admin.astro';
 </Admin>
 
 <style>
+  /* ── Header ── */
   .inbox-header {
     display: flex;
     align-items: center;
@@ -39,29 +47,41 @@ import Admin from '../../layouts/Admin.astro';
     gap: var(--space-3);
   }
 
-  .inbox-header h1 {
-    font-size: var(--text-2xl);
+  .inbox-header-left {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
   }
 
-  .inbox-filters {
-    display: flex;
-    gap: var(--space-1);
+  .inbox-header h1 { font-size: var(--text-2xl); }
+
+  .inbox-count {
+    font-size: var(--text-sm);
+    color: var(--color-neutral-600);
+    background: var(--color-neutral-50);
+    padding: 2px 10px;
+    border-radius: var(--radius-full);
   }
+
+  .inbox-filters { display: flex; gap: var(--space-1); }
 
   .filter-btn {
     font-family: var(--font-heading);
     font-size: var(--text-sm);
     font-weight: 500;
-    padding: var(--space-1) var(--space-3);
+    padding: 6px 14px;
     border: 1px solid var(--color-neutral-200);
     background: #fff;
-    border-radius: var(--radius-md);
+    border-radius: var(--radius-full);
     cursor: pointer;
     color: var(--color-neutral-600);
     transition: all var(--transition-fast);
+    display: flex;
+    align-items: center;
+    gap: 6px;
   }
 
-  .filter-btn:hover { color: var(--color-neutral-900); }
+  .filter-btn:hover { color: var(--color-neutral-900); border-color: var(--color-neutral-600); }
 
   .filter-btn.active {
     background: var(--color-primary);
@@ -69,60 +89,124 @@ import Admin from '../../layouts/Admin.astro';
     border-color: var(--color-primary);
   }
 
+  .filter-count {
+    font-size: var(--text-xs);
+    background: rgba(255,255,255,0.25);
+    padding: 0 6px;
+    border-radius: var(--radius-full);
+    min-width: 18px;
+    text-align: center;
+    line-height: 18px;
+  }
+
+  .filter-btn:not(.active) .filter-count {
+    background: var(--color-error);
+    color: #fff;
+  }
+
+  /* ── Layout ── */
   .inbox-layout {
     display: grid;
     grid-template-columns: 1fr;
-    gap: var(--space-4);
-    min-height: 500px;
+    gap: 0;
+    min-height: 600px;
+    border: 1px solid var(--color-neutral-200);
+    border-radius: var(--radius-xl);
+    overflow: hidden;
+    background: #fff;
   }
 
   @media (min-width: 768px) {
     .inbox-layout {
-      grid-template-columns: 380px 1fr;
+      grid-template-columns: 360px 1fr;
     }
   }
 
+  /* ── List panel ── */
   .inbox-list {
-    background: #fff;
-    border: 1px solid var(--color-neutral-200);
-    border-radius: var(--radius-xl);
     overflow-y: auto;
-    max-height: 70vh;
+    max-height: 75vh;
+    border-right: 1px solid var(--color-neutral-200);
   }
 
   .inbox-loading {
-    padding: var(--space-8);
+    padding: var(--space-12);
     text-align: center;
     color: var(--color-neutral-600);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-3);
   }
 
+  .loading-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--color-primary);
+    animation: pulse 1s ease infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 0.3; }
+    50% { opacity: 1; }
+  }
+
+  /* ── List items ── */
   .inbox-item {
     padding: var(--space-4) var(--space-6);
     border-bottom: 1px solid var(--color-neutral-50);
     cursor: pointer;
     transition: background var(--transition-fast);
+    position: relative;
   }
 
   .inbox-item:hover { background: var(--color-neutral-50); }
-  .inbox-item.selected { background: rgba(43, 94, 167, 0.06); border-left: 3px solid var(--color-primary); }
-  .inbox-item.status-new { font-weight: 600; }
 
-  .inbox-item-header {
+  .inbox-item.selected {
+    background: rgba(43, 94, 167, 0.05);
+  }
+
+  .inbox-item.selected::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background: var(--color-primary);
+  }
+
+  .inbox-item-top {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: var(--space-1);
+    margin-bottom: 4px;
   }
 
   .inbox-item-name {
     font-family: var(--font-heading);
     font-size: var(--text-sm);
+    font-weight: 600;
     color: var(--color-neutral-900);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .inbox-item.is-new .inbox-item-name::before {
+    content: '';
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--color-primary);
+    flex-shrink: 0;
   }
 
   .inbox-item-date {
     font-size: var(--text-xs);
     color: var(--color-neutral-600);
+    flex-shrink: 0;
   }
 
   .inbox-item-preview {
@@ -131,11 +215,16 @@ import Admin from '../../layouts/Admin.astro';
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    margin-bottom: 4px;
   }
 
-  .status-badge {
-    display: inline-block;
-    font-size: var(--text-xs);
+  .inbox-item-tags {
+    display: flex;
+    gap: 6px;
+  }
+
+  .tag {
+    font-size: 10px;
     padding: 1px 8px;
     border-radius: var(--radius-full);
     font-weight: 600;
@@ -143,167 +232,346 @@ import Admin from '../../layouts/Admin.astro';
     letter-spacing: 0.5px;
   }
 
-  .status-new { background: #e3f2fd; color: #1565c0; }
-  .status-read { background: var(--color-neutral-50); color: var(--color-neutral-600); }
-  .status-completed { background: #e8f5e9; color: #2e7d32; }
+  .tag-sport { background: #e3f2fd; color: #1565c0; }
+  .tag-new { background: var(--color-accent-light); color: #b8860b; }
+  .tag-completed { background: #e8f5e9; color: #2e7d32; }
+  .tag-fulfillment { background: #f3e5f5; color: #7b1fa2; }
 
-  /* Detail panel */
+  /* ── Detail panel ── */
   .inbox-detail {
-    background: #fff;
-    border: 1px solid var(--color-neutral-200);
-    border-radius: var(--radius-xl);
-    padding: var(--space-6);
     overflow-y: auto;
-    max-height: 70vh;
+    max-height: 75vh;
+    padding: 0;
   }
 
-  .detail-empty {
+  .detail-placeholder {
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
     height: 100%;
-    min-height: 200px;
+    min-height: 400px;
     color: var(--color-neutral-600);
+    gap: var(--space-3);
   }
 
-  .detail-header {
+  .placeholder-icon {
+    font-size: 3rem;
+    opacity: 0.3;
+  }
+
+  /* Detail content */
+  .detail-top {
+    padding: var(--space-6);
+    border-bottom: 1px solid var(--color-neutral-200);
+    background: var(--color-neutral-50);
+  }
+
+  .detail-top-row {
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
-    margin-bottom: var(--space-6);
-    flex-wrap: wrap;
     gap: var(--space-3);
+    flex-wrap: wrap;
   }
 
   .detail-name {
     font-family: var(--font-heading);
     font-size: var(--text-xl);
-    font-weight: 600;
+    font-weight: 700;
+    color: var(--color-neutral-900);
   }
 
   .detail-meta {
     font-size: var(--text-sm);
     color: var(--color-neutral-600);
-    margin-top: var(--space-1);
+    margin-top: 4px;
+  }
+
+  .detail-contact {
+    display: flex;
+    gap: var(--space-6);
+    margin-top: var(--space-3);
+    flex-wrap: wrap;
+  }
+
+  .detail-contact a {
+    font-size: var(--text-sm);
+    color: var(--color-primary);
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .detail-contact a:hover { text-decoration: underline; }
+
+  .contact-icon {
+    font-size: var(--text-base);
   }
 
   .detail-actions {
     display: flex;
     gap: var(--space-2);
+    flex-shrink: 0;
   }
 
-  .detail-actions button {
-    font-family: var(--font-body);
-    font-size: var(--text-sm);
-    padding: var(--space-1) var(--space-3);
+  .action-btn {
+    font-family: var(--font-heading);
+    font-size: var(--text-xs);
+    font-weight: 600;
+    padding: 6px 14px;
     border-radius: var(--radius-md);
     cursor: pointer;
     border: 1px solid var(--color-neutral-200);
     background: #fff;
     transition: all var(--transition-fast);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
   }
 
-  .detail-actions button:hover {
-    border-color: var(--color-primary);
-    color: var(--color-primary);
-  }
+  .action-btn:hover { border-color: var(--color-primary); color: var(--color-primary); }
 
-  .detail-actions .mark-complete {
+  .action-btn.complete-btn {
     background: var(--color-success);
     color: #fff;
     border-color: var(--color-success);
   }
 
-  .detail-fields {
-    margin-bottom: var(--space-6);
-  }
+  .action-btn.complete-btn:hover { filter: brightness(0.9); color: #fff; }
 
-  .detail-field {
-    display: grid;
-    grid-template-columns: 140px 1fr;
-    gap: var(--space-2);
-    padding: var(--space-2) 0;
-    border-bottom: 1px solid var(--color-neutral-50);
-    font-size: var(--text-sm);
-  }
-
-  .detail-field-label {
-    font-weight: 600;
+  .action-btn.reopen-btn {
     color: var(--color-neutral-600);
   }
 
-  .detail-field-value {
+  .completed-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: var(--text-xs);
+    font-weight: 600;
+    color: #2e7d32;
+    background: #e8f5e9;
+    padding: 4px 12px;
+    border-radius: var(--radius-full);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  /* Detail body sections */
+  .detail-body {
+    padding: var(--space-6);
+  }
+
+  .detail-section {
+    margin-bottom: var(--space-6);
+  }
+
+  .detail-section:last-child { margin-bottom: 0; }
+
+  .detail-section-title {
+    font-family: var(--font-heading);
+    font-size: var(--text-xs);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--color-neutral-600);
+    margin-bottom: var(--space-3);
+    padding-bottom: var(--space-2);
+    border-bottom: 1px solid var(--color-neutral-200);
+  }
+
+  .detail-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--space-3);
+  }
+
+  @media (min-width: 1024px) {
+    .detail-grid.two-col { grid-template-columns: 1fr 1fr; }
+  }
+
+  .field-item {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .field-label {
+    font-size: var(--text-xs);
+    font-weight: 600;
+    color: var(--color-neutral-600);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .field-value {
+    font-size: var(--text-sm);
     color: var(--color-neutral-900);
     white-space: pre-wrap;
+    line-height: 1.5;
   }
 
-  /* Reply section */
+  .field-value.empty {
+    color: var(--color-neutral-600);
+    font-style: italic;
+  }
+
+  /* ── Reply section ── */
   .reply-section {
+    padding: var(--space-6);
     border-top: 1px solid var(--color-neutral-200);
-    padding-top: var(--space-6);
-    margin-top: var(--space-6);
+    background: var(--color-neutral-50);
   }
 
-  .reply-section h3 {
-    font-size: var(--text-base);
-    margin-bottom: var(--space-3);
+  .reply-section-title {
+    font-family: var(--font-heading);
+    font-size: var(--text-xs);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--color-neutral-600);
+    margin-bottom: var(--space-4);
   }
+
+  .reply-compose {
+    background: #fff;
+    border: 1px solid var(--color-neutral-200);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    margin-bottom: var(--space-4);
+  }
+
+  .reply-to {
+    padding: var(--space-2) var(--space-4);
+    font-size: var(--text-sm);
+    color: var(--color-neutral-600);
+    border-bottom: 1px solid var(--color-neutral-200);
+    background: var(--color-neutral-50);
+  }
+
+  .reply-to strong { color: var(--color-neutral-900); }
 
   .reply-textarea {
     width: 100%;
     min-height: 100px;
-    padding: 12px;
-    border: 1px solid var(--color-neutral-200);
-    border-radius: var(--radius-md);
+    padding: var(--space-4);
+    border: none;
     font-family: var(--font-body);
     font-size: var(--text-sm);
     resize: vertical;
-    margin-bottom: var(--space-3);
+    line-height: 1.6;
+    color: var(--color-neutral-900);
   }
 
-  .reply-textarea:focus {
-    outline: none;
-    border-color: var(--color-primary);
-    box-shadow: 0 0 0 3px rgba(43, 94, 167, 0.15);
+  .reply-textarea:focus { outline: none; }
+
+  .reply-toolbar {
+    display: flex;
+    justify-content: flex-end;
+    padding: var(--space-2) var(--space-3);
+    border-top: 1px solid var(--color-neutral-200);
   }
 
   .reply-send {
     background: var(--color-primary);
     color: #fff;
     border: none;
-    padding: var(--space-2) var(--space-6);
-    border-radius: var(--radius-lg);
+    padding: 8px 20px;
+    border-radius: var(--radius-md);
     font-family: var(--font-heading);
     font-weight: 600;
     font-size: var(--text-sm);
     cursor: pointer;
+    transition: background var(--transition-fast);
   }
 
   .reply-send:hover { background: var(--color-primary-dark); }
   .reply-send:disabled { opacity: 0.6; cursor: not-allowed; }
 
-  .reply-history {
-    margin-top: var(--space-4);
-  }
-
-  .reply-item {
-    background: var(--color-neutral-50);
-    border-radius: var(--radius-md);
-    padding: var(--space-3) var(--space-4);
-    margin-bottom: var(--space-2);
+  .no-email {
     font-size: var(--text-sm);
+    color: var(--color-neutral-600);
+    font-style: italic;
+    padding: var(--space-3);
+    background: #fff;
+    border-radius: var(--radius-md);
+    border: 1px dashed var(--color-neutral-200);
+    text-align: center;
   }
 
-  .reply-item-meta {
+  /* Reply history */
+  .reply-thread { margin-top: var(--space-4); }
+
+  .reply-thread-title {
+    font-size: var(--text-xs);
+    font-weight: 600;
+    color: var(--color-neutral-600);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: var(--space-3);
+  }
+
+  .reply-bubble {
+    background: #fff;
+    border: 1px solid var(--color-neutral-200);
+    border-radius: var(--radius-lg);
+    padding: var(--space-3) var(--space-4);
+    margin-bottom: var(--space-3);
+    position: relative;
+  }
+
+  .reply-bubble::before {
+    content: '';
+    position: absolute;
+    left: -1px;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background: var(--color-primary);
+    border-radius: 3px 0 0 3px;
+  }
+
+  .reply-bubble-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--space-2);
+  }
+
+  .reply-bubble-to {
+    font-size: var(--text-xs);
+    color: var(--color-primary);
+    font-weight: 600;
+  }
+
+  .reply-bubble-date {
     font-size: var(--text-xs);
     color: var(--color-neutral-600);
-    margin-bottom: var(--space-1);
   }
 
+  .reply-bubble-body {
+    font-size: var(--text-sm);
+    color: var(--color-neutral-900);
+    line-height: 1.6;
+    white-space: pre-wrap;
+  }
+
+  /* ── Empty state ── */
   .inbox-empty {
     padding: var(--space-12);
     text-align: center;
     color: var(--color-neutral-600);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-2);
+  }
+
+  .inbox-empty-icon {
+    font-size: 2rem;
+    opacity: 0.3;
+    margin-bottom: var(--space-2);
   }
 </style>
 
@@ -312,16 +580,44 @@ import Admin from '../../layouts/Admin.astro';
   var currentFilter = 'all';
   var selectedId = null;
 
+  // Field display configuration — organized into sections
+  var fieldSections = {
+    contact: { title: 'Contact Information', fields: ['name', 'email', 'phone'], cols: true },
+    team: { title: 'Team Details', fields: ['team', 'sport', 'colors', 'players', 'sizes', 'numbers'] },
+    order: { title: 'Order Preferences', fields: ['customization', 'fulfillment', 'notes'] }
+  };
+
+  var fieldLabels = {
+    name: 'Name', email: 'Email', phone: 'Phone',
+    team: 'Team / Organization', sport: 'Sport', colors: 'Team Colors',
+    players: 'Number of Players', sizes: 'Sizes & Quantities', numbers: 'Uniform Numbers',
+    customization: 'Customization Type', fulfillment: 'Pickup or Ship', notes: 'Additional Notes'
+  };
+
   function loadInbox() {
     fetch('/api/inbox/submissions')
       .then(function(r) { return r.json(); })
       .then(function(data) {
         allSubmissions = data;
+        updateCounts();
         renderList();
       })
       .catch(function() {
-        document.getElementById('inbox-list').innerHTML = '<div class="inbox-empty"><p>Failed to load submissions</p></div>';
+        document.getElementById('inbox-list').innerHTML = '<div class="inbox-empty"><div class="inbox-empty-icon">&#9888;</div><p>Failed to load submissions</p></div>';
       });
+  }
+
+  function updateCounts() {
+    var newCount = allSubmissions.filter(function(s) { return s.status === 'new'; }).length;
+    var total = allSubmissions.length;
+    document.getElementById('inbox-count').textContent = total + ' total';
+    var countEl = document.getElementById('count-new');
+    if (newCount > 0) {
+      countEl.textContent = newCount;
+      countEl.style.display = '';
+    } else {
+      countEl.style.display = 'none';
+    }
   }
 
   function renderList() {
@@ -332,20 +628,36 @@ import Admin from '../../layouts/Admin.astro';
     }
 
     if (filtered.length === 0) {
-      list.innerHTML = '<div class="inbox-empty"><p>No submissions' + (currentFilter !== 'all' ? ' with status "' + currentFilter + '"' : '') + '</p></div>';
+      list.innerHTML = '<div class="inbox-empty"><div class="inbox-empty-icon">&#128235;</div><p>No ' + (currentFilter !== 'all' ? currentFilter + ' ' : '') + 'submissions</p></div>';
       return;
     }
 
     list.innerHTML = filtered.map(function(s) {
       var name = s.data.name || s.data.team || 'Unknown';
-      var preview = s.data.sport ? s.data.sport + ' — ' + (s.data.team || '') : s.formName;
-      var date = new Date(s.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-      return '<div class="inbox-item status-' + s.status + (s.id === selectedId ? ' selected' : '') + '" data-id="' + s.id + '">' +
-        '<div class="inbox-item-header">' +
-          '<span class="inbox-item-name">' + escapeHtml(name) + '</span>' +
-          '<span class="status-badge status-' + s.status + '">' + s.status + '</span>' +
+      var sport = s.data.sport || '';
+      var team = s.data.team || '';
+      var fulfillment = s.data.fulfillment || '';
+      var date = new Date(s.createdAt);
+      var now = new Date();
+      var dateStr;
+      if (date.toDateString() === now.toDateString()) {
+        dateStr = date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+      } else {
+        dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      }
+
+      var tags = '';
+      if (sport) tags += '<span class="tag tag-sport">' + esc(sport) + '</span>';
+      if (s.status === 'completed') tags += '<span class="tag tag-completed">Done</span>';
+      if (fulfillment) tags += '<span class="tag tag-fulfillment">' + esc(fulfillment) + '</span>';
+
+      return '<div class="inbox-item' + (s.status === 'new' ? ' is-new' : '') + (s.id === selectedId ? ' selected' : '') + '" data-id="' + s.id + '">' +
+        '<div class="inbox-item-top">' +
+          '<span class="inbox-item-name">' + esc(name) + '</span>' +
+          '<span class="inbox-item-date">' + dateStr + '</span>' +
         '</div>' +
-        '<div class="inbox-item-preview">' + escapeHtml(preview) + ' &middot; ' + date + '</div>' +
+        '<div class="inbox-item-preview">' + esc(team || s.formName) + (s.data.players ? ' &middot; ' + esc(s.data.players) + ' players' : '') + '</div>' +
+        (tags ? '<div class="inbox-item-tags">' + tags + '</div>' : '') +
       '</div>';
     }).join('');
 
@@ -359,7 +671,6 @@ import Admin from '../../layouts/Admin.astro';
     var sub = allSubmissions.find(function(s) { return s.id === id; });
     if (!sub) return;
 
-    // Mark as read if new
     if (sub.status === 'new') {
       fetch('/api/inbox/update', {
         method: 'POST',
@@ -367,64 +678,114 @@ import Admin from '../../layouts/Admin.astro';
         body: JSON.stringify({ id: id, status: 'read' })
       }).then(function() {
         sub.status = 'read';
+        updateCounts();
         renderList();
       });
+    } else {
+      renderList();
     }
-
-    renderList(); // Update selected state
 
     var detail = document.getElementById('inbox-detail');
     var email = sub.data.email || '';
-    var date = new Date(sub.createdAt).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
+    var phone = sub.data.phone || '';
+    var date = new Date(sub.createdAt).toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
 
-    var fieldsHtml = Object.entries(sub.data).map(function(e) {
-      return '<div class="detail-field"><span class="detail-field-label">' + escapeHtml(formatLabel(e[0])) + '</span><span class="detail-field-value">' + escapeHtml(e[1] || '—') + '</span></div>';
-    }).join('');
+    // Build contact links
+    var contactHtml = '';
+    if (email) contactHtml += '<a href="mailto:' + esc(email) + '"><span class="contact-icon">&#9993;</span> ' + esc(email) + '</a>';
+    if (phone) contactHtml += '<a href="tel:' + esc(phone) + '"><span class="contact-icon">&#9742;</span> ' + esc(phone) + '</a>';
 
-    var repliesHtml = '';
+    // Build actions
+    var actionsHtml = '';
+    if (sub.status === 'completed') {
+      actionsHtml = '<span class="completed-badge">&#10003; Completed</span>' +
+        '<button class="action-btn reopen-btn" onclick="updateStatus(\'' + id + '\', \'read\')">Reopen</button>';
+    } else {
+      actionsHtml = '<button class="action-btn complete-btn" onclick="updateStatus(\'' + id + '\', \'completed\')">&#10003; Mark Done</button>';
+    }
+
+    // Build field sections
+    var sectionsHtml = '';
+    Object.keys(fieldSections).forEach(function(key) {
+      var sec = fieldSections[key];
+      var fieldsInSection = sec.fields.filter(function(f) { return sub.data[f] !== undefined; });
+      if (fieldsInSection.length === 0) return;
+
+      sectionsHtml += '<div class="detail-section"><div class="detail-section-title">' + sec.title + '</div><div class="detail-grid' + (sec.cols ? ' two-col' : '') + '">';
+      fieldsInSection.forEach(function(f) {
+        var val = sub.data[f] || '';
+        sectionsHtml += '<div class="field-item"><span class="field-label">' + (fieldLabels[f] || formatLabel(f)) + '</span><span class="field-value' + (!val ? ' empty' : '') + '">' + esc(val || 'Not provided') + '</span></div>';
+      });
+      sectionsHtml += '</div></div>';
+    });
+
+    // Check for any extra fields not in our sections
+    var knownFields = [];
+    Object.values(fieldSections).forEach(function(s) { knownFields = knownFields.concat(s.fields); });
+    var extraFields = Object.keys(sub.data).filter(function(k) { return knownFields.indexOf(k) === -1; });
+    if (extraFields.length > 0) {
+      sectionsHtml += '<div class="detail-section"><div class="detail-section-title">Other</div><div class="detail-grid">';
+      extraFields.forEach(function(f) {
+        sectionsHtml += '<div class="field-item"><span class="field-label">' + formatLabel(f) + '</span><span class="field-value">' + esc(sub.data[f] || '—') + '</span></div>';
+      });
+      sectionsHtml += '</div></div>';
+    }
+
+    // Build reply thread
+    var threadHtml = '';
     if (sub.replies && sub.replies.length > 0) {
-      repliesHtml = '<div class="reply-history"><h4>Previous Replies</h4>' +
-        sub.replies.map(function(r) {
-          var rDate = new Date(r.sentAt).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
-          return '<div class="reply-item"><div class="reply-item-meta">Sent to ' + escapeHtml(r.to) + ' &middot; ' + rDate + '</div><div>' + escapeHtml(r.body) + '</div></div>';
-        }).join('') +
-      '</div>';
+      threadHtml = '<div class="reply-thread"><div class="reply-thread-title">Conversation History</div>';
+      sub.replies.forEach(function(r) {
+        var rDate = new Date(r.sentAt).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+        threadHtml += '<div class="reply-bubble"><div class="reply-bubble-header"><span class="reply-bubble-to">To: ' + esc(r.to) + '</span><span class="reply-bubble-date">' + rDate + '</span></div><div class="reply-bubble-body">' + esc(r.body) + '</div></div>';
+      });
+      threadHtml += '</div>';
+    }
+
+    // Build reply composer
+    var replyHtml = '';
+    if (email) {
+      replyHtml = '<div class="reply-compose"><div class="reply-to">To: <strong>' + esc(email) + '</strong></div><textarea class="reply-textarea" id="reply-body" placeholder="Write your reply..."></textarea><div class="reply-toolbar"><button class="reply-send" id="reply-send" onclick="sendReply(\'' + id + '\', \'' + esc(email) + '\')">Send Reply</button></div></div>';
+    } else {
+      replyHtml = '<div class="no-email">No email address provided — reply by phone</div>';
     }
 
     detail.innerHTML =
-      '<div class="detail-header">' +
-        '<div>' +
-          '<div class="detail-name">' + escapeHtml(sub.data.name || 'Unknown') + '</div>' +
-          '<div class="detail-meta">' + date + ' &middot; ' + escapeHtml(sub.formName) + '</div>' +
-        '</div>' +
-        '<div class="detail-actions">' +
-          (sub.status !== 'completed' ? '<button class="mark-complete" onclick="markComplete(\'' + id + '\')">Mark Complete</button>' : '<span class="status-badge status-completed">Completed</span>') +
+      '<div class="detail-top">' +
+        '<div class="detail-top-row">' +
+          '<div>' +
+            '<div class="detail-name">' + esc(sub.data.name || 'Unknown') + '</div>' +
+            '<div class="detail-meta">' + date + '</div>' +
+            (contactHtml ? '<div class="detail-contact">' + contactHtml + '</div>' : '') +
+          '</div>' +
+          '<div class="detail-actions">' + actionsHtml + '</div>' +
         '</div>' +
       '</div>' +
-      '<div class="detail-fields">' + fieldsHtml + '</div>' +
-      (email ? '<div class="reply-section">' +
-        '<h3>Reply to ' + escapeHtml(email) + '</h3>' +
-        '<textarea class="reply-textarea" id="reply-body" placeholder="Type your reply..."></textarea>' +
-        '<button class="reply-send" id="reply-send" onclick="sendReply(\'' + id + '\', \'' + escapeHtml(email) + '\')">Send Reply</button>' +
-        repliesHtml +
-      '</div>' : '<div class="reply-section"><p style="color:var(--color-neutral-600);font-size:var(--text-sm)">No email provided — cannot reply</p>' + repliesHtml + '</div>');
+      '<div class="detail-body">' + sectionsHtml + '</div>' +
+      '<div class="reply-section">' +
+        '<div class="reply-section-title">Reply</div>' +
+        replyHtml +
+        threadHtml +
+      '</div>';
   }
 
-  function markComplete(id) {
+  function updateStatus(id, status) {
     fetch('/api/inbox/update', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: id, status: 'completed' })
+      body: JSON.stringify({ id: id, status: status })
     }).then(function() {
       var sub = allSubmissions.find(function(s) { return s.id === id; });
-      if (sub) sub.status = 'completed';
+      if (sub) sub.status = status;
+      updateCounts();
       renderList();
       showDetail(id);
     });
   }
 
   function sendReply(id, to) {
-    var body = document.getElementById('reply-body').value;
+    var bodyEl = document.getElementById('reply-body');
+    var body = bodyEl.value;
     if (!body.trim()) return;
 
     var btn = document.getElementById('reply-send');
@@ -455,7 +816,8 @@ import Admin from '../../layouts/Admin.astro';
     return key.replace(/([A-Z])/g, ' $1').replace(/[_-]/g, ' ').replace(/^\w/, function(c) { return c.toUpperCase(); });
   }
 
-  function escapeHtml(str) {
+  function esc(str) {
+    if (!str) return '';
     var div = document.createElement('div');
     div.textContent = str;
     return div.innerHTML;
