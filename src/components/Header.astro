@@ -32,6 +32,8 @@ const navLinks = [
       </li>
     </ul>
 
+    <a href="/admin/login" class="admin-gear" aria-label="Admin" title="Admin">&#9881;</a>
+
     <button
       class="hamburger"
       id="menu-toggle"
@@ -126,6 +128,21 @@ const navLinks = [
 
   .nav-cta:hover {
     color: #fff !important;
+  }
+
+  /* Admin gear */
+  .admin-gear {
+    font-size: 1rem;
+    color: var(--color-neutral-200);
+    text-decoration: none;
+    opacity: 0.4;
+    transition: opacity var(--transition-fast);
+    margin-left: var(--space-2);
+  }
+
+  .admin-gear:hover {
+    opacity: 1;
+    color: var(--color-neutral-600);
   }
 
   /* Hamburger — shown on mobile, hidden on desktop */

@@ -1,0 +1,475 @@
+---
+export const prerender = false;
+import Admin from '../../layouts/Admin.astro';
+---
+
+<Admin title="Inbox" activeTab="inbox">
+  <div class="inbox-header">
+    <h1>Inbox</h1>
+    <div class="inbox-filters">
+      <button class="filter-btn active" data-filter="all">All</button>
+      <button class="filter-btn" data-filter="new">New</button>
+      <button class="filter-btn" data-filter="read">Read</button>
+      <button class="filter-btn" data-filter="completed">Completed</button>
+    </div>
+  </div>
+
+  <div class="inbox-layout">
+    <!-- List -->
+    <div class="inbox-list" id="inbox-list">
+      <div class="inbox-loading">Loading submissions...</div>
+    </div>
+
+    <!-- Detail panel -->
+    <div class="inbox-detail" id="inbox-detail">
+      <div class="detail-empty">
+        <p>Select a submission to view details</p>
+      </div>
+    </div>
+  </div>
+</Admin>
+
+<style>
+  .inbox-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: var(--space-6);
+    flex-wrap: wrap;
+    gap: var(--space-3);
+  }
+
+  .inbox-header h1 {
+    font-size: var(--text-2xl);
+  }
+
+  .inbox-filters {
+    display: flex;
+    gap: var(--space-1);
+  }
+
+  .filter-btn {
+    font-family: var(--font-heading);
+    font-size: var(--text-sm);
+    font-weight: 500;
+    padding: var(--space-1) var(--space-3);
+    border: 1px solid var(--color-neutral-200);
+    background: #fff;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    color: var(--color-neutral-600);
+    transition: all var(--transition-fast);
+  }
+
+  .filter-btn:hover { color: var(--color-neutral-900); }
+
+  .filter-btn.active {
+    background: var(--color-primary);
+    color: #fff;
+    border-color: var(--color-primary);
+  }
+
+  .inbox-layout {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--space-4);
+    min-height: 500px;
+  }
+
+  @media (min-width: 768px) {
+    .inbox-layout {
+      grid-template-columns: 380px 1fr;
+    }
+  }
+
+  .inbox-list {
+    background: #fff;
+    border: 1px solid var(--color-neutral-200);
+    border-radius: var(--radius-xl);
+    overflow-y: auto;
+    max-height: 70vh;
+  }
+
+  .inbox-loading {
+    padding: var(--space-8);
+    text-align: center;
+    color: var(--color-neutral-600);
+  }
+
+  .inbox-item {
+    padding: var(--space-4) var(--space-6);
+    border-bottom: 1px solid var(--color-neutral-50);
+    cursor: pointer;
+    transition: background var(--transition-fast);
+  }
+
+  .inbox-item:hover { background: var(--color-neutral-50); }
+  .inbox-item.selected { background: rgba(43, 94, 167, 0.06); border-left: 3px solid var(--color-primary); }
+  .inbox-item.status-new { font-weight: 600; }
+
+  .inbox-item-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--space-1);
+  }
+
+  .inbox-item-name {
+    font-family: var(--font-heading);
+    font-size: var(--text-sm);
+    color: var(--color-neutral-900);
+  }
+
+  .inbox-item-date {
+    font-size: var(--text-xs);
+    color: var(--color-neutral-600);
+  }
+
+  .inbox-item-preview {
+    font-size: var(--text-sm);
+    color: var(--color-neutral-600);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .status-badge {
+    display: inline-block;
+    font-size: var(--text-xs);
+    padding: 1px 8px;
+    border-radius: var(--radius-full);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .status-new { background: #e3f2fd; color: #1565c0; }
+  .status-read { background: var(--color-neutral-50); color: var(--color-neutral-600); }
+  .status-completed { background: #e8f5e9; color: #2e7d32; }
+
+  /* Detail panel */
+  .inbox-detail {
+    background: #fff;
+    border: 1px solid var(--color-neutral-200);
+    border-radius: var(--radius-xl);
+    padding: var(--space-6);
+    overflow-y: auto;
+    max-height: 70vh;
+  }
+
+  .detail-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    min-height: 200px;
+    color: var(--color-neutral-600);
+  }
+
+  .detail-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: var(--space-6);
+    flex-wrap: wrap;
+    gap: var(--space-3);
+  }
+
+  .detail-name {
+    font-family: var(--font-heading);
+    font-size: var(--text-xl);
+    font-weight: 600;
+  }
+
+  .detail-meta {
+    font-size: var(--text-sm);
+    color: var(--color-neutral-600);
+    margin-top: var(--space-1);
+  }
+
+  .detail-actions {
+    display: flex;
+    gap: var(--space-2);
+  }
+
+  .detail-actions button {
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    padding: var(--space-1) var(--space-3);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    border: 1px solid var(--color-neutral-200);
+    background: #fff;
+    transition: all var(--transition-fast);
+  }
+
+  .detail-actions button:hover {
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+  }
+
+  .detail-actions .mark-complete {
+    background: var(--color-success);
+    color: #fff;
+    border-color: var(--color-success);
+  }
+
+  .detail-fields {
+    margin-bottom: var(--space-6);
+  }
+
+  .detail-field {
+    display: grid;
+    grid-template-columns: 140px 1fr;
+    gap: var(--space-2);
+    padding: var(--space-2) 0;
+    border-bottom: 1px solid var(--color-neutral-50);
+    font-size: var(--text-sm);
+  }
+
+  .detail-field-label {
+    font-weight: 600;
+    color: var(--color-neutral-600);
+  }
+
+  .detail-field-value {
+    color: var(--color-neutral-900);
+    white-space: pre-wrap;
+  }
+
+  /* Reply section */
+  .reply-section {
+    border-top: 1px solid var(--color-neutral-200);
+    padding-top: var(--space-6);
+    margin-top: var(--space-6);
+  }
+
+  .reply-section h3 {
+    font-size: var(--text-base);
+    margin-bottom: var(--space-3);
+  }
+
+  .reply-textarea {
+    width: 100%;
+    min-height: 100px;
+    padding: 12px;
+    border: 1px solid var(--color-neutral-200);
+    border-radius: var(--radius-md);
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    resize: vertical;
+    margin-bottom: var(--space-3);
+  }
+
+  .reply-textarea:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px rgba(43, 94, 167, 0.15);
+  }
+
+  .reply-send {
+    background: var(--color-primary);
+    color: #fff;
+    border: none;
+    padding: var(--space-2) var(--space-6);
+    border-radius: var(--radius-lg);
+    font-family: var(--font-heading);
+    font-weight: 600;
+    font-size: var(--text-sm);
+    cursor: pointer;
+  }
+
+  .reply-send:hover { background: var(--color-primary-dark); }
+  .reply-send:disabled { opacity: 0.6; cursor: not-allowed; }
+
+  .reply-history {
+    margin-top: var(--space-4);
+  }
+
+  .reply-item {
+    background: var(--color-neutral-50);
+    border-radius: var(--radius-md);
+    padding: var(--space-3) var(--space-4);
+    margin-bottom: var(--space-2);
+    font-size: var(--text-sm);
+  }
+
+  .reply-item-meta {
+    font-size: var(--text-xs);
+    color: var(--color-neutral-600);
+    margin-bottom: var(--space-1);
+  }
+
+  .inbox-empty {
+    padding: var(--space-12);
+    text-align: center;
+    color: var(--color-neutral-600);
+  }
+</style>
+
+<script is:inline>
+  var allSubmissions = [];
+  var currentFilter = 'all';
+  var selectedId = null;
+
+  function loadInbox() {
+    fetch('/api/inbox/submissions')
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        allSubmissions = data;
+        renderList();
+      })
+      .catch(function() {
+        document.getElementById('inbox-list').innerHTML = '<div class="inbox-empty"><p>Failed to load submissions</p></div>';
+      });
+  }
+
+  function renderList() {
+    var list = document.getElementById('inbox-list');
+    var filtered = allSubmissions;
+    if (currentFilter !== 'all') {
+      filtered = allSubmissions.filter(function(s) { return s.status === currentFilter; });
+    }
+
+    if (filtered.length === 0) {
+      list.innerHTML = '<div class="inbox-empty"><p>No submissions' + (currentFilter !== 'all' ? ' with status "' + currentFilter + '"' : '') + '</p></div>';
+      return;
+    }
+
+    list.innerHTML = filtered.map(function(s) {
+      var name = s.data.name || s.data.team || 'Unknown';
+      var preview = s.data.sport ? s.data.sport + ' — ' + (s.data.team || '') : s.formName;
+      var date = new Date(s.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      return '<div class="inbox-item status-' + s.status + (s.id === selectedId ? ' selected' : '') + '" data-id="' + s.id + '">' +
+        '<div class="inbox-item-header">' +
+          '<span class="inbox-item-name">' + escapeHtml(name) + '</span>' +
+          '<span class="status-badge status-' + s.status + '">' + s.status + '</span>' +
+        '</div>' +
+        '<div class="inbox-item-preview">' + escapeHtml(preview) + ' &middot; ' + date + '</div>' +
+      '</div>';
+    }).join('');
+
+    list.querySelectorAll('.inbox-item').forEach(function(item) {
+      item.onclick = function() { showDetail(item.dataset.id); };
+    });
+  }
+
+  function showDetail(id) {
+    selectedId = id;
+    var sub = allSubmissions.find(function(s) { return s.id === id; });
+    if (!sub) return;
+
+    // Mark as read if new
+    if (sub.status === 'new') {
+      fetch('/api/inbox/update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: id, status: 'read' })
+      }).then(function() {
+        sub.status = 'read';
+        renderList();
+      });
+    }
+
+    renderList(); // Update selected state
+
+    var detail = document.getElementById('inbox-detail');
+    var email = sub.data.email || '';
+    var date = new Date(sub.createdAt).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
+
+    var fieldsHtml = Object.entries(sub.data).map(function(e) {
+      return '<div class="detail-field"><span class="detail-field-label">' + escapeHtml(formatLabel(e[0])) + '</span><span class="detail-field-value">' + escapeHtml(e[1] || '—') + '</span></div>';
+    }).join('');
+
+    var repliesHtml = '';
+    if (sub.replies && sub.replies.length > 0) {
+      repliesHtml = '<div class="reply-history"><h4>Previous Replies</h4>' +
+        sub.replies.map(function(r) {
+          var rDate = new Date(r.sentAt).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+          return '<div class="reply-item"><div class="reply-item-meta">Sent to ' + escapeHtml(r.to) + ' &middot; ' + rDate + '</div><div>' + escapeHtml(r.body) + '</div></div>';
+        }).join('') +
+      '</div>';
+    }
+
+    detail.innerHTML =
+      '<div class="detail-header">' +
+        '<div>' +
+          '<div class="detail-name">' + escapeHtml(sub.data.name || 'Unknown') + '</div>' +
+          '<div class="detail-meta">' + date + ' &middot; ' + escapeHtml(sub.formName) + '</div>' +
+        '</div>' +
+        '<div class="detail-actions">' +
+          (sub.status !== 'completed' ? '<button class="mark-complete" onclick="markComplete(\'' + id + '\')">Mark Complete</button>' : '<span class="status-badge status-completed">Completed</span>') +
+        '</div>' +
+      '</div>' +
+      '<div class="detail-fields">' + fieldsHtml + '</div>' +
+      (email ? '<div class="reply-section">' +
+        '<h3>Reply to ' + escapeHtml(email) + '</h3>' +
+        '<textarea class="reply-textarea" id="reply-body" placeholder="Type your reply..."></textarea>' +
+        '<button class="reply-send" id="reply-send" onclick="sendReply(\'' + id + '\', \'' + escapeHtml(email) + '\')">Send Reply</button>' +
+        repliesHtml +
+      '</div>' : '<div class="reply-section"><p style="color:var(--color-neutral-600);font-size:var(--text-sm)">No email provided — cannot reply</p>' + repliesHtml + '</div>');
+  }
+
+  function markComplete(id) {
+    fetch('/api/inbox/update', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: id, status: 'completed' })
+    }).then(function() {
+      var sub = allSubmissions.find(function(s) { return s.id === id; });
+      if (sub) sub.status = 'completed';
+      renderList();
+      showDetail(id);
+    });
+  }
+
+  function sendReply(id, to) {
+    var body = document.getElementById('reply-body').value;
+    if (!body.trim()) return;
+
+    var btn = document.getElementById('reply-send');
+    btn.disabled = true;
+    btn.textContent = 'Sending...';
+
+    fetch('/api/inbox/reply', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: id, to: to, body: body })
+    })
+    .then(function(r) {
+      if (r.ok) return r.json();
+      throw new Error('Failed');
+    })
+    .then(function(updated) {
+      var sub = allSubmissions.find(function(s) { return s.id === id; });
+      if (sub && updated.replies) sub.replies = updated.replies;
+      showDetail(id);
+    })
+    .catch(function() {
+      btn.textContent = 'Failed — try again';
+      btn.disabled = false;
+    });
+  }
+
+  function formatLabel(key) {
+    return key.replace(/([A-Z])/g, ' $1').replace(/[_-]/g, ' ').replace(/^\w/, function(c) { return c.toUpperCase(); });
+  }
+
+  function escapeHtml(str) {
+    var div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
+  // Filter buttons
+  document.querySelectorAll('.filter-btn').forEach(function(btn) {
+    btn.onclick = function() {
+      currentFilter = btn.dataset.filter;
+      document.querySelectorAll('.filter-btn').forEach(function(b) { b.classList.remove('active'); });
+      btn.classList.add('active');
+      renderList();
+    };
+  });
+
+  loadInbox();
+</script>

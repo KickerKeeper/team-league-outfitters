@@ -1,0 +1,320 @@
+---
+export const prerender = false;
+import Admin from '../../layouts/Admin.astro';
+---
+
+<Admin title="Dashboard" activeTab="dashboard">
+  <div class="dash-header">
+    <h1>Dashboard</h1>
+    <div class="dash-period">
+      <select id="period-select">
+        <option value="7">Last 7 days</option>
+        <option value="14">Last 14 days</option>
+        <option value="30" selected>Last 30 days</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Summary Cards -->
+  <div class="stat-cards" id="stat-cards">
+    <div class="stat-card">
+      <div class="stat-label">Page Views</div>
+      <div class="stat-value" id="total-views">--</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Unique Visitors</div>
+      <div class="stat-value" id="total-visitors">--</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Avg Views / Day</div>
+      <div class="stat-value" id="avg-views">--</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Top Page</div>
+      <div class="stat-value stat-value-sm" id="top-page">--</div>
+    </div>
+  </div>
+
+  <!-- Charts row -->
+  <div class="dash-grid">
+    <!-- Traffic over time -->
+    <div class="dash-panel full-width">
+      <h2>Traffic Over Time</h2>
+      <div class="chart-area" id="traffic-chart"></div>
+    </div>
+
+    <!-- Top Pages -->
+    <div class="dash-panel">
+      <h2>Top Pages</h2>
+      <div class="table-area" id="top-pages"></div>
+    </div>
+
+    <!-- Devices -->
+    <div class="dash-panel">
+      <h2>Devices</h2>
+      <div class="table-area" id="devices"></div>
+    </div>
+
+    <!-- Referrers -->
+    <div class="dash-panel">
+      <h2>Referrers</h2>
+      <div class="table-area" id="referrers"></div>
+    </div>
+
+    <!-- Browsers -->
+    <div class="dash-panel">
+      <h2>Browsers</h2>
+      <div class="table-area" id="browsers"></div>
+    </div>
+  </div>
+
+  <div class="dash-empty" id="dash-empty" style="display:none;">
+    <p>No analytics data yet. Data will appear once visitors start browsing the site.</p>
+  </div>
+</Admin>
+
+<style>
+  .dash-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: var(--space-6);
+  }
+
+  .dash-header h1 {
+    font-size: var(--text-2xl);
+  }
+
+  #period-select {
+    width: auto;
+    padding: var(--space-2) var(--space-3);
+    font-size: var(--text-sm);
+  }
+
+  .stat-cards {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-4);
+    margin-bottom: var(--space-6);
+  }
+
+  @media (min-width: 768px) {
+    .stat-cards { grid-template-columns: repeat(4, 1fr); }
+  }
+
+  .stat-card {
+    background: #fff;
+    border: 1px solid var(--color-neutral-200);
+    border-radius: var(--radius-xl);
+    padding: var(--space-6);
+  }
+
+  .stat-label {
+    font-size: var(--text-sm);
+    color: var(--color-neutral-600);
+    margin-bottom: var(--space-1);
+  }
+
+  .stat-value {
+    font-family: var(--font-heading);
+    font-weight: 700;
+    font-size: var(--text-3xl);
+    color: var(--color-neutral-900);
+  }
+
+  .stat-value-sm {
+    font-size: var(--text-base);
+    word-break: break-all;
+  }
+
+  .dash-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--space-4);
+  }
+
+  @media (min-width: 768px) {
+    .dash-grid { grid-template-columns: repeat(2, 1fr); }
+    .full-width { grid-column: 1 / -1; }
+  }
+
+  .dash-panel {
+    background: #fff;
+    border: 1px solid var(--color-neutral-200);
+    border-radius: var(--radius-xl);
+    padding: var(--space-6);
+  }
+
+  .dash-panel h2 {
+    font-size: var(--text-base);
+    font-weight: 600;
+    margin-bottom: var(--space-4);
+    color: var(--color-neutral-600);
+  }
+
+  .chart-area {
+    height: 200px;
+    display: flex;
+    align-items: flex-end;
+    gap: 2px;
+  }
+
+  .chart-bar {
+    flex: 1;
+    background: var(--color-primary);
+    border-radius: 3px 3px 0 0;
+    min-height: 2px;
+    position: relative;
+    cursor: default;
+  }
+
+  .chart-bar:hover {
+    opacity: 0.8;
+  }
+
+  .chart-bar .tooltip {
+    display: none;
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--color-neutral-900);
+    color: #fff;
+    font-size: var(--text-xs);
+    padding: 4px 8px;
+    border-radius: var(--radius-sm);
+    white-space: nowrap;
+    margin-bottom: 4px;
+  }
+
+  .chart-bar:hover .tooltip {
+    display: block;
+  }
+
+  /* Table rows */
+  .table-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--space-2) 0;
+    border-bottom: 1px solid var(--color-neutral-50);
+    font-size: var(--text-sm);
+  }
+
+  .table-row:last-child {
+    border-bottom: none;
+  }
+
+  .table-row-label {
+    color: var(--color-neutral-900);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex: 1;
+    margin-right: var(--space-4);
+  }
+
+  .table-row-value {
+    font-weight: 600;
+    color: var(--color-primary);
+    flex-shrink: 0;
+  }
+
+  .table-row-bar {
+    position: relative;
+    padding-left: var(--space-2);
+  }
+
+  .dash-empty {
+    text-align: center;
+    padding: var(--space-12);
+    color: var(--color-neutral-600);
+  }
+</style>
+
+<script is:inline>
+  var periodSelect = document.getElementById('period-select');
+
+  function loadDashboard(days) {
+    fetch('/api/analytics/stats?days=' + days)
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (!data || data.length === 0) {
+          document.getElementById('dash-empty').style.display = 'block';
+          return;
+        }
+        document.getElementById('dash-empty').style.display = 'none';
+
+        // Aggregate totals
+        var totalViews = 0;
+        var totalVisitors = 0;
+        var allPages = {};
+        var allReferrers = {};
+        var allDevices = {};
+        var allBrowsers = {};
+
+        data.forEach(function(day) {
+          totalViews += day.views || 0;
+          totalVisitors += day.uniqueVisitorCount || 0;
+          Object.entries(day.pages || {}).forEach(function(e) { allPages[e[0]] = (allPages[e[0]] || 0) + e[1]; });
+          Object.entries(day.referrers || {}).forEach(function(e) { allReferrers[e[0]] = (allReferrers[e[0]] || 0) + e[1]; });
+          Object.entries(day.devices || {}).forEach(function(e) { allDevices[e[0]] = (allDevices[e[0]] || 0) + e[1]; });
+          Object.entries(day.browsers || {}).forEach(function(e) { allBrowsers[e[0]] = (allBrowsers[e[0]] || 0) + e[1]; });
+        });
+
+        // Summary cards
+        document.getElementById('total-views').textContent = totalViews.toLocaleString();
+        document.getElementById('total-visitors').textContent = totalVisitors.toLocaleString();
+        document.getElementById('avg-views').textContent = data.length > 0 ? Math.round(totalViews / data.length).toLocaleString() : '0';
+
+        var sortedPages = Object.entries(allPages).sort(function(a, b) { return b[1] - a[1]; });
+        document.getElementById('top-page').textContent = sortedPages.length > 0 ? sortedPages[0][0] : '--';
+
+        // Traffic chart (bar chart)
+        var chartArea = document.getElementById('traffic-chart');
+        chartArea.innerHTML = '';
+        var maxViews = Math.max.apply(null, data.map(function(d) { return d.views || 0; }));
+        if (maxViews === 0) maxViews = 1;
+
+        // Reverse so oldest is left
+        var sorted = data.slice().reverse();
+        sorted.forEach(function(day) {
+          var pct = ((day.views || 0) / maxViews) * 100;
+          var bar = document.createElement('div');
+          bar.className = 'chart-bar';
+          bar.style.height = Math.max(pct, 1) + '%';
+          var tip = document.createElement('span');
+          tip.className = 'tooltip';
+          tip.textContent = day.date + ': ' + (day.views || 0) + ' views';
+          bar.appendChild(tip);
+          chartArea.appendChild(bar);
+        });
+
+        // Tables
+        renderTable('top-pages', sortedPages, 10);
+        renderTable('devices', Object.entries(allDevices).sort(function(a,b) { return b[1]-a[1]; }), 5);
+        renderTable('referrers', Object.entries(allReferrers).sort(function(a,b) { return b[1]-a[1]; }), 10);
+        renderTable('browsers', Object.entries(allBrowsers).sort(function(a,b) { return b[1]-a[1]; }), 5);
+      })
+      .catch(function() {
+        document.getElementById('dash-empty').style.display = 'block';
+      });
+  }
+
+  function renderTable(id, entries, max) {
+    var el = document.getElementById(id);
+    el.innerHTML = '';
+    entries.slice(0, max).forEach(function(e) {
+      var row = document.createElement('div');
+      row.className = 'table-row';
+      row.innerHTML = '<span class="table-row-label">' + e[0] + '</span><span class="table-row-value">' + e[1] + '</span>';
+      el.appendChild(row);
+    });
+    if (entries.length === 0) {
+      el.innerHTML = '<div class="table-row"><span class="table-row-label" style="color:var(--color-neutral-600)">No data yet</span></div>';
+    }
+  }
+
+  periodSelect.onchange = function() { loadDashboard(this.value); };
+  loadDashboard(30);
+</script>

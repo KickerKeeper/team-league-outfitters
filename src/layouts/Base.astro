@@ -30,8 +30,7 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
   <meta name="twitter:card" content="summary" />
   <link rel="icon" type="image/png" href="/favicon.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="/images/logo/logo-icon.png" />
-  <!-- Analytics (Plausible — privacy-friendly, no cookies) -->
-  <script defer data-domain="teamleagueoutfitters.com" src="https://plausible.io/js/script.js"></script>
+  <!-- Analytics -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link
@@ -75,5 +74,18 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
     <slot />
   </main>
   <Footer />
+  <script is:inline>
+  (function(){
+    if (location.pathname.startsWith('/admin')) return;
+    var vid = localStorage.getItem('_tlo_vid');
+    if (!vid) { vid = Math.random().toString(36).slice(2) + Date.now().toString(36); localStorage.setItem('_tlo_vid', vid); }
+    fetch('/api/analytics/track', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ path: location.pathname, referrer: document.referrer, visitorId: vid }),
+      keepalive: true
+    }).catch(function(){});
+  })();
+  </script>
 </body>
 </html>

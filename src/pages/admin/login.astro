@@ -1,0 +1,183 @@
+---
+export const prerender = false;
+
+import { getSessionFromCookie } from '../../lib/auth';
+
+// If already logged in, redirect to dashboard
+const cookie = Astro.request.headers.get('cookie');
+if (getSessionFromCookie(cookie)) {
+  return Astro.redirect('/admin/dashboard');
+}
+---
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Login — Team & League Outfitters</title>
+  <meta name="robots" content="noindex, nofollow" />
+  <link rel="icon" type="image/png" href="/favicon.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet" />
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Open Sans', sans-serif;
+      background: #F8F9FA;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+    }
+
+    .login-card {
+      background: #fff;
+      border-radius: 12px;
+      padding: 2.5rem;
+      width: 100%;
+      max-width: 400px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+      border: 1px solid #DEE2E6;
+    }
+
+    .login-logo {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+
+    .login-logo img {
+      height: 48px;
+      margin: 0 auto;
+    }
+
+    .login-title {
+      font-family: 'Montserrat', sans-serif;
+      font-size: 1.25rem;
+      font-weight: 600;
+      text-align: center;
+      color: #212529;
+      margin-bottom: 1.5rem;
+    }
+
+    label {
+      display: block;
+      font-weight: 600;
+      font-size: 0.875rem;
+      color: #212529;
+      margin-bottom: 0.25rem;
+    }
+
+    input {
+      width: 100%;
+      padding: 12px 16px;
+      border: 1px solid #DEE2E6;
+      border-radius: 6px;
+      font-family: 'Open Sans', sans-serif;
+      font-size: 1rem;
+      margin-bottom: 1rem;
+      color: #212529;
+    }
+
+    input:focus {
+      outline: none;
+      border-color: #2B5EA7;
+      box-shadow: 0 0 0 3px rgba(43, 94, 167, 0.15);
+    }
+
+    .login-btn {
+      width: 100%;
+      padding: 14px;
+      background: #2B5EA7;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-family: 'Montserrat', sans-serif;
+      font-weight: 600;
+      font-size: 1rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      cursor: pointer;
+      transition: background 0.25s ease;
+    }
+
+    .login-btn:hover { background: #1E4478; }
+    .login-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    .login-error {
+      background: #fef2f2;
+      color: #DC3545;
+      font-size: 0.875rem;
+      padding: 0.75rem 1rem;
+      border-radius: 6px;
+      margin-bottom: 1rem;
+      display: none;
+    }
+
+    .login-error.show { display: block; }
+
+    .back-link {
+      display: block;
+      text-align: center;
+      margin-top: 1.5rem;
+      font-size: 0.875rem;
+      color: #6C757D;
+      text-decoration: none;
+    }
+
+    .back-link:hover { color: #2B5EA7; }
+  </style>
+</head>
+<body>
+  <div class="login-card">
+    <div class="login-logo">
+      <img src="/images/logo/logo-horizontal.png" alt="Team & League Outfitters" />
+    </div>
+    <h1 class="login-title">Admin Login</h1>
+    <div class="login-error" id="login-error">Invalid username or password</div>
+    <form id="login-form">
+      <label for="username">Username</label>
+      <input type="text" id="username" name="username" autocomplete="username" required />
+      <label for="password">Password</label>
+      <input type="password" id="password" name="password" autocomplete="current-password" required />
+      <button type="submit" class="login-btn" id="login-btn">Log In</button>
+    </form>
+    <a href="/" class="back-link">&larr; Back to site</a>
+  </div>
+
+  <script is:inline>
+    document.getElementById('login-form').onsubmit = async function(e) {
+      e.preventDefault();
+      var btn = document.getElementById('login-btn');
+      var err = document.getElementById('login-error');
+      btn.disabled = true;
+      err.classList.remove('show');
+
+      try {
+        var res = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            username: document.getElementById('username').value,
+            password: document.getElementById('password').value
+          })
+        });
+
+        if (res.ok) {
+          location.href = '/admin/dashboard';
+        } else {
+          err.classList.add('show');
+          btn.disabled = false;
+        }
+      } catch {
+        err.textContent = 'Something went wrong. Try again.';
+        err.classList.add('show');
+        btn.disabled = false;
+      }
+    };
+  </script>
+</body>
+</html>

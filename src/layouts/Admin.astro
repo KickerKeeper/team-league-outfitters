@@ -1,0 +1,186 @@
+---
+import '../styles/global.css';
+
+interface Props {
+  title: string;
+  activeTab?: string;
+}
+
+const { title, activeTab } = Astro.props;
+const tabs = [
+  { href: '/admin/dashboard', label: 'Dashboard', id: 'dashboard' },
+  { href: '/admin/inbox', label: 'Inbox', id: 'inbox' },
+];
+---
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{title} — TLO Admin</title>
+  <meta name="robots" content="noindex, nofollow" />
+  <link rel="icon" type="image/png" href="/favicon.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700&family=Open+Sans:wght@400;600&display=swap"
+    rel="stylesheet"
+  />
+</head>
+<body class="admin-body">
+  <header class="admin-header">
+    <div class="admin-header-inner">
+      <a href="/admin/dashboard" class="admin-logo">
+        <img src="/images/logo/logo-horizontal.png" alt="TLO Admin" height="36" />
+        <span class="admin-badge">Admin</span>
+      </a>
+      <nav class="admin-tabs">
+        {tabs.map(tab => (
+          <a href={tab.href} class:list={['admin-tab', { active: activeTab === tab.id }]}>
+            {tab.label}
+          </a>
+        ))}
+      </nav>
+      <div class="admin-actions">
+        <a href="/" class="admin-link" target="_blank">View Site</a>
+        <button class="admin-logout" id="logout-btn" onclick="fetch('/api/auth/logout',{method:'POST'}).then(()=>location.href='/admin/login')">
+          Log Out
+        </button>
+      </div>
+    </div>
+  </header>
+  <main class="admin-main">
+    <slot />
+  </main>
+</body>
+</html>
+
+<style>
+  .admin-body {
+    background: var(--color-neutral-50);
+    min-height: 100vh;
+  }
+
+  .admin-header {
+    background: #fff;
+    border-bottom: 1px solid var(--color-neutral-200);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .admin-header-inner {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 var(--space-6);
+    height: 56px;
+    display: flex;
+    align-items: center;
+    gap: var(--space-8);
+  }
+
+  .admin-logo {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    text-decoration: none;
+    flex-shrink: 0;
+  }
+
+  .admin-logo img {
+    height: 36px;
+    width: auto;
+  }
+
+  .admin-badge {
+    font-family: var(--font-heading);
+    font-weight: 600;
+    font-size: var(--text-xs);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    background: var(--color-primary);
+    color: #fff;
+    padding: 2px 8px;
+    border-radius: var(--radius-sm);
+  }
+
+  .admin-tabs {
+    display: flex;
+    gap: var(--space-1);
+    flex: 1;
+  }
+
+  .admin-tab {
+    font-family: var(--font-heading);
+    font-weight: 500;
+    font-size: var(--text-sm);
+    color: var(--color-neutral-600);
+    text-decoration: none;
+    padding: var(--space-2) var(--space-4);
+    border-radius: var(--radius-md);
+    transition: all var(--transition-fast);
+  }
+
+  .admin-tab:hover {
+    color: var(--color-neutral-900);
+    background: var(--color-neutral-50);
+  }
+
+  .admin-tab.active {
+    color: var(--color-primary);
+    background: rgba(43, 94, 167, 0.08);
+  }
+
+  .admin-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+    flex-shrink: 0;
+  }
+
+  .admin-link {
+    font-size: var(--text-sm);
+    color: var(--color-neutral-600);
+  }
+
+  .admin-logout {
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    color: var(--color-neutral-600);
+    background: none;
+    border: 1px solid var(--color-neutral-200);
+    padding: var(--space-1) var(--space-3);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+  }
+
+  .admin-logout:hover {
+    color: var(--color-error);
+    border-color: var(--color-error);
+  }
+
+  .admin-main {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: var(--space-6);
+  }
+
+  @media (max-width: 767px) {
+    .admin-header-inner {
+      flex-wrap: wrap;
+      height: auto;
+      padding: var(--space-3) var(--space-4);
+      gap: var(--space-3);
+    }
+
+    .admin-tabs {
+      order: 3;
+      width: 100%;
+    }
+
+    .admin-link {
+      display: none;
+    }
+  }
+</style>
