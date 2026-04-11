@@ -22,9 +22,9 @@ import Admin from '../../layouts/Admin.astro';
       <div class="stage-toggle" id="stage-toggle">
         <button class="stg-btn active" data-stg="all">All</button>
         <button class="stg-btn" data-stg="review">Review</button>
-        <button class="stg-btn" data-stg="production">Production</button>
+        <button class="stg-btn" data-stg="production">Prod</button>
         <button class="stg-btn" data-stg="ready">Ready</button>
-        <button class="stg-btn" data-stg="picked-up">Picked Up</button>
+        <button class="stg-btn" data-stg="picked-up">Done</button>
       </div>
       <div class="inbox-list" id="inbox-list">
         <div class="inbox-loading"><div class="loading-dot"></div><p>Loading...</p></div>
@@ -61,8 +61,8 @@ import Admin from '../../layouts/Admin.astro';
   .type-tab:hover:not(.active) { color: var(--color-neutral-900); }
 
   /* Stage toggle */
-  .stage-toggle { display: flex; border-bottom: 1px solid var(--color-neutral-200); flex-shrink: 0; padding: 6px 8px; gap: 4px; background: var(--color-neutral-50); }
-  .stg-btn { font-family: var(--font-heading); font-size: 10px; font-weight: 600; padding: 4px 10px; border: 1px solid transparent; background: none; color: var(--color-neutral-600); cursor: pointer; border-radius: var(--radius-full); transition: all var(--transition-fast); text-transform: uppercase; letter-spacing: 0.3px; white-space: nowrap; }
+  .stage-toggle { display: flex; border-bottom: 1px solid var(--color-neutral-200); flex-shrink: 0; padding: 6px 6px; gap: 3px; background: var(--color-neutral-50); overflow: hidden; }
+  .stg-btn { font-family: var(--font-heading); font-size: 9px; font-weight: 600; padding: 4px 7px; border: 1px solid transparent; background: none; color: var(--color-neutral-600); cursor: pointer; border-radius: var(--radius-full); transition: all var(--transition-fast); text-transform: uppercase; letter-spacing: 0.2px; white-space: nowrap; flex-shrink: 0; }
   .stg-btn:hover { color: var(--color-neutral-900); background: #fff; }
   .stg-btn.active { background: #fff; color: var(--color-primary); border-color: var(--color-neutral-200); box-shadow: var(--shadow-sm); }
 
