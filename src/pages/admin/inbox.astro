@@ -140,9 +140,9 @@ import Admin from '../../layouts/Admin.astro';
   .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-3) var(--space-6); }
   .detail-grid .field-item.full-width { grid-column: 1 / -1; }
   @media (max-width: 1023px) { .detail-grid { grid-template-columns: 1fr; } }
-  .field-item { display: flex; flex-direction: column; gap: 2px; }
-  .field-label { font-size: var(--text-xs); font-weight: 600; color: var(--color-neutral-600); text-transform: uppercase; letter-spacing: 0.5px; }
-  .field-value { font-size: var(--text-sm); color: var(--color-neutral-900); white-space: pre-wrap; line-height: 1.5; }
+  .field-item { display: flex; flex-direction: column; gap: 4px; background: var(--color-neutral-50); padding: 10px 14px; border-radius: var(--radius-md); border: 1px solid var(--color-neutral-200); }
+  .field-label { font-size: 10px; font-weight: 700; color: var(--color-primary); text-transform: uppercase; letter-spacing: 0.8px; }
+  .field-value { font-size: var(--text-sm); color: var(--color-neutral-900); white-space: pre-wrap; line-height: 1.5; font-weight: 400; }
   .field-value.empty { color: var(--color-neutral-600); font-style: italic; }
 
   /* Messages section */
