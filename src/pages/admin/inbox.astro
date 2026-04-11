@@ -495,7 +495,18 @@ import Admin from '../../layouts/Admin.astro';
       allSubmissions = data;
       var hasNew = allSubmissions.filter(function(s) { return s.status === 'new'; }).length;
       updateCounts(); renderList();
-      // Don't re-render detail panel — user may be reading or composing
+      // Refresh detail panel if the selected item has new messages
+      if (selectedId) {
+        var current = allSubmissions.find(function(s) { return s.id === selectedId; });
+        if (current) {
+          var oldMsgCount = 0;
+          var emailBody = document.getElementById('email-body');
+          var noteBody = document.getElementById('note-body');
+          var hasDraft = (emailBody && emailBody.value.trim()) || (noteBody && noteBody.value.trim());
+          // Only refresh if user isn't composing
+          if (!hasDraft) showDetail(selectedId);
+        }
+      }
       if (hasNew > hadNew) document.title = '(' + hasNew + ') Inbox — TLO Admin';
     }).catch(function() {});
   }, 30000);
