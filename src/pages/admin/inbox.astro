@@ -363,13 +363,10 @@ import Admin from '../../layouts/Admin.astro';
         var mDate = new Date(m.timestamp || m.sentAt).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
         var who = m.type === 'sent' ? 'You &rarr; ' + esc(m.to || email) : esc(m.from || email) + ' &rarr; You';
         var preview = m.body.length > 100 ? m.body.substring(0, 100) + '...' : m.body;
-        var hasFullBody = m.fullBody && m.fullBody !== m.body;
-        var viewFullAttr = hasFullBody ? ' onclick="showFullEmail(' + idx + ')"' : '';
-        var viewFullHint = hasFullBody ? '<span class="msg-view-full">View full email</span>' : '';
-        return '<div class="msg-bubble msg-' + m.type + '"' + viewFullAttr + '>' +
+        return '<div class="msg-bubble msg-' + m.type + '" onclick="showFullEmail(' + idx + ')">' +
           '<div class="msg-bubble-header"><span class="msg-bubble-who">' + who + '</span><span class="msg-bubble-date">' + mDate + '</span></div>' +
           '<div class="msg-bubble-body">' + esc(m.body) + '</div>' +
-          viewFullHint + '</div>';
+          '<span class="msg-view-full">View full email</span></div>';
       }).join('') + '</div>';
     } else {
       emailListHtml = '<div class="msg-empty">No emails yet</div>';
@@ -426,13 +423,20 @@ import Admin from '../../layouts/Admin.astro';
     var overlay = document.createElement('div');
     overlay.className = 'email-modal-overlay';
     overlay.onclick = function(e) { if (e.target === overlay) overlay.remove(); };
+
+    var typeLabel = m.type === 'sent' ? 'Sent Email' : 'Received Email';
+    var hasFullContent = m.fullBody && m.fullBody !== m.body;
+
     overlay.innerHTML =
       '<div class="email-modal">' +
-        '<div class="email-modal-header"><h3>Full Email</h3><button class="email-modal-close" onclick="this.closest(\'.email-modal-overlay\').remove()">&times;</button></div>' +
-        '<div class="email-modal-meta">' + who + '<br>' + (subject ? subject + '<br>' : '') + '<span>' + mDate + '</span></div>' +
-        '<div class="email-modal-body">' + esc(fullContent) + '</div>' +
+        '<div class="email-modal-header"><h3>' + typeLabel + '</h3><button class="email-modal-close" onclick="this.closest(\'.email-modal-overlay\').remove()">&times;</button></div>' +
+        '<div class="email-modal-meta"><strong>' + who + '</strong><br>' + (subject ? subject + '<br>' : '') + mDate + '</div>' +
+        '<div class="email-modal-body">' + esc(fullContent) + (hasFullContent ? '' : '<div style="margin-top:16px;font-style:italic;color:#6C757D;font-size:12px;">Full email thread not available for messages received before April 11, 2026.</div>') + '</div>' +
       '</div>';
     document.body.appendChild(overlay);
+
+    var closeOnEscape = function(e) { if (e.key === 'Escape') { overlay.remove(); document.removeEventListener('keydown', closeOnEscape); } };
+    document.addEventListener('keydown', closeOnEscape);
   }
 
   function switchMsgTab(tab, btn) {
