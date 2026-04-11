@@ -16,6 +16,13 @@ import Admin from '../../layouts/Admin.astro';
         <button class="type-btn" data-type="order">Orders</button>
         <button class="type-btn" data-type="email">Emails</button>
       </div>
+      <div class="stage-filters" id="stage-filters" style="display:none;">
+        <button class="filter-btn active" data-stage="all">All</button>
+        <button class="filter-btn" data-stage="review">Needs Review</button>
+        <button class="filter-btn" data-stage="production">In Production</button>
+        <button class="filter-btn" data-stage="ready">Ready for Pickup</button>
+        <button class="filter-btn" data-stage="picked-up">Picked Up</button>
+      </div>
       <div class="status-filters" id="status-filters">
         <button class="filter-btn active" data-filter="all">All</button>
         <button class="filter-btn" data-filter="new">New <span class="filter-count" id="count-new"></span></button>
@@ -113,6 +120,8 @@ import Admin from '../../layouts/Admin.astro';
 
   .type-btn:hover { color: var(--color-neutral-900); }
   .type-btn.active { color: var(--color-primary); border-bottom-color: var(--color-primary); }
+
+  .stage-filters { display: flex; gap: var(--space-1); flex-wrap: wrap; }
 
   .filter-btn {
     font-family: var(--font-heading);
@@ -255,6 +264,68 @@ import Admin from '../../layouts/Admin.astro';
   .tag-sport { background: #e8eaf6; color: #283593; }
   .tag-completed { background: #e8f5e9; color: #2e7d32; }
   .tag-fulfillment { background: #f3e5f5; color: #7b1fa2; }
+  .tag-review { background: #fff3e0; color: #e65100; }
+  .tag-production { background: #e3f2fd; color: #1565c0; }
+  .tag-ready { background: #e8f5e9; color: #2e7d32; }
+  .tag-picked-up { background: var(--color-neutral-50); color: var(--color-neutral-600); }
+
+  /* Stage pipeline */
+  .stage-pipeline {
+    display: flex;
+    gap: 0;
+    margin-top: var(--space-4);
+    margin-bottom: var(--space-2);
+  }
+
+  .stage-step {
+    flex: 1;
+    text-align: center;
+    padding: 10px 8px;
+    font-size: 10px;
+    font-family: var(--font-heading);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    background: var(--color-neutral-50);
+    color: var(--color-neutral-600);
+    border: 1px solid var(--color-neutral-200);
+    border-right: none;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    position: relative;
+  }
+
+  .stage-step:first-child { border-radius: var(--radius-md) 0 0 var(--radius-md); }
+  .stage-step:last-child { border-radius: 0 var(--radius-md) var(--radius-md) 0; border-right: 1px solid var(--color-neutral-200); }
+
+  .stage-step.past {
+    background: var(--color-primary);
+    color: #fff;
+    border-color: var(--color-primary);
+  }
+
+  .stage-step.current {
+    background: var(--color-accent);
+    color: var(--color-neutral-900);
+    border-color: var(--color-accent);
+    font-weight: 700;
+  }
+
+  .stage-step:hover:not(.current) {
+    background: var(--color-neutral-200);
+    color: var(--color-neutral-900);
+  }
+
+  .stage-step.past:hover {
+    background: var(--color-primary-dark);
+    color: #fff;
+  }
+
+  .stage-label { display: block; }
+
+  @media (max-width: 767px) {
+    .stage-step { font-size: 8px; padding: 8px 4px; letter-spacing: 0; }
+  }
 
   /* Detail panel */
   .inbox-detail { overflow-y: auto; max-height: 75vh; padding: 0; }
@@ -465,7 +536,11 @@ import Admin from '../../layouts/Admin.astro';
   var allSubmissions = [];
   var currentFilter = 'all';
   var currentType = 'all';
+  var currentStage = 'all';
   var selectedId = null;
+
+  var stageOrder = ['review', 'production', 'ready', 'picked-up'];
+  var stageLabels = { 'review': 'Needs Review', 'production': 'In Production', 'ready': 'Ready for Pickup', 'picked-up': 'Picked Up' };
 
   var fieldSections = {
     contact: { title: 'Contact Information', fields: ['name', 'email', 'phone'] },
@@ -524,13 +599,18 @@ import Admin from '../../layouts/Admin.astro';
       filtered = filtered.filter(function(s) { return getItemType(s) === currentType; });
     }
 
+    // Stage filter (orders only)
+    if (currentStage !== 'all') {
+      filtered = filtered.filter(function(s) { return s.stage === currentStage; });
+    }
+
     // Status filter
     if (currentFilter !== 'all') {
       filtered = filtered.filter(function(s) { return s.status === currentFilter; });
     }
 
     if (filtered.length === 0) {
-      list.innerHTML = '<div class="inbox-empty"><div class="inbox-empty-icon">&#128235;</div><p>No ' + (currentType !== 'all' ? currentType + ' ' : '') + 'items' + (currentFilter !== 'all' ? ' (' + currentFilter + ')' : '') + '</p></div>';
+      list.innerHTML = '<div class="inbox-empty"><div class="inbox-empty-icon">&#128235;</div><p>No matching items</p></div>';
       return;
     }
 
@@ -553,8 +633,8 @@ import Admin from '../../layouts/Admin.astro';
       }
 
       var tags = '<span class="tag tag-' + itemType + '">' + itemType + '</span>';
+      if (s.stage && stageLabels[s.stage]) tags += '<span class="tag tag-' + s.stage + '">' + esc(stageLabels[s.stage]) + '</span>';
       if (s.data.sport) tags += '<span class="tag tag-sport">' + esc(s.data.sport) + '</span>';
-      if (s.status === 'completed') tags += '<span class="tag tag-completed">Done</span>';
 
       return '<div class="inbox-item' + (s.status === 'new' ? ' is-new' : '') + (s.id === selectedId ? ' selected' : '') + '" data-id="' + s.id + '">' +
         '<div class="inbox-item-top">' +
@@ -656,14 +736,38 @@ import Admin from '../../layouts/Admin.astro';
       '<div class="reply-toolbar"><input type="hidden" id="compose-mode" value="' + (email ? 'email' : 'note') + '" />' +
       '<button class="reply-send" id="reply-send" onclick="sendMessage(\'' + id + '\', \'' + esc(email) + '\')">' + (email ? 'Send Email' : 'Add Note') + '</button></div></div>';
 
+    // Build stage pipeline for orders
+    var pipelineHtml = '';
+    if (itemType === 'order' && sub.stage) {
+      var currentIdx = stageOrder.indexOf(sub.stage);
+      pipelineHtml = '<div class="stage-pipeline">';
+      stageOrder.forEach(function(stage, i) {
+        var cls = i < currentIdx ? 'past' : i === currentIdx ? 'current' : '';
+        pipelineHtml += '<div class="stage-step ' + cls + '" onclick="advanceStage(\'' + id + '\', \'' + stage + '\')" title="Move to ' + stageLabels[stage] + '"><span class="stage-label">' + stageLabels[stage] + '</span></div>';
+      });
+      pipelineHtml += '</div>';
+    }
+
     detail.innerHTML =
       '<div class="detail-top"><div class="detail-top-row"><div>' +
         '<div class="detail-name-row"><span class="detail-name">' + esc(sub.data.name || 'Unknown') + '</span><span class="detail-type-badge detail-type-' + itemType + '">' + itemType + '</span></div>' +
         '<div class="detail-meta">' + date + '</div>' +
         (contactHtml ? '<div class="detail-contact">' + contactHtml + '</div>' : '') +
-      '</div><div class="detail-actions">' + actionsHtml + '</div></div></div>' +
+      '</div><div class="detail-actions">' + actionsHtml + '</div></div>' +
+      pipelineHtml +
+      '</div>' +
       (sectionsHtml ? '<div class="detail-body">' + sectionsHtml + '</div>' : '') +
       '<div class="reply-section"><div class="reply-section-title">Messages & Notes</div>' + composerHtml + threadHtml + '</div>';
+  }
+
+  function advanceStage(id, stage) {
+    var status = stage === 'picked-up' ? 'completed' : 'read';
+    fetch('/api/inbox/update', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: id, status: status, stage: stage }) })
+    .then(function() {
+      var s = allSubmissions.find(function(x) { return x.id === id; });
+      if (s) { s.stage = stage; s.status = status; }
+      updateCounts(); renderList(); showDetail(id);
+    });
   }
 
   function updateStatus(id, status) {
@@ -714,6 +818,19 @@ import Admin from '../../layouts/Admin.astro';
     btn.onclick = function() {
       currentType = btn.dataset.type;
       document.querySelectorAll('.type-btn').forEach(function(b) { b.classList.remove('active'); });
+      btn.classList.add('active');
+      // Show/hide stage filters for orders
+      document.getElementById('stage-filters').style.display = currentType === 'order' ? 'flex' : 'none';
+      if (currentType !== 'order') { currentStage = 'all'; }
+      renderList();
+    };
+  });
+
+  // Stage filter buttons
+  document.querySelectorAll('[data-stage]').forEach(function(btn) {
+    btn.onclick = function() {
+      currentStage = btn.dataset.stage;
+      document.querySelectorAll('[data-stage]').forEach(function(b) { b.classList.remove('active'); });
       btn.classList.add('active');
       renderList();
     };

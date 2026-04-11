@@ -30,6 +30,7 @@ export const POST: APIRoute = async ({ request }) => {
       data,
       createdAt: new Date().toISOString(),
       status: 'new',
+      stage: formName === 'order' ? 'review' : undefined,
       messages: [],
     });
 
