@@ -8,25 +8,30 @@ import Admin from '../../layouts/Admin.astro';
     <div class="inbox-header-left">
       <h1>Inbox</h1>
       <span class="inbox-count" id="inbox-count"></span>
+      <button class="refresh-btn" id="refresh-btn" onclick="loadInbox()" title="Refresh">&#8635;</button>
     </div>
-    <div class="inbox-filters" id="inbox-filters">
-      <button class="filter-btn active" data-filter="all">All</button>
-      <button class="filter-btn" data-filter="new">New <span class="filter-count" id="count-new"></span></button>
-      <button class="filter-btn" data-filter="read">In Progress</button>
-      <button class="filter-btn" data-filter="completed">Done</button>
+    <div class="inbox-controls">
+      <div class="type-filters" id="type-filters">
+        <button class="type-btn active" data-type="all">All</button>
+        <button class="type-btn" data-type="order">Orders</button>
+        <button class="type-btn" data-type="email">Emails</button>
+      </div>
+      <div class="status-filters" id="status-filters">
+        <button class="filter-btn active" data-filter="all">All</button>
+        <button class="filter-btn" data-filter="new">New <span class="filter-count" id="count-new"></span></button>
+        <button class="filter-btn" data-filter="read">In Progress</button>
+        <button class="filter-btn" data-filter="completed">Done</button>
+      </div>
     </div>
   </div>
 
   <div class="inbox-layout">
-    <!-- List panel -->
     <div class="inbox-list" id="inbox-list">
       <div class="inbox-loading" id="inbox-loading">
         <div class="loading-dot"></div>
-        <p>Loading submissions...</p>
+        <p>Loading...</p>
       </div>
     </div>
-
-    <!-- Detail panel -->
     <div class="inbox-detail" id="inbox-detail">
       <div class="detail-placeholder" id="detail-placeholder">
         <div class="placeholder-icon">&#9993;</div>
@@ -37,10 +42,9 @@ import Admin from '../../layouts/Admin.astro';
 </Admin>
 
 <style is:global>
-  /* ── Header ── */
   .inbox-header {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     justify-content: space-between;
     margin-bottom: var(--space-6);
     flex-wrap: wrap;
@@ -63,7 +67,52 @@ import Admin from '../../layouts/Admin.astro';
     border-radius: var(--radius-full);
   }
 
-  .inbox-filters { display: flex; gap: var(--space-1); }
+  .refresh-btn {
+    background: none;
+    border: 1px solid var(--color-neutral-200);
+    border-radius: var(--radius-md);
+    width: 32px;
+    height: 32px;
+    font-size: 1.1rem;
+    cursor: pointer;
+    color: var(--color-neutral-600);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all var(--transition-fast);
+  }
+
+  .refresh-btn:hover { color: var(--color-primary); border-color: var(--color-primary); }
+  .refresh-btn.spinning { animation: spin 0.6s ease; }
+
+  @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+  .inbox-controls {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: var(--space-2);
+  }
+
+  .type-filters, .status-filters { display: flex; gap: var(--space-1); }
+
+  .type-btn {
+    font-family: var(--font-heading);
+    font-size: var(--text-xs);
+    font-weight: 600;
+    padding: 4px 12px;
+    border: none;
+    background: none;
+    color: var(--color-neutral-600);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    transition: all var(--transition-fast);
+  }
+
+  .type-btn:hover { color: var(--color-neutral-900); }
+  .type-btn.active { color: var(--color-primary); border-bottom-color: var(--color-primary); }
 
   .filter-btn {
     font-family: var(--font-heading);
@@ -104,7 +153,7 @@ import Admin from '../../layouts/Admin.astro';
     color: #fff;
   }
 
-  /* ── Layout ── */
+  /* Layout */
   .inbox-layout {
     display: grid;
     grid-template-columns: 1fr;
@@ -117,12 +166,9 @@ import Admin from '../../layouts/Admin.astro';
   }
 
   @media (min-width: 768px) {
-    .inbox-layout {
-      grid-template-columns: 360px 1fr;
-    }
+    .inbox-layout { grid-template-columns: 360px 1fr; }
   }
 
-  /* ── List panel ── */
   .inbox-list {
     overflow-y: auto;
     max-height: 75vh;
@@ -140,21 +186,16 @@ import Admin from '../../layouts/Admin.astro';
   }
 
   .loading-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
+    width: 8px; height: 8px; border-radius: 50%;
     background: var(--color-primary);
     animation: pulse 1s ease infinite;
   }
 
-  @keyframes pulse {
-    0%, 100% { opacity: 0.3; }
-    50% { opacity: 1; }
-  }
+  @keyframes pulse { 0%, 100% { opacity: 0.3; } 50% { opacity: 1; } }
 
-  /* ── List items ── */
+  /* List items */
   .inbox-item {
-    padding: var(--space-4) var(--space-6);
+    padding: var(--space-3) var(--space-4);
     border-bottom: 1px solid var(--color-neutral-50);
     cursor: pointer;
     transition: background var(--transition-fast);
@@ -162,26 +203,14 @@ import Admin from '../../layouts/Admin.astro';
   }
 
   .inbox-item:hover { background: var(--color-neutral-50); }
-
-  .inbox-item.selected {
-    background: rgba(43, 94, 167, 0.05);
-  }
-
-  .inbox-item.selected::before {
-    content: '';
-    position: absolute;
-    left: 0;
-    top: 0;
-    bottom: 0;
-    width: 3px;
-    background: var(--color-primary);
-  }
+  .inbox-item.selected { background: rgba(43, 94, 167, 0.05); }
+  .inbox-item.selected::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--color-primary); }
 
   .inbox-item-top {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 4px;
+    margin-bottom: 2px;
   }
 
   .inbox-item-name {
@@ -195,22 +224,14 @@ import Admin from '../../layouts/Admin.astro';
   }
 
   .inbox-item.is-new .inbox-item-name::before {
-    content: '';
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: var(--color-primary);
-    flex-shrink: 0;
+    content: ''; width: 8px; height: 8px; border-radius: 50%;
+    background: var(--color-primary); flex-shrink: 0;
   }
 
-  .inbox-item-date {
-    font-size: var(--text-xs);
-    color: var(--color-neutral-600);
-    flex-shrink: 0;
-  }
+  .inbox-item-date { font-size: var(--text-xs); color: var(--color-neutral-600); flex-shrink: 0; }
 
   .inbox-item-preview {
-    font-size: var(--text-sm);
+    font-size: var(--text-xs);
     color: var(--color-neutral-600);
     overflow: hidden;
     text-overflow: ellipsis;
@@ -218,393 +239,239 @@ import Admin from '../../layouts/Admin.astro';
     margin-bottom: 4px;
   }
 
-  .inbox-item-tags {
-    display: flex;
-    gap: 6px;
-  }
+  .inbox-item-tags { display: flex; gap: 4px; flex-wrap: wrap; }
 
   .tag {
-    font-size: 10px;
-    padding: 1px 8px;
+    font-size: 9px;
+    padding: 1px 7px;
     border-radius: var(--radius-full);
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
   }
 
-  .tag-sport { background: #e3f2fd; color: #1565c0; }
-  .tag-new { background: var(--color-accent-light); color: #b8860b; }
+  .tag-order { background: #e3f2fd; color: #1565c0; }
+  .tag-email { background: #fce4ec; color: #c62828; }
+  .tag-sport { background: #e8eaf6; color: #283593; }
   .tag-completed { background: #e8f5e9; color: #2e7d32; }
   .tag-fulfillment { background: #f3e5f5; color: #7b1fa2; }
 
-  /* ── Detail panel ── */
-  .inbox-detail {
-    overflow-y: auto;
-    max-height: 75vh;
-    padding: 0;
-  }
+  /* Detail panel */
+  .inbox-detail { overflow-y: auto; max-height: 75vh; padding: 0; }
 
   .detail-placeholder {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    height: 100%;
-    min-height: 400px;
-    color: var(--color-neutral-600);
-    gap: var(--space-3);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    height: 100%; min-height: 400px; color: var(--color-neutral-600); gap: var(--space-3);
   }
 
-  .placeholder-icon {
-    font-size: 3rem;
-    opacity: 0.3;
-  }
+  .placeholder-icon { font-size: 3rem; opacity: 0.3; }
 
-  /* Detail content */
+  /* Detail top */
   .detail-top {
-    padding: var(--space-6);
+    padding: var(--space-5) var(--space-6);
     border-bottom: 1px solid var(--color-neutral-200);
     background: var(--color-neutral-50);
   }
 
   .detail-top-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    gap: var(--space-3);
-    flex-wrap: wrap;
+    display: flex; justify-content: space-between; align-items: flex-start;
+    gap: var(--space-3); flex-wrap: wrap;
+  }
+
+  .detail-name-row {
+    display: flex; align-items: center; gap: var(--space-3);
   }
 
   .detail-name {
-    font-family: var(--font-heading);
-    font-size: var(--text-xl);
-    font-weight: 700;
-    color: var(--color-neutral-900);
+    font-family: var(--font-heading); font-size: var(--text-xl);
+    font-weight: 700; color: var(--color-neutral-900);
   }
 
-  .detail-meta {
-    font-size: var(--text-sm);
-    color: var(--color-neutral-600);
-    margin-top: 4px;
+  .detail-type-badge {
+    font-size: 10px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.5px; padding: 2px 10px; border-radius: var(--radius-full);
   }
+
+  .detail-type-order { background: #e3f2fd; color: #1565c0; }
+  .detail-type-email { background: #fce4ec; color: #c62828; }
+
+  .detail-meta { font-size: var(--text-sm); color: var(--color-neutral-600); margin-top: 2px; }
 
   .detail-contact {
-    display: flex;
-    gap: var(--space-6);
-    margin-top: var(--space-3);
-    flex-wrap: wrap;
+    display: flex; gap: var(--space-6); margin-top: var(--space-2); flex-wrap: wrap;
   }
 
   .detail-contact a {
-    font-size: var(--text-sm);
-    color: var(--color-primary);
-    text-decoration: none;
-    display: flex;
-    align-items: center;
-    gap: 4px;
+    font-size: var(--text-sm); color: var(--color-primary);
+    text-decoration: none; display: flex; align-items: center; gap: 4px;
   }
 
   .detail-contact a:hover { text-decoration: underline; }
+  .contact-icon { font-size: var(--text-base); }
 
-  .contact-icon {
-    font-size: var(--text-base);
-  }
-
-  .detail-actions {
-    display: flex;
-    gap: var(--space-2);
-    flex-shrink: 0;
-  }
+  .detail-actions { display: flex; gap: var(--space-2); flex-shrink: 0; }
 
   .action-btn {
-    font-family: var(--font-heading);
-    font-size: var(--text-xs);
-    font-weight: 600;
-    padding: 6px 14px;
-    border-radius: var(--radius-md);
-    cursor: pointer;
-    border: 1px solid var(--color-neutral-200);
-    background: #fff;
-    transition: all var(--transition-fast);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
+    font-family: var(--font-heading); font-size: var(--text-xs); font-weight: 600;
+    padding: 6px 14px; border-radius: var(--radius-md); cursor: pointer;
+    border: 1px solid var(--color-neutral-200); background: #fff;
+    transition: all var(--transition-fast); text-transform: uppercase; letter-spacing: 0.5px;
   }
 
   .action-btn:hover { border-color: var(--color-primary); color: var(--color-primary); }
-
-  .action-btn.complete-btn {
-    background: var(--color-success);
-    color: #fff;
-    border-color: var(--color-success);
-  }
-
+  .action-btn.complete-btn { background: var(--color-success); color: #fff; border-color: var(--color-success); }
   .action-btn.complete-btn:hover { filter: brightness(0.9); color: #fff; }
-
-  .action-btn.reopen-btn {
-    color: var(--color-neutral-600);
-  }
-
-  .action-btn.delete-btn {
-    color: var(--color-neutral-600);
-  }
-
-  .action-btn.delete-btn:hover {
-    color: var(--color-error);
-    border-color: var(--color-error);
-  }
+  .action-btn.reopen-btn { color: var(--color-neutral-600); }
+  .action-btn.delete-btn { color: var(--color-neutral-600); }
+  .action-btn.delete-btn:hover { color: var(--color-error); border-color: var(--color-error); }
 
   .completed-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    font-size: var(--text-xs);
-    font-weight: 600;
-    color: #2e7d32;
-    background: #e8f5e9;
-    padding: 4px 12px;
-    border-radius: var(--radius-full);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: var(--text-xs); font-weight: 600; color: #2e7d32;
+    background: #e8f5e9; padding: 4px 12px; border-radius: var(--radius-full);
+    text-transform: uppercase; letter-spacing: 0.5px;
   }
 
-  /* Detail body sections */
-  .detail-body {
-    padding: var(--space-6);
-  }
+  /* Detail body */
+  .detail-body { padding: var(--space-6); }
 
-  .detail-section {
-    margin-bottom: var(--space-6);
-  }
-
+  .detail-section { margin-bottom: var(--space-5); }
   .detail-section:last-child { margin-bottom: 0; }
 
   .detail-section-title {
-    font-family: var(--font-heading);
-    font-size: var(--text-xs);
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    color: var(--color-neutral-600);
-    margin-bottom: var(--space-3);
-    padding-bottom: var(--space-2);
+    font-family: var(--font-heading); font-size: var(--text-xs); font-weight: 600;
+    text-transform: uppercase; letter-spacing: 1px; color: var(--color-neutral-600);
+    margin-bottom: var(--space-3); padding-bottom: var(--space-2);
     border-bottom: 1px solid var(--color-neutral-200);
   }
 
   .detail-grid {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: var(--space-3);
+    display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-3) var(--space-6);
   }
 
-  @media (min-width: 1024px) {
-    .detail-grid.two-col { grid-template-columns: 1fr 1fr; }
+  .detail-grid .field-item.full-width { grid-column: 1 / -1; }
+
+  @media (max-width: 1023px) {
+    .detail-grid { grid-template-columns: 1fr; }
   }
 
-  .field-item {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-  }
+  .field-item { display: flex; flex-direction: column; gap: 2px; }
 
   .field-label {
-    font-size: var(--text-xs);
-    font-weight: 600;
-    color: var(--color-neutral-600);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
+    font-size: var(--text-xs); font-weight: 600; color: var(--color-neutral-600);
+    text-transform: uppercase; letter-spacing: 0.5px;
   }
 
   .field-value {
-    font-size: var(--text-sm);
-    color: var(--color-neutral-900);
-    white-space: pre-wrap;
-    line-height: 1.5;
+    font-size: var(--text-sm); color: var(--color-neutral-900);
+    white-space: pre-wrap; line-height: 1.5;
   }
 
-  .field-value.empty {
-    color: var(--color-neutral-600);
-    font-style: italic;
-  }
+  .field-value.empty { color: var(--color-neutral-600); font-style: italic; }
 
-  /* ── Reply section ── */
+  /* Reply section */
   .reply-section {
-    padding: var(--space-6);
-    border-top: 1px solid var(--color-neutral-200);
+    padding: var(--space-6); border-top: 1px solid var(--color-neutral-200);
     background: var(--color-neutral-50);
   }
 
   .reply-section-title {
-    font-family: var(--font-heading);
-    font-size: var(--text-xs);
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    color: var(--color-neutral-600);
+    font-family: var(--font-heading); font-size: var(--text-xs); font-weight: 600;
+    text-transform: uppercase; letter-spacing: 1px; color: var(--color-neutral-600);
     margin-bottom: var(--space-4);
   }
 
   .reply-compose {
-    background: #fff;
-    border: 1px solid var(--color-neutral-200);
-    border-radius: var(--radius-lg);
-    overflow: hidden;
-    margin-bottom: var(--space-4);
+    background: #fff; border: 1px solid var(--color-neutral-200);
+    border-radius: var(--radius-lg); overflow: hidden; margin-bottom: var(--space-4);
   }
 
-  .compose-tabs {
-    display: flex;
-    border-bottom: 1px solid var(--color-neutral-200);
-  }
+  .compose-tabs { display: flex; border-bottom: 1px solid var(--color-neutral-200); }
 
   .compose-tab {
-    flex: 1;
-    padding: 10px;
-    font-family: var(--font-heading);
-    font-size: var(--text-xs);
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    border: none;
-    background: var(--color-neutral-50);
-    color: var(--color-neutral-600);
-    cursor: pointer;
-    transition: all var(--transition-fast);
+    flex: 1; padding: 10px; font-family: var(--font-heading); font-size: var(--text-xs);
+    font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;
+    border: none; background: var(--color-neutral-50); color: var(--color-neutral-600);
+    cursor: pointer; transition: all var(--transition-fast);
   }
 
   .compose-tab:first-child { border-right: 1px solid var(--color-neutral-200); }
-
-  .compose-tab.active {
-    background: #fff;
-    color: var(--color-primary);
-  }
-
+  .compose-tab.active { background: #fff; color: var(--color-primary); }
   .compose-tab:hover:not(.active) { color: var(--color-neutral-900); }
 
   .reply-textarea {
-    width: 100%;
-    min-height: 100px;
-    padding: var(--space-4);
-    border: none;
-    font-family: var(--font-body);
-    font-size: var(--text-sm);
-    resize: vertical;
-    line-height: 1.6;
-    color: var(--color-neutral-900);
+    width: 100%; min-height: 80px; padding: var(--space-3) var(--space-4);
+    border: none; font-family: var(--font-body); font-size: var(--text-sm);
+    resize: vertical; line-height: 1.6; color: var(--color-neutral-900);
   }
 
   .reply-textarea:focus { outline: none; }
 
   .reply-toolbar {
-    display: flex;
-    justify-content: flex-end;
-    padding: var(--space-2) var(--space-3);
-    border-top: 1px solid var(--color-neutral-200);
+    display: flex; justify-content: flex-end;
+    padding: var(--space-2) var(--space-3); border-top: 1px solid var(--color-neutral-200);
   }
 
   .reply-send {
-    background: var(--color-primary);
-    color: #fff;
-    border: none;
-    padding: 8px 20px;
-    border-radius: var(--radius-md);
-    font-family: var(--font-heading);
-    font-weight: 600;
-    font-size: var(--text-sm);
-    cursor: pointer;
-    transition: background var(--transition-fast);
+    background: var(--color-primary); color: #fff; border: none;
+    padding: 8px 20px; border-radius: var(--radius-md);
+    font-family: var(--font-heading); font-weight: 600; font-size: var(--text-sm);
+    cursor: pointer; transition: background var(--transition-fast);
   }
 
   .reply-send:hover { background: var(--color-primary-dark); }
   .reply-send:disabled { opacity: 0.6; cursor: not-allowed; }
 
-  /* Notes history */
+  /* Thread */
   .reply-thread { margin-top: var(--space-4); }
 
   .reply-thread-title {
-    font-size: var(--text-xs);
-    font-weight: 600;
-    color: var(--color-neutral-600);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    margin-bottom: var(--space-3);
+    font-size: var(--text-xs); font-weight: 600; color: var(--color-neutral-600);
+    text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: var(--space-3);
   }
 
   .reply-bubble {
-    background: #fff;
-    border: 1px solid var(--color-neutral-200);
-    border-radius: var(--radius-lg);
-    padding: var(--space-3) var(--space-4);
-    margin-bottom: var(--space-3);
-    position: relative;
+    background: #fff; border: 1px solid var(--color-neutral-200);
+    border-radius: var(--radius-lg); padding: var(--space-3) var(--space-4);
+    margin-bottom: var(--space-3); position: relative;
   }
 
-  .reply-bubble.msg-sent {
-    border-left: 3px solid var(--color-primary);
-  }
-
-  .reply-bubble.msg-received {
-    border-left: 3px solid var(--color-accent);
-    background: var(--color-accent-light);
-  }
-
-  .reply-bubble.msg-note {
-    border-left: 3px solid var(--color-neutral-200);
-    background: var(--color-neutral-50);
-  }
+  .reply-bubble.msg-sent { border-left: 3px solid var(--color-primary); }
+  .reply-bubble.msg-received { border-left: 3px solid var(--color-accent); background: var(--color-accent-light); }
+  .reply-bubble.msg-note { border-left: 3px solid var(--color-neutral-200); background: var(--color-neutral-50); }
 
   .reply-bubble-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+    display: flex; justify-content: space-between; align-items: center;
     margin-bottom: var(--space-2);
   }
 
-  .reply-bubble-to {
-    font-size: var(--text-xs);
-    color: var(--color-primary);
-    font-weight: 600;
-  }
-
-  .reply-bubble-date {
-    font-size: var(--text-xs);
-    color: var(--color-neutral-600);
-  }
+  .reply-bubble-to { font-size: var(--text-xs); color: var(--color-primary); font-weight: 600; }
+  .reply-bubble-date { font-size: var(--text-xs); color: var(--color-neutral-600); }
 
   .reply-bubble-body {
-    font-size: var(--text-sm);
-    color: var(--color-neutral-900);
-    line-height: 1.6;
-    white-space: pre-wrap;
+    font-size: var(--text-sm); color: var(--color-neutral-900);
+    line-height: 1.6; white-space: pre-wrap;
   }
 
-  /* ── Empty state ── */
   .inbox-empty {
-    padding: var(--space-12);
-    text-align: center;
-    color: var(--color-neutral-600);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: var(--space-2);
+    padding: var(--space-12); text-align: center; color: var(--color-neutral-600);
+    display: flex; flex-direction: column; align-items: center; gap: var(--space-2);
   }
 
-  .inbox-empty-icon {
-    font-size: 2rem;
-    opacity: 0.3;
-    margin-bottom: var(--space-2);
-  }
+  .inbox-empty-icon { font-size: 2rem; opacity: 0.3; margin-bottom: var(--space-2); }
 </style>
 
 <script is:inline>
   var allSubmissions = [];
   var currentFilter = 'all';
+  var currentType = 'all';
   var selectedId = null;
 
-  // Field display configuration — organized into sections
   var fieldSections = {
-    contact: { title: 'Contact Information', fields: ['name', 'email', 'phone'], cols: true },
-    team: { title: 'Team Details', fields: ['team', 'sport', 'colors', 'players', 'sizes', 'numbers'] },
-    order: { title: 'Order Preferences', fields: ['customization', 'fulfillment', 'notes'] }
+    contact: { title: 'Contact Information', fields: ['name', 'email', 'phone'] },
+    team: { title: 'Team Details', fields: ['team', 'sport', 'colors', 'players'] },
+    sizing: { title: 'Sizing & Numbers', fields: ['sizes', 'numbers'], fullWidth: true },
+    order: { title: 'Order Preferences', fields: ['customization', 'fulfillment', 'notes'], fullWidth: true }
   };
 
   var fieldLabels = {
@@ -614,16 +481,24 @@ import Admin from '../../layouts/Admin.astro';
     customization: 'Customization Type', fulfillment: 'Pickup or Ship', notes: 'Additional Notes'
   };
 
+  function getItemType(s) {
+    return s.formName === 'email' ? 'email' : 'order';
+  }
+
   function loadInbox() {
+    var btn = document.getElementById('refresh-btn');
+    btn.classList.add('spinning');
     fetch('/api/inbox/submissions')
       .then(function(r) { return r.json(); })
       .then(function(data) {
         allSubmissions = data;
         updateCounts();
         renderList();
+        btn.classList.remove('spinning');
       })
       .catch(function() {
-        document.getElementById('inbox-list').innerHTML = '<div class="inbox-empty"><div class="inbox-empty-icon">&#9888;</div><p>Failed to load submissions</p></div>';
+        document.getElementById('inbox-list').innerHTML = '<div class="inbox-empty"><div class="inbox-empty-icon">&#9888;</div><p>Failed to load</p></div>';
+        btn.classList.remove('spinning');
       });
   }
 
@@ -643,41 +518,51 @@ import Admin from '../../layouts/Admin.astro';
   function renderList() {
     var list = document.getElementById('inbox-list');
     var filtered = allSubmissions;
+
+    // Type filter
+    if (currentType !== 'all') {
+      filtered = filtered.filter(function(s) { return getItemType(s) === currentType; });
+    }
+
+    // Status filter
     if (currentFilter !== 'all') {
-      filtered = allSubmissions.filter(function(s) { return s.status === currentFilter; });
+      filtered = filtered.filter(function(s) { return s.status === currentFilter; });
     }
 
     if (filtered.length === 0) {
-      list.innerHTML = '<div class="inbox-empty"><div class="inbox-empty-icon">&#128235;</div><p>No ' + (currentFilter !== 'all' ? currentFilter + ' ' : '') + 'submissions</p></div>';
+      list.innerHTML = '<div class="inbox-empty"><div class="inbox-empty-icon">&#128235;</div><p>No ' + (currentType !== 'all' ? currentType + ' ' : '') + 'items' + (currentFilter !== 'all' ? ' (' + currentFilter + ')' : '') + '</p></div>';
       return;
     }
 
     list.innerHTML = filtered.map(function(s) {
       var name = s.data.name || s.data.team || 'Unknown';
-      var sport = s.data.sport || '';
-      var team = s.data.team || '';
-      var fulfillment = s.data.fulfillment || '';
+      var itemType = getItemType(s);
       var date = new Date(s.createdAt);
       var now = new Date();
-      var dateStr;
-      if (date.toDateString() === now.toDateString()) {
-        dateStr = date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+      var dateStr = date.toDateString() === now.toDateString()
+        ? date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+        : date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+
+      var preview = '';
+      if (itemType === 'order') {
+        preview = [s.data.team, s.data.sport, s.data.players ? s.data.players + ' players' : ''].filter(Boolean).join(' · ');
       } else {
-        dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        var msgs = s.messages || [];
+        var lastMsg = msgs[msgs.length - 1];
+        preview = lastMsg ? lastMsg.body.substring(0, 80) : s.data.email || '';
       }
 
-      var tags = '';
-      if (sport) tags += '<span class="tag tag-sport">' + esc(sport) + '</span>';
+      var tags = '<span class="tag tag-' + itemType + '">' + itemType + '</span>';
+      if (s.data.sport) tags += '<span class="tag tag-sport">' + esc(s.data.sport) + '</span>';
       if (s.status === 'completed') tags += '<span class="tag tag-completed">Done</span>';
-      if (fulfillment) tags += '<span class="tag tag-fulfillment">' + esc(fulfillment) + '</span>';
 
       return '<div class="inbox-item' + (s.status === 'new' ? ' is-new' : '') + (s.id === selectedId ? ' selected' : '') + '" data-id="' + s.id + '">' +
         '<div class="inbox-item-top">' +
           '<span class="inbox-item-name">' + esc(name) + '</span>' +
           '<span class="inbox-item-date">' + dateStr + '</span>' +
         '</div>' +
-        '<div class="inbox-item-preview">' + esc(team || s.formName) + (s.data.players ? ' &middot; ' + esc(s.data.players) + ' players' : '') + '</div>' +
-        (tags ? '<div class="inbox-item-tags">' + tags + '</div>' : '') +
+        '<div class="inbox-item-preview">' + esc(preview) + '</div>' +
+        '<div class="inbox-item-tags">' + tags + '</div>' +
       '</div>';
     }).join('');
 
@@ -696,11 +581,7 @@ import Admin from '../../layouts/Admin.astro';
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: id, status: 'read' })
-      }).then(function() {
-        sub.status = 'read';
-        updateCounts();
-        renderList();
-      });
+      }).then(function() { sub.status = 'read'; updateCounts(); renderList(); });
     } else {
       renderList();
     }
@@ -708,56 +589,54 @@ import Admin from '../../layouts/Admin.astro';
     var detail = document.getElementById('inbox-detail');
     var email = sub.data.email || '';
     var phone = sub.data.phone || '';
+    var itemType = getItemType(sub);
     var date = new Date(sub.createdAt).toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
 
-    // Build contact links
     var contactHtml = '';
     if (email) contactHtml += '<a href="mailto:' + esc(email) + '"><span class="contact-icon">&#9993;</span> ' + esc(email) + '</a>';
     if (phone) contactHtml += '<a href="tel:' + esc(phone) + '"><span class="contact-icon">&#9742;</span> ' + esc(phone) + '</a>';
 
-    // Build actions
     var actionsHtml = '';
     if (sub.status === 'completed') {
-      actionsHtml = '<span class="completed-badge">&#10003; Completed</span>' +
-        '<button class="action-btn reopen-btn" onclick="updateStatus(\'' + id + '\', \'read\')">Reopen</button>';
+      actionsHtml = '<span class="completed-badge">&#10003; Completed</span><button class="action-btn reopen-btn" onclick="updateStatus(\'' + id + '\', \'read\')">Reopen</button>';
     } else {
       actionsHtml = '<button class="action-btn complete-btn" onclick="updateStatus(\'' + id + '\', \'completed\')">&#10003; Mark Done</button>';
     }
-    actionsHtml += '<button class="action-btn delete-btn" onclick="deleteSubmission(\'' + id + '\')">&#128465; Delete</button>';
+    actionsHtml += '<button class="action-btn delete-btn" onclick="deleteSubmission(\'' + id + '\')">&#128465;</button>';
 
-    // Build field sections
+    // Build field sections — only show relevant ones
     var sectionsHtml = '';
     Object.keys(fieldSections).forEach(function(key) {
       var sec = fieldSections[key];
-      var fieldsInSection = sec.fields.filter(function(f) { return sub.data[f] !== undefined; });
+      var fieldsInSection = sec.fields.filter(function(f) { return sub.data[f] !== undefined && sub.data[f] !== ''; });
       if (fieldsInSection.length === 0) return;
 
-      sectionsHtml += '<div class="detail-section"><div class="detail-section-title">' + sec.title + '</div><div class="detail-grid' + (sec.cols ? ' two-col' : '') + '">';
+      sectionsHtml += '<div class="detail-section"><div class="detail-section-title">' + sec.title + '</div><div class="detail-grid">';
       fieldsInSection.forEach(function(f) {
         var val = sub.data[f] || '';
-        sectionsHtml += '<div class="field-item"><span class="field-label">' + (fieldLabels[f] || formatLabel(f)) + '</span><span class="field-value' + (!val ? ' empty' : '') + '">' + esc(val || 'Not provided') + '</span></div>';
+        var isFullWidth = sec.fullWidth || false;
+        sectionsHtml += '<div class="field-item' + (isFullWidth ? ' full-width' : '') + '"><span class="field-label">' + (fieldLabels[f] || formatLabel(f)) + '</span><span class="field-value' + (!val ? ' empty' : '') + '">' + esc(val || 'Not provided') + '</span></div>';
       });
       sectionsHtml += '</div></div>';
     });
 
-    // Check for any extra fields not in our sections
+    // Extra fields
     var knownFields = [];
     Object.values(fieldSections).forEach(function(s) { knownFields = knownFields.concat(s.fields); });
-    var extraFields = Object.keys(sub.data).filter(function(k) { return knownFields.indexOf(k) === -1; });
+    var extraFields = Object.keys(sub.data).filter(function(k) { return knownFields.indexOf(k) === -1 && sub.data[k]; });
     if (extraFields.length > 0) {
       sectionsHtml += '<div class="detail-section"><div class="detail-section-title">Other</div><div class="detail-grid">';
       extraFields.forEach(function(f) {
-        sectionsHtml += '<div class="field-item"><span class="field-label">' + formatLabel(f) + '</span><span class="field-value">' + esc(sub.data[f] || '—') + '</span></div>';
+        sectionsHtml += '<div class="field-item"><span class="field-label">' + formatLabel(f) + '</span><span class="field-value">' + esc(sub.data[f]) + '</span></div>';
       });
       sectionsHtml += '</div></div>';
     }
 
-    // Build message thread
-    var msgs = sub.messages || sub.replies || [];
+    // Message thread
+    var msgs = sub.messages || [];
     var threadHtml = '';
     if (msgs.length > 0) {
       threadHtml = '<div class="reply-thread"><div class="reply-thread-title">Conversation</div>';
-      // Show oldest first
       var sorted = msgs.slice().sort(function(a, b) { return new Date(a.timestamp || a.sentAt).getTime() - new Date(b.timestamp || b.sentAt).getTime(); });
       sorted.forEach(function(m) {
         var mDate = new Date(m.timestamp || m.sentAt).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
@@ -768,65 +647,36 @@ import Admin from '../../layouts/Admin.astro';
       threadHtml += '</div>';
     }
 
-    // Build composer — tabs for Email vs Note
+    // Composer
     var composerHtml = '<div class="reply-compose">';
     if (email) {
-      composerHtml += '<div class="compose-tabs">' +
-        '<button class="compose-tab active" data-mode="email" onclick="setComposeMode(\'email\')">Email ' + esc(email) + '</button>' +
-        '<button class="compose-tab" data-mode="note" onclick="setComposeMode(\'note\')">Internal Note</button>' +
-      '</div>';
+      composerHtml += '<div class="compose-tabs"><button class="compose-tab active" data-mode="email" onclick="setComposeMode(\'email\')">Email ' + esc(email) + '</button><button class="compose-tab" data-mode="note" onclick="setComposeMode(\'note\')">Internal Note</button></div>';
     }
     composerHtml += '<textarea class="reply-textarea" id="reply-body" placeholder="' + (email ? 'Write your email...' : 'Add a note...') + '"></textarea>' +
-      '<div class="reply-toolbar">' +
-        '<input type="hidden" id="compose-mode" value="' + (email ? 'email' : 'note') + '" />' +
-        '<button class="reply-send" id="reply-send" onclick="sendMessage(\'' + id + '\', \'' + esc(email) + '\')">' + (email ? 'Send Email' : 'Add Note') + '</button>' +
-      '</div></div>';
+      '<div class="reply-toolbar"><input type="hidden" id="compose-mode" value="' + (email ? 'email' : 'note') + '" />' +
+      '<button class="reply-send" id="reply-send" onclick="sendMessage(\'' + id + '\', \'' + esc(email) + '\')">' + (email ? 'Send Email' : 'Add Note') + '</button></div></div>';
 
     detail.innerHTML =
-      '<div class="detail-top">' +
-        '<div class="detail-top-row">' +
-          '<div>' +
-            '<div class="detail-name">' + esc(sub.data.name || 'Unknown') + '</div>' +
-            '<div class="detail-meta">' + date + '</div>' +
-            (contactHtml ? '<div class="detail-contact">' + contactHtml + '</div>' : '') +
-          '</div>' +
-          '<div class="detail-actions">' + actionsHtml + '</div>' +
-        '</div>' +
-      '</div>' +
-      '<div class="detail-body">' + sectionsHtml + '</div>' +
-      '<div class="reply-section">' +
-        '<div class="reply-section-title">Messages & Notes</div>' +
-        composerHtml +
-        threadHtml +
-      '</div>';
+      '<div class="detail-top"><div class="detail-top-row"><div>' +
+        '<div class="detail-name-row"><span class="detail-name">' + esc(sub.data.name || 'Unknown') + '</span><span class="detail-type-badge detail-type-' + itemType + '">' + itemType + '</span></div>' +
+        '<div class="detail-meta">' + date + '</div>' +
+        (contactHtml ? '<div class="detail-contact">' + contactHtml + '</div>' : '') +
+      '</div><div class="detail-actions">' + actionsHtml + '</div></div></div>' +
+      (sectionsHtml ? '<div class="detail-body">' + sectionsHtml + '</div>' : '') +
+      '<div class="reply-section"><div class="reply-section-title">Messages & Notes</div>' + composerHtml + threadHtml + '</div>';
   }
 
   function updateStatus(id, status) {
-    fetch('/api/inbox/update', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: id, status: status })
-    }).then(function() {
-      var sub = allSubmissions.find(function(s) { return s.id === id; });
-      if (sub) sub.status = status;
-      updateCounts();
-      renderList();
-      showDetail(id);
-    });
+    fetch('/api/inbox/update', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: id, status: status }) })
+    .then(function() { var s = allSubmissions.find(function(x) { return x.id === id; }); if (s) s.status = status; updateCounts(); renderList(); showDetail(id); });
   }
 
   function deleteSubmission(id) {
     if (!confirm('Delete this submission? This cannot be undone.')) return;
-
-    fetch('/api/inbox/delete', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: id })
-    }).then(function() {
+    fetch('/api/inbox/delete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: id }) })
+    .then(function() {
       allSubmissions = allSubmissions.filter(function(s) { return s.id !== id; });
-      selectedId = null;
-      updateCounts();
-      renderList();
+      selectedId = null; updateCounts(); renderList();
       document.getElementById('inbox-detail').innerHTML = '<div class="detail-placeholder"><div class="placeholder-icon">&#9993;</div><p>Select a submission to view details</p></div>';
     });
   }
@@ -837,65 +687,39 @@ import Admin from '../../layouts/Admin.astro';
     var textarea = document.getElementById('reply-body');
     document.querySelectorAll('.compose-tab').forEach(function(t) { t.classList.remove('active'); });
     document.querySelector('.compose-tab[data-mode="' + mode + '"]').classList.add('active');
-    if (mode === 'email') {
-      btn.textContent = 'Send Email';
-      textarea.placeholder = 'Write your email...';
-    } else {
-      btn.textContent = 'Add Note';
-      textarea.placeholder = 'Add an internal note...';
-    }
+    btn.textContent = mode === 'email' ? 'Send Email' : 'Add Note';
+    textarea.placeholder = mode === 'email' ? 'Write your email...' : 'Add an internal note...';
   }
 
   function sendMessage(id, email) {
-    var bodyEl = document.getElementById('reply-body');
-    var body = bodyEl.value;
+    var body = document.getElementById('reply-body').value;
     if (!body.trim()) return;
-
     var mode = document.getElementById('compose-mode').value;
     var btn = document.getElementById('reply-send');
     btn.disabled = true;
     btn.textContent = mode === 'email' ? 'Sending...' : 'Saving...';
-
     var payload = { id: id, body: body };
-    if (mode === 'email' && email) {
-      payload.to = email;
-      payload.type = 'sent';
-    } else {
-      payload.type = 'note';
-    }
-
-    fetch('/api/inbox/reply', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    })
-    .then(function(r) {
-      if (r.ok) return r.json();
-      return r.json().then(function(e) { throw new Error(e.error || 'Failed'); });
-    })
-    .then(function(updated) {
-      var sub = allSubmissions.find(function(s) { return s.id === id; });
-      if (sub && updated.messages) sub.messages = updated.messages;
-      showDetail(id);
-    })
-    .catch(function(err) {
-      btn.textContent = err.message || 'Failed — try again';
-      btn.disabled = false;
-    });
+    if (mode === 'email' && email) { payload.to = email; payload.type = 'sent'; } else { payload.type = 'note'; }
+    fetch('/api/inbox/reply', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
+    .then(function(r) { if (r.ok) return r.json(); return r.json().then(function(e) { throw new Error(e.error || 'Failed'); }); })
+    .then(function(updated) { var s = allSubmissions.find(function(x) { return x.id === id; }); if (s && updated.messages) s.messages = updated.messages; showDetail(id); })
+    .catch(function(err) { btn.textContent = err.message || 'Failed — try again'; btn.disabled = false; });
   }
 
-  function formatLabel(key) {
-    return key.replace(/([A-Z])/g, ' $1').replace(/[_-]/g, ' ').replace(/^\w/, function(c) { return c.toUpperCase(); });
-  }
+  function formatLabel(key) { return key.replace(/([A-Z])/g, ' $1').replace(/[_-]/g, ' ').replace(/^\w/, function(c) { return c.toUpperCase(); }); }
+  function esc(str) { if (!str) return ''; var d = document.createElement('div'); d.textContent = str; return d.innerHTML; }
 
-  function esc(str) {
-    if (!str) return '';
-    var div = document.createElement('div');
-    div.textContent = str;
-    return div.innerHTML;
-  }
+  // Type filter buttons
+  document.querySelectorAll('.type-btn').forEach(function(btn) {
+    btn.onclick = function() {
+      currentType = btn.dataset.type;
+      document.querySelectorAll('.type-btn').forEach(function(b) { b.classList.remove('active'); });
+      btn.classList.add('active');
+      renderList();
+    };
+  });
 
-  // Filter buttons
+  // Status filter buttons
   document.querySelectorAll('.filter-btn').forEach(function(btn) {
     btn.onclick = function() {
       currentFilter = btn.dataset.filter;
@@ -907,26 +731,14 @@ import Admin from '../../layouts/Admin.astro';
 
   loadInbox();
 
-  // Auto-refresh every 30 seconds
   setInterval(function() {
-    fetch('/api/inbox/submissions')
-      .then(function(r) { return r.json(); })
-      .then(function(data) {
-        var hadNew = allSubmissions.filter(function(s) { return s.status === 'new'; }).length;
-        allSubmissions = data;
-        var hasNew = allSubmissions.filter(function(s) { return s.status === 'new'; }).length;
-        updateCounts();
-        renderList();
-        // If viewing a detail, refresh it too
-        if (selectedId) {
-          var current = allSubmissions.find(function(s) { return s.id === selectedId; });
-          if (current) showDetail(selectedId);
-        }
-        // Flash tab title if new submissions arrived
-        if (hasNew > hadNew) {
-          document.title = '(' + hasNew + ') Inbox — TLO Admin';
-        }
-      })
-      .catch(function() { /* silent fail on refresh */ });
+    fetch('/api/inbox/submissions').then(function(r) { return r.json(); }).then(function(data) {
+      var hadNew = allSubmissions.filter(function(s) { return s.status === 'new'; }).length;
+      allSubmissions = data;
+      var hasNew = allSubmissions.filter(function(s) { return s.status === 'new'; }).length;
+      updateCounts(); renderList();
+      if (selectedId) { var c = allSubmissions.find(function(s) { return s.id === selectedId; }); if (c) showDetail(selectedId); }
+      if (hasNew > hadNew) document.title = '(' + hasNew + ') Inbox — TLO Admin';
+    }).catch(function() {});
   }, 30000);
 </script>
