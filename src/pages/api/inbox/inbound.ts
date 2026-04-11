@@ -58,12 +58,22 @@ export const POST: APIRoute = async ({ request }) => {
     }
 
     // Strip quoted reply content — remove the original message, keep new content
-    // Gmail puts "On ..., ... wrote:" which can be on the same line or a new line
-    const cleanBody = body
-      .replace(/\s*On\s+\w{3},\s+\w{3}\s+\d{1,2},\s+\d{4}\s+at\s+[\s\S]*?wrote:[\s\S]*$/i, '') // Gmail
-      .replace(/\s*On\s+\d{1,2}\s+\w{3}\s+\d{4},\s+at\s+[\s\S]*?wrote:[\s\S]*$/i, '')           // Gmail alt date format
-      .replace(/\r?\n-{2,}\s*\r?\n[\s\S]*$/, '')           // Signature separator "--"
-      .replace(/\r?\n_{3,}\s*\r?\n[\s\S]*$/, '')           // Outlook separator "___"
+    // Match the exact Gmail pattern: "On Day, Mon DD, YYYY at H:MM AM/PM Name <email> wrote:"
+    // Use a very specific pattern to avoid false positives on short messages
+    let cleanBody = body;
+
+    // Find the position of the Gmail quote marker
+    const gmailPattern = /On\s+(Mon|Tue|Wed|Thu|Fri|Sat|Sun),\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{1,2},\s+\d{4}\s+at\s+\d{1,2}:\d{2}\s*(AM|PM)\s+/i;
+    const match = cleanBody.match(gmailPattern);
+    if (match && match.index !== undefined && match.index > 0) {
+      // Only strip if the quote marker isn't at the very start (there must be actual content before it)
+      cleanBody = cleanBody.substring(0, match.index);
+    }
+
+    // Signature and Outlook separators — only if on their own line
+    cleanBody = cleanBody
+      .replace(/\r?\n-{2,}\s*\r?\n[\s\S]*$/, '')
+      .replace(/\r?\n_{3,}\s*\r?\n[\s\S]*$/, '')
       .trim();
 
     // Find existing submission by customer email
