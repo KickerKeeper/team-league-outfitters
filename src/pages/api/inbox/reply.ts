@@ -21,7 +21,7 @@ export const POST: APIRoute = async ({ request }) => {
   if (messageType === 'sent' && to) {
     const resendKey = import.meta.env.RESEND_API_KEY;
     const fromAddress = import.meta.env.RESEND_FROM || 'Team & League Outfitters <orders@teamleagueoutfitters.com>';
-    const inboundDomain = import.meta.env.RESEND_INBOUND_DOMAIN || 'niwhoig.resend.app';
+    const inboundDomain = 'teamleagueoutfitters.com';
     const replyTo = `orders@${inboundDomain}`;
 
     if (resendKey) {
