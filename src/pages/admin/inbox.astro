@@ -26,6 +26,9 @@ import Admin from '../../layouts/Admin.astro';
         <button class="stg-btn" data-stg="ready">Ready</button>
         <button class="stg-btn" data-stg="picked-up">Done</button>
       </div>
+      <div class="search-bar">
+        <input type="text" id="search-input" placeholder="Search name, team, org..." oninput="renderList()" />
+      </div>
       <div class="inbox-list" id="inbox-list">
         <div class="inbox-loading"><div class="loading-dot"></div><p>Loading...</p></div>
       </div>
@@ -66,7 +69,12 @@ import Admin from '../../layouts/Admin.astro';
   .stg-btn:hover { color: var(--color-neutral-900); background: #fff; }
   .stg-btn.active { background: #fff; color: var(--color-primary); border-color: var(--color-neutral-200); box-shadow: var(--shadow-sm); }
 
-  .inbox-list { overflow-y: auto; max-height: calc(75vh - 90px); flex: 1; }
+  /* Search */
+  .search-bar { padding: 8px; border-bottom: 1px solid var(--color-neutral-200); flex-shrink: 0; }
+  .search-bar input { width: 100%; padding: 8px 12px; border: 1px solid var(--color-neutral-200); border-radius: var(--radius-full); font-size: var(--text-sm); font-family: var(--font-body); background: var(--color-neutral-50); }
+  .search-bar input:focus { outline: none; border-color: var(--color-primary); background: #fff; }
+
+  .inbox-list { overflow-y: auto; max-height: calc(75vh - 130px); flex: 1; }
   .inbox-loading { padding: var(--space-12); text-align: center; color: var(--color-neutral-600); display: flex; flex-direction: column; align-items: center; gap: var(--space-3); }
   .loading-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--color-primary); animation: pulse 1s ease infinite; }
   @keyframes pulse { 0%, 100% { opacity: 0.3; } 50% { opacity: 1; } }
@@ -182,10 +190,8 @@ import Admin from '../../layouts/Admin.astro';
   .inbox-empty { padding: var(--space-12); text-align: center; color: var(--color-neutral-600); display: flex; flex-direction: column; align-items: center; gap: var(--space-2); }
   .inbox-empty-icon { font-size: 2rem; opacity: 0.3; margin-bottom: var(--space-2); }
 
-  /* View full email hint */
-  .msg-view-full { font-size: var(--text-xs); color: var(--color-primary); cursor: pointer; margin-top: var(--space-2); display: block; }
-  .msg-bubble:has(.msg-view-full) { cursor: pointer; }
-  .msg-bubble:has(.msg-view-full):hover .msg-view-full { text-decoration: underline; }
+  .msg-bubble[onclick] { cursor: pointer; }
+  .msg-bubble[onclick]:hover { box-shadow: var(--shadow-md); }
 
   /* Full email modal */
   .email-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; display: flex; align-items: center; justify-content: center; padding: var(--space-4); }
@@ -252,6 +258,16 @@ import Admin from '../../layouts/Admin.astro';
     // Apply stage filter for orders
     if (currentType === 'order' && currentStageFilter !== 'all') {
       filtered = filtered.filter(function(s) { return (s.stage || 'review') === currentStageFilter; });
+    }
+
+    // Apply search filter
+    var searchVal = (document.getElementById('search-input').value || '').toLowerCase().trim();
+    if (searchVal) {
+      filtered = filtered.filter(function(s) {
+        var name = (s.data.name || '').toLowerCase();
+        var team = (s.data.team || '').toLowerCase();
+        return name.indexOf(searchVal) !== -1 || team.indexOf(searchVal) !== -1;
+      });
     }
 
     if (filtered.length === 0) {
@@ -365,8 +381,7 @@ import Admin from '../../layouts/Admin.astro';
         var preview = m.body.length > 100 ? m.body.substring(0, 100) + '...' : m.body;
         return '<div class="msg-bubble msg-' + m.type + '" onclick="showFullEmail(' + idx + ')">' +
           '<div class="msg-bubble-header"><span class="msg-bubble-who">' + who + '</span><span class="msg-bubble-date">' + mDate + '</span></div>' +
-          '<div class="msg-bubble-body">' + esc(m.body) + '</div>' +
-          '<span class="msg-view-full">View full email</span></div>';
+          '<div class="msg-bubble-body">' + esc(m.body) + '</div></div>';
       }).join('') + '</div>';
     } else {
       emailListHtml = '<div class="msg-empty">No emails yet</div>';
