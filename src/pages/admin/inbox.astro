@@ -233,9 +233,11 @@ import Admin from '../../layouts/Admin.astro';
       if (preview.length > 80) preview = preview.substring(0, 80) + '...';
 
       var stageHtml = '';
-      if (s.stage && stageLabels[s.stage]) {
-        var si = stageOrder.indexOf(s.stage);
-        stageHtml = '<div class="inbox-item-stage"><span class="tag tag-' + s.stage + '">Step ' + (si + 1) + '/4 — ' + esc(stageLabels[s.stage]) + '</span></div>';
+      if (currentType === 'order') {
+        var stg = s.stage || 'review';
+        var si = stageOrder.indexOf(stg);
+        if (si === -1) si = 0;
+        stageHtml = '<div class="inbox-item-stage"><span class="tag tag-' + stg + '">Step ' + (si + 1) + '/4 — ' + esc(stageLabels[stg]) + '</span></div>';
       }
 
       return '<div class="inbox-item' + (s.status === 'new' ? ' is-new' : '') + (s.id === selectedId ? ' selected' : '') + '" data-id="' + s.id + '">' +
@@ -270,23 +272,19 @@ import Admin from '../../layouts/Admin.astro';
     if (email) contactHtml += '<a href="mailto:' + esc(email) + '"><span class="contact-icon">&#9993;</span> ' + esc(email) + '</a>';
     if (phone) contactHtml += '<a href="tel:' + esc(phone) + '"><span class="contact-icon">&#9742;</span> ' + esc(phone) + '</a>';
 
-    var actionsHtml = '';
-    if (sub.status === 'completed') {
-      actionsHtml = '<span class="completed-badge">&#10003; Completed</span><button class="action-btn" onclick="updateStatus(\'' + id + '\', \'read\')">Reopen</button>';
-    } else {
-      actionsHtml = '<button class="action-btn complete-btn" onclick="updateStatus(\'' + id + '\', \'completed\')">&#10003; Done</button>';
-    }
-    actionsHtml += '<button class="action-btn delete-btn" onclick="deleteSubmission(\'' + id + '\')">&#128465;</button>';
+    var actionsHtml = '<button class="action-btn delete-btn" onclick="deleteSubmission(\'' + id + '\')">&#128465;</button>';
 
-    // Step flow
+    // Step flow — click handler on circle only to prevent accidental triggers
     var pipelineHtml = '';
     if (itemType === 'order') {
-      var ci = sub.stage ? stageOrder.indexOf(sub.stage) : 0;
+      var currentStageVal = sub.stage || 'review';
+      var ci = stageOrder.indexOf(currentStageVal);
+      if (ci === -1) ci = 0;
       pipelineHtml = '<div class="step-flow">';
       stageOrder.forEach(function(st, i) {
         var cls = i < ci ? 'past' : i === ci ? 'current' : '';
-        pipelineHtml += '<div class="step-flow-item ' + cls + '" onclick="advanceStage(\'' + id + '\',\'' + st + '\')" title="Set to: ' + stageLabels[st] + '">' +
-          '<div class="step-circle">' + (i < ci ? '&#10003;' : (i + 1)) + '</div>' +
+        pipelineHtml += '<div class="step-flow-item ' + cls + '">' +
+          '<div class="step-circle" onclick="advanceStage(\'' + id + '\',\'' + st + '\')" title="Set to: ' + stageLabels[st] + '">' + (i < ci ? '&#10003;' : (i + 1)) + '</div>' +
           '<div class="step-flow-label">' + stageLabels[st] + '</div></div>';
       });
       pipelineHtml += '</div>';
@@ -401,9 +399,13 @@ import Admin from '../../layouts/Admin.astro';
   }
 
   function advanceStage(id, stage) {
+    var sub = allSubmissions.find(function(x) { return x.id === id; });
+    var currentStg = sub ? (sub.stage || 'review') : 'review';
+    if (stage === currentStg) return; // Already at this stage
+    if (!confirm('Move this order to "' + stageLabels[stage] + '"?')) return;
     var status = stage === 'picked-up' ? 'completed' : 'read';
     fetch('/api/inbox/update', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: id, status: status, stage: stage }) })
-    .then(function() { var s = allSubmissions.find(function(x) { return x.id === id; }); if (s) { s.stage = stage; s.status = status; } updateCounts(); renderList(); showDetail(id); });
+    .then(function() { if (sub) { sub.stage = stage; sub.status = status; } updateCounts(); renderList(); showDetail(id); });
   }
 
   function updateStatus(id, status) {
