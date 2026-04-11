@@ -57,17 +57,13 @@ export const POST: APIRoute = async ({ request }) => {
       body = subject || '(No content)';
     }
 
-    // Clean up reply chains — strip quoted content from email replies
+    // Strip quoted reply content — only remove the original message, keep the new content
+    // Gmail format: "On Mon, Apr 10, 2026 at 9:13 AM Name <email> wrote:"
+    // This can span multiple lines before "wrote:"
     const cleanBody = body
-      .split(/\r?\nOn .+wrote:\r?\n/)[0]           // Gmail: "On Mon, Apr 10... wrote:"
-      .split(/\r?\nOn .+<[^>]+> wrote:/)[0]         // Gmail with email in brackets
-      .split(/\r?\n-{2,}\s*\r?\n/)[0]               // Signature separator: "--"
-      .split(/\r?\n_{2,}\s*\r?\n/)[0]               // Outlook separator: "___"
-      .split(/\r?\nFrom: /)[0]                       // Outlook: "From: ..."
-      .split(/\r?\n>+ /)[0]                          // Quoted lines: "> text"
-      .split(/\r?\nSent from my /)[0]                // Mobile signatures
-      .split(/\r?\nGet Outlook/)[0]                  // Outlook mobile
-      .replace(/\r?\n<[^>]+>\s*wrote:[\s\S]*/g, '')  // Catch any remaining "wrote:" patterns
+      .replace(/\r?\nOn [\s\S]*?wrote:\s*[\s\S]*$/m, '')  // Everything from "On...wrote:" to end
+      .replace(/\r?\n-{2,}\s*\r?\n[\s\S]*$/, '')           // Everything after "--" separator
+      .replace(/\r?\n_{3,}\s*\r?\n[\s\S]*$/, '')           // Everything after "___" separator
       .trim();
 
     // Find existing submission by customer email
