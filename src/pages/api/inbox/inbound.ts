@@ -22,6 +22,7 @@ export const POST: APIRoute = async ({ request }) => {
     const fromRaw = data.from || '';
     const subject = data.subject || '';
     const toAddresses = data.to || [];
+    const messageId = data.message_id || '';
 
     // Extract clean email from "Name <email>" format
     const fromEmail = fromRaw.match(/<(.+)>/)?.[1] || fromRaw;
@@ -89,6 +90,7 @@ export const POST: APIRoute = async ({ request }) => {
         timestamp: new Date().toISOString(),
         from: fromEmail,
         subject,
+        messageId,
       });
     } else {
       const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
@@ -108,6 +110,7 @@ export const POST: APIRoute = async ({ request }) => {
           timestamp: new Date().toISOString(),
           from: fromEmail,
           subject,
+          messageId,
         }],
       });
     }

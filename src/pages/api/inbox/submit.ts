@@ -76,7 +76,8 @@ Team & League Outfitters
 103 E Main St #2, Georgetown, MA 01833`;
 
       try {
-        await fetch('https://api.resend.com/emails', {
+        const confirmSubject = 'Your Order — Team & League Outfitters';
+        const emailRes = await fetch('https://api.resend.com/emails', {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${resendKey}`,
@@ -86,10 +87,24 @@ Team & League Outfitters
             from: fromAddress,
             reply_to: replyTo,
             to: [email],
-            subject: 'We got your order details — Team & League Outfitters',
+            subject: confirmSubject,
             text: emailBody,
           }),
         });
+
+        // Save the confirmation as a sent message so replies thread properly
+        if (emailRes.ok) {
+          const resData = await emailRes.json().catch(() => ({}));
+          const { addMessage } = await import('../../../lib/inbox');
+          await addMessage(id, {
+            type: 'sent',
+            body: emailBody,
+            timestamp: new Date().toISOString(),
+            to: email,
+            subject: confirmSubject,
+            messageId: resData.id ? `<${resData.id}@resend.dev>` : '',
+          });
+        }
       } catch (e) {
         console.error('Confirmation email error:', e);
         // Don't fail the submission if email fails

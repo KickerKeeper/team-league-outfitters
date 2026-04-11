@@ -18,6 +18,7 @@ export interface Message {
   from?: string;
   to?: string;
   subject?: string;
+  messageId?: string;
 }
 
 export async function getSubmissions(): Promise<Submission[]> {

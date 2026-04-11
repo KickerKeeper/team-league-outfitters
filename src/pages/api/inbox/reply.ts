@@ -1,6 +1,6 @@
 import type { APIRoute } from 'astro';
 import { getSessionFromCookie } from '../../../lib/auth';
-import { addMessage } from '../../../lib/inbox';
+import { addMessage, getSubmission } from '../../../lib/inbox';
 
 export const prerender = false;
 
@@ -21,10 +21,59 @@ export const POST: APIRoute = async ({ request }) => {
   if (messageType === 'sent' && to) {
     const resendKey = import.meta.env.RESEND_API_KEY;
     const fromAddress = import.meta.env.RESEND_FROM || 'Team & League Outfitters <orders@teamleagueoutfitters.com>';
-    const inboundDomain = 'teamleagueoutfitters.com';
-    const replyTo = `orders@${inboundDomain}`;
+    const replyTo = 'orders@teamleagueoutfitters.com';
 
     if (resendKey) {
+      // Look up the submission to find threading info
+      const sub = await getSubmission(id);
+      const msgs = sub?.messages || [];
+
+      // Find the last message with a messageId for threading
+      let inReplyTo = '';
+      let references = '';
+      let originalSubject = '';
+
+      for (let i = msgs.length - 1; i >= 0; i--) {
+        const m = msgs[i];
+        if (m.messageId) {
+          inReplyTo = m.messageId;
+          if (!references) references = m.messageId;
+          break;
+        }
+      }
+
+      // Collect all messageIds for References header
+      const allMsgIds = msgs.filter(m => m.messageId).map(m => m.messageId);
+      if (allMsgIds.length) references = allMsgIds.join(' ');
+
+      // Find the original subject from the thread
+      for (const m of msgs) {
+        if (m.subject) {
+          originalSubject = m.subject;
+          break;
+        }
+      }
+
+      // Build subject — prefix with Re: if not already
+      let subject = originalSubject || 'Your Order — Team & League Outfitters';
+      if (originalSubject && !originalSubject.startsWith('Re:')) {
+        subject = 'Re: ' + originalSubject;
+      }
+
+      const emailPayload: any = {
+        from: fromAddress,
+        reply_to: replyTo,
+        to: [to],
+        subject: subject,
+        text: msgBody + '\n\n—\nTeam & League Outfitters\n(978) 352-8240\n103 E Main St #2, Georgetown, MA 01833',
+      };
+
+      // Add threading headers
+      const headers: Record<string, string> = {};
+      if (inReplyTo) headers['In-Reply-To'] = inReplyTo;
+      if (references) headers['References'] = references;
+      if (Object.keys(headers).length) emailPayload.headers = headers;
+
       try {
         const res = await fetch('https://api.resend.com/emails', {
           method: 'POST',
@@ -32,26 +81,24 @@ export const POST: APIRoute = async ({ request }) => {
             'Authorization': `Bearer ${resendKey}`,
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({
-            from: fromAddress,
-            reply_to: replyTo,
-            to: [to],
-            subject: 'Your Order — Team & League Outfitters',
-            text: msgBody + '\n\n—\nTeam & League Outfitters\n(978) 352-8240\n103 E Main St #2, Georgetown, MA 01833',
-          }),
+          body: JSON.stringify(emailPayload),
         });
 
         if (!res.ok) {
           const err = await res.text();
           console.error('Resend error:', res.status, err);
-          return new Response(JSON.stringify({ error: 'Failed to send email. Check Resend domain verification.' }), { status: 500 });
+          return new Response(JSON.stringify({ error: 'Failed to send email.' }), { status: 500 });
         }
+
+        // Capture the sent message ID for future threading
+        const resData = await res.json().catch(() => ({}));
+        var sentMessageId = resData.id ? `<${resData.id}@resend.dev>` : '';
       } catch (e) {
         console.error('Email send error:', e);
         return new Response(JSON.stringify({ error: 'Failed to send email' }), { status: 500 });
       }
     } else {
-      return new Response(JSON.stringify({ error: 'Email not configured (RESEND_API_KEY missing)' }), { status: 500 });
+      return new Response(JSON.stringify({ error: 'Email not configured' }), { status: 500 });
     }
   }
 
@@ -61,6 +108,7 @@ export const POST: APIRoute = async ({ request }) => {
     body: msgBody,
     timestamp: new Date().toISOString(),
     to: to || undefined,
+    messageId: (messageType === 'sent' && typeof sentMessageId !== 'undefined') ? sentMessageId : undefined,
   });
 
   return new Response(JSON.stringify(updated || { ok: true }), {
