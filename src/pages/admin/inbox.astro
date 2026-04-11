@@ -420,14 +420,23 @@ import Admin from '../../layouts/Admin.astro';
     .catch(function(err) { btn.textContent = err.message || 'Failed'; btn.disabled = false; });
   }
 
+  var pendingUpdate = false;
+
   function advanceStage(id, stage) {
     var sub = allSubmissions.find(function(x) { return x.id === id; });
     var currentStg = sub ? (sub.stage || 'review') : 'review';
-    if (stage === currentStg) return; // Already at this stage
-    if (!confirm('Move this order to "' + stageLabels[stage] + '"?')) return;
+    if (stage === currentStg) return;
+    if (pendingUpdate) return;
+    pendingUpdate = true;
+    // Update local state immediately
+    if (sub) { sub.stage = stage; sub.status = stage === 'picked-up' ? 'completed' : 'read'; }
+    renderList();
+    showDetail(id);
+    // Persist to server
     var status = stage === 'picked-up' ? 'completed' : 'read';
     fetch('/api/inbox/update', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: id, status: status, stage: stage }) })
-    .then(function() { if (sub) { sub.stage = stage; sub.status = status; } updateCounts(); renderList(); showDetail(id); });
+    .then(function() { pendingUpdate = false; })
+    .catch(function() { pendingUpdate = false; });
   }
 
   function updateStatus(id, status) {
@@ -469,12 +478,24 @@ import Admin from '../../layouts/Admin.astro';
 
   loadInbox();
 
+  // Auto-refresh: only update list and counts, never touch the detail panel
   setInterval(function() {
+    if (pendingUpdate) return; // Don't refresh while a stage change is in flight
     fetch('/api/inbox/submissions').then(function(r) { return r.json(); }).then(function(data) {
       var hadNew = allSubmissions.filter(function(s) { return s.status === 'new'; }).length;
-      allSubmissions = data; var hasNew = allSubmissions.filter(function(s) { return s.status === 'new'; }).length;
+      // Merge server data but preserve any local stage changes
+      data.forEach(function(serverSub) {
+        var local = allSubmissions.find(function(s) { return s.id === serverSub.id; });
+        if (local && local.stage && local.stage !== serverSub.stage) {
+          // Local has a stage change the server doesn't know about yet — keep local
+          serverSub.stage = local.stage;
+          serverSub.status = local.status;
+        }
+      });
+      allSubmissions = data;
+      var hasNew = allSubmissions.filter(function(s) { return s.status === 'new'; }).length;
       updateCounts(); renderList();
-      if (selectedId) { var c = allSubmissions.find(function(s) { return s.id === selectedId; }); if (c) showDetail(selectedId); }
+      // Don't re-render detail panel — user may be reading or composing
       if (hasNew > hadNew) document.title = '(' + hasNew + ') Inbox — TLO Admin';
     }).catch(function() {});
   }, 30000);
