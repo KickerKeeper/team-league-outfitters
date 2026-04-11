@@ -57,11 +57,17 @@ export const POST: APIRoute = async ({ request }) => {
       body = subject || '(No content)';
     }
 
-    // Clean up reply chains — strip everything after common reply markers
+    // Clean up reply chains — strip quoted content from email replies
     const cleanBody = body
-      .split(/\n--\n/)[0]
-      .split(/\nOn .+ wrote:/)[0]
-      .split(/\n>+ /)[0]
+      .split(/\r?\nOn .+wrote:\r?\n/)[0]           // Gmail: "On Mon, Apr 10... wrote:"
+      .split(/\r?\nOn .+<[^>]+> wrote:/)[0]         // Gmail with email in brackets
+      .split(/\r?\n-{2,}\s*\r?\n/)[0]               // Signature separator: "--"
+      .split(/\r?\n_{2,}\s*\r?\n/)[0]               // Outlook separator: "___"
+      .split(/\r?\nFrom: /)[0]                       // Outlook: "From: ..."
+      .split(/\r?\n>+ /)[0]                          // Quoted lines: "> text"
+      .split(/\r?\nSent from my /)[0]                // Mobile signatures
+      .split(/\r?\nGet Outlook/)[0]                  // Outlook mobile
+      .replace(/\r?\n<[^>]+>\s*wrote:[\s\S]*/g, '')  // Catch any remaining "wrote:" patterns
       .trim();
 
     // Find existing submission by customer email
