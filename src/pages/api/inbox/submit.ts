@@ -70,7 +70,7 @@ ${summaryLines}
 If anything looks off or you have questions, just reply to this email and we'll get it sorted.
 
 Talk soon,
-Rob & Jen
+Jamie Nadeau
 Team & League Outfitters
 (978) 352-8240
 103 E Main St #2, Georgetown, MA 01833`;
