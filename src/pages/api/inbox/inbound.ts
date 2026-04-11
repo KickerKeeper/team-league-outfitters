@@ -79,16 +79,18 @@ export const POST: APIRoute = async ({ request }) => {
     // Find existing submission by customer email
     const sub = await findByEmail(fromEmail);
 
+    const fullBody = body.trim();
+
     if (sub) {
       await addMessage(sub.id, {
         type: 'received',
         body: cleanBody,
+        fullBody: fullBody,
         timestamp: new Date().toISOString(),
         from: fromEmail,
         subject,
       });
     } else {
-      // New contact — create inbox entry
       const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
       await saveSubmission({
         id,
@@ -102,6 +104,7 @@ export const POST: APIRoute = async ({ request }) => {
         messages: [{
           type: 'received',
           body: cleanBody,
+          fullBody: fullBody,
           timestamp: new Date().toISOString(),
           from: fromEmail,
           subject,

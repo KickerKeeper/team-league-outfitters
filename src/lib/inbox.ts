@@ -13,6 +13,7 @@ export interface Submission {
 export interface Message {
   type: 'note' | 'sent' | 'received';
   body: string;
+  fullBody?: string;
   timestamp: string;
   from?: string;
   to?: string;

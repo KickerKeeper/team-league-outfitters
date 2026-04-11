@@ -184,6 +184,22 @@ import Admin from '../../layouts/Admin.astro';
 
   .inbox-empty { padding: var(--space-12); text-align: center; color: var(--color-neutral-600); display: flex; flex-direction: column; align-items: center; gap: var(--space-2); }
   .inbox-empty-icon { font-size: 2rem; opacity: 0.3; margin-bottom: var(--space-2); }
+
+  /* View full email hint */
+  .msg-view-full { font-size: var(--text-xs); color: var(--color-primary); cursor: pointer; margin-top: var(--space-2); display: block; }
+  .msg-bubble:has(.msg-view-full) { cursor: pointer; }
+  .msg-bubble:has(.msg-view-full):hover .msg-view-full { text-decoration: underline; }
+
+  /* Full email modal */
+  .email-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; display: flex; align-items: center; justify-content: center; padding: var(--space-4); }
+  .email-modal { background: #fff; border-radius: var(--radius-xl); max-width: 700px; width: 100%; max-height: 80vh; display: flex; flex-direction: column; box-shadow: 0 8px 32px rgba(0,0,0,0.2); }
+  .email-modal-header { display: flex; justify-content: space-between; align-items: center; padding: var(--space-4) var(--space-6); border-bottom: 1px solid var(--color-neutral-200); flex-shrink: 0; }
+  .email-modal-header h3 { font-size: var(--text-base); font-weight: 600; }
+  .email-modal-close { background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--color-neutral-600); padding: 4px; min-width: 32px; min-height: 32px; display: flex; align-items: center; justify-content: center; }
+  .email-modal-close:hover { color: var(--color-neutral-900); }
+  .email-modal-meta { padding: var(--space-3) var(--space-6); background: var(--color-neutral-50); border-bottom: 1px solid var(--color-neutral-200); font-size: var(--text-sm); color: var(--color-neutral-600); flex-shrink: 0; }
+  .email-modal-meta strong { color: var(--color-neutral-900); }
+  .email-modal-body { padding: var(--space-6); overflow-y: auto; font-size: var(--text-sm); line-height: 1.7; white-space: pre-wrap; color: var(--color-neutral-900); }
 </style>
 
 <script is:inline>
@@ -346,18 +362,23 @@ import Admin from '../../layouts/Admin.astro';
     // Email list
     var emailListHtml = '';
     if (emails.length) {
-      emailListHtml = '<div class="msg-list">' + emails.map(function(m, i) {
+      emailListHtml = '<div class="msg-list">' + emails.map(function(m, idx) {
         var mDate = new Date(m.timestamp || m.sentAt).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
         var who = m.type === 'sent' ? 'You &rarr; ' + esc(m.to || email) : esc(m.from || email) + ' &rarr; You';
         var preview = m.body.length > 100 ? m.body.substring(0, 100) + '...' : m.body;
-        return '<div class="msg-bubble msg-' + m.type + '" onclick="this.classList.toggle(\'expanded\')">' +
+        var hasFullBody = m.fullBody && m.fullBody !== m.body;
+        var viewFullAttr = hasFullBody ? ' onclick="showFullEmail(' + idx + ')"' : '';
+        var viewFullHint = hasFullBody ? '<span class="msg-view-full">View full email</span>' : '';
+        return '<div class="msg-bubble msg-' + m.type + '"' + viewFullAttr + '>' +
           '<div class="msg-bubble-header"><span class="msg-bubble-who">' + who + '</span><span class="msg-bubble-date">' + mDate + '</span></div>' +
-          '<div class="msg-bubble-preview">' + esc(preview) + '</div>' +
-          '<div class="msg-bubble-body">' + esc(m.body) + '</div></div>';
+          '<div class="msg-bubble-body">' + esc(m.body) + '</div>' +
+          viewFullHint + '</div>';
       }).join('') + '</div>';
     } else {
       emailListHtml = '<div class="msg-empty">No emails yet</div>';
     }
+    // Store emails for modal access
+    window._currentEmails = emails;
 
     // Notes list
     var notesListHtml = '';
@@ -396,6 +417,26 @@ import Admin from '../../layouts/Admin.astro';
         '<div class="msgs-panel active" id="panel-emails">' + emailComposeHtml + emailListHtml + '</div>' +
         '<div class="msgs-panel" id="panel-notes">' + noteComposeHtml + notesListHtml + '</div>' +
       '</div>';
+  }
+
+  function showFullEmail(idx) {
+    var m = window._currentEmails[idx];
+    if (!m) return;
+    var fullContent = m.fullBody || m.body;
+    var mDate = new Date(m.timestamp || m.sentAt).toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
+    var who = m.type === 'sent' ? 'To: ' + esc(m.to || '') : 'From: ' + esc(m.from || '');
+    var subject = m.subject ? 'Subject: ' + esc(m.subject) : '';
+
+    var overlay = document.createElement('div');
+    overlay.className = 'email-modal-overlay';
+    overlay.onclick = function(e) { if (e.target === overlay) overlay.remove(); };
+    overlay.innerHTML =
+      '<div class="email-modal">' +
+        '<div class="email-modal-header"><h3>Full Email</h3><button class="email-modal-close" onclick="this.closest(\'.email-modal-overlay\').remove()">&times;</button></div>' +
+        '<div class="email-modal-meta">' + who + '<br>' + (subject ? subject + '<br>' : '') + '<span>' + mDate + '</span></div>' +
+        '<div class="email-modal-body">' + esc(fullContent) + '</div>' +
+      '</div>';
+    document.body.appendChild(overlay);
   }
 
   function switchMsgTab(tab, btn) {
