@@ -19,6 +19,13 @@ import Admin from '../../layouts/Admin.astro';
         <button class="type-tab active" data-type="order">Orders</button>
         <button class="type-tab" data-type="email">Emails</button>
       </div>
+      <div class="stage-toggle" id="stage-toggle">
+        <button class="stg-btn active" data-stg="all">All</button>
+        <button class="stg-btn" data-stg="review">Review</button>
+        <button class="stg-btn" data-stg="production">Production</button>
+        <button class="stg-btn" data-stg="ready">Ready</button>
+        <button class="stg-btn" data-stg="picked-up">Picked Up</button>
+      </div>
       <div class="inbox-list" id="inbox-list">
         <div class="inbox-loading"><div class="loading-dot"></div><p>Loading...</p></div>
       </div>
@@ -53,7 +60,13 @@ import Admin from '../../layouts/Admin.astro';
   .type-tab.active { background: #fff; color: var(--color-primary); box-shadow: inset 0 -2px 0 var(--color-primary); }
   .type-tab:hover:not(.active) { color: var(--color-neutral-900); }
 
-  .inbox-list { overflow-y: auto; max-height: calc(75vh - 48px); flex: 1; }
+  /* Stage toggle */
+  .stage-toggle { display: flex; border-bottom: 1px solid var(--color-neutral-200); flex-shrink: 0; padding: 6px 8px; gap: 4px; background: var(--color-neutral-50); }
+  .stg-btn { font-family: var(--font-heading); font-size: 10px; font-weight: 600; padding: 4px 10px; border: 1px solid transparent; background: none; color: var(--color-neutral-600); cursor: pointer; border-radius: var(--radius-full); transition: all var(--transition-fast); text-transform: uppercase; letter-spacing: 0.3px; white-space: nowrap; }
+  .stg-btn:hover { color: var(--color-neutral-900); background: #fff; }
+  .stg-btn.active { background: #fff; color: var(--color-primary); border-color: var(--color-neutral-200); box-shadow: var(--shadow-sm); }
+
+  .inbox-list { overflow-y: auto; max-height: calc(75vh - 90px); flex: 1; }
   .inbox-loading { padding: var(--space-12); text-align: center; color: var(--color-neutral-600); display: flex; flex-direction: column; align-items: center; gap: var(--space-3); }
   .loading-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--color-primary); animation: pulse 1s ease infinite; }
   @keyframes pulse { 0%, 100% { opacity: 0.3; } 50% { opacity: 1; } }
@@ -176,6 +189,7 @@ import Admin from '../../layouts/Admin.astro';
 <script is:inline>
   var allSubmissions = [];
   var currentType = 'order';
+  var currentStageFilter = 'all';
   var selectedId = null;
 
   var stageOrder = ['review', 'production', 'ready', 'picked-up'];
@@ -218,6 +232,14 @@ import Admin from '../../layouts/Admin.astro';
   function renderList() {
     var list = document.getElementById('inbox-list');
     var filtered = allSubmissions.filter(function(s) { return getItemType(s) === currentType; });
+
+    // Show/hide stage toggle
+    document.getElementById('stage-toggle').style.display = currentType === 'order' ? 'flex' : 'none';
+
+    // Apply stage filter for orders
+    if (currentType === 'order' && currentStageFilter !== 'all') {
+      filtered = filtered.filter(function(s) { return (s.stage || 'review') === currentStageFilter; });
+    }
 
     if (filtered.length === 0) {
       list.innerHTML = '<div class="inbox-empty"><div class="inbox-empty-icon">&#128235;</div><p>No ' + currentType + 's found</p></div>';
@@ -426,7 +448,20 @@ import Admin from '../../layouts/Admin.astro';
   document.querySelectorAll('.type-tab').forEach(function(btn) {
     btn.onclick = function() {
       currentType = btn.dataset.type;
+      currentStageFilter = 'all';
       document.querySelectorAll('.type-tab').forEach(function(b) { b.classList.remove('active'); });
+      btn.classList.add('active');
+      document.querySelectorAll('.stg-btn').forEach(function(b) { b.classList.remove('active'); });
+      document.querySelector('.stg-btn[data-stg="all"]').classList.add('active');
+      renderList();
+    };
+  });
+
+  // Stage toggle
+  document.querySelectorAll('.stg-btn').forEach(function(btn) {
+    btn.onclick = function() {
+      currentStageFilter = btn.dataset.stg;
+      document.querySelectorAll('.stg-btn').forEach(function(b) { b.classList.remove('active'); });
       btn.classList.add('active');
       renderList();
     };
