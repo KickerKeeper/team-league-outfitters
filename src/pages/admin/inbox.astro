@@ -175,10 +175,7 @@ import Admin from '../../layouts/Admin.astro';
   .msg-bubble.msg-received .msg-bubble-who { color: #b8860b; }
   .msg-bubble.msg-note .msg-bubble-who { color: var(--color-neutral-600); }
   .msg-bubble-date { font-size: var(--text-xs); color: var(--color-neutral-600); }
-  .msg-bubble-preview { font-size: var(--text-sm); color: var(--color-neutral-900); line-height: 1.5; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .msg-bubble-body { font-size: var(--text-sm); color: var(--color-neutral-900); line-height: 1.6; white-space: pre-wrap; display: none; }
-  .msg-bubble.expanded .msg-bubble-preview { display: none; }
-  .msg-bubble.expanded .msg-bubble-body { display: block; }
+  .msg-bubble-body { font-size: var(--text-sm); color: var(--color-neutral-900); line-height: 1.6; white-space: pre-wrap; }
 
   .msg-empty { font-size: var(--text-sm); color: var(--color-neutral-600); font-style: italic; text-align: center; padding: var(--space-4); }
 
@@ -385,9 +382,8 @@ import Admin from '../../layouts/Admin.astro';
     if (notes.length) {
       notesListHtml = '<div class="msg-list">' + notes.map(function(m) {
         var mDate = new Date(m.timestamp || m.sentAt).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
-        return '<div class="msg-bubble msg-note" onclick="this.classList.toggle(\'expanded\')">' +
+        return '<div class="msg-bubble msg-note">' +
           '<div class="msg-bubble-header"><span class="msg-bubble-who">Note</span><span class="msg-bubble-date">' + mDate + '</span></div>' +
-          '<div class="msg-bubble-preview">' + esc(m.body.length > 100 ? m.body.substring(0, 100) + '...' : m.body) + '</div>' +
           '<div class="msg-bubble-body">' + esc(m.body) + '</div></div>';
       }).join('') + '</div>';
     } else {
