@@ -11,6 +11,7 @@ export const POST: APIRoute = async ({ request }) => {
     if (!checkRateLimit(ip, 30, 60000)) {
       return new Response('', { status: 429 });
     }
+
     const body = await request.json();
     const { path, referrer, visitorId } = body;
 
@@ -18,10 +19,17 @@ export const POST: APIRoute = async ({ request }) => {
       return new Response('', { status: 400 });
     }
 
-    // Get country from Netlify geo headers
-    const country = request.headers.get('x-nf-geo')
-      ? JSON.parse(request.headers.get('x-nf-geo') || '{}')?.country?.name
-      : request.headers.get('x-country') || undefined;
+    // Get country from Netlify geo headers (safely)
+    let country: string | undefined;
+    try {
+      const geoHeader = request.headers.get('x-nf-geo');
+      if (geoHeader) {
+        const geo = JSON.parse(geoHeader);
+        country = geo?.country?.name;
+      }
+    } catch {
+      // Ignore geo parsing errors
+    }
 
     await recordPageView({
       path,
@@ -32,7 +40,8 @@ export const POST: APIRoute = async ({ request }) => {
     }, country);
 
     return new Response('', { status: 204 });
-  } catch {
+  } catch (e) {
+    console.error('Analytics track error:', e);
     return new Response('', { status: 500 });
   }
 };
