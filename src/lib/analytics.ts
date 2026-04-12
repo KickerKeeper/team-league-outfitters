@@ -39,7 +39,7 @@ function getDateKey(ts: number): string {
 }
 
 export async function recordPageView(event: PageView, countryHint?: string) {
-  const store = getStore('analytics');
+  const store = getStore('tlo-analytics');
   const dateKey = getDateKey(event.timestamp);
   const blobKey = `daily/${dateKey}`;
 
@@ -98,7 +98,7 @@ export async function recordPageView(event: PageView, countryHint?: string) {
 }
 
 export async function getStats(days: number = 30): Promise<any[]> {
-  const store = getStore('analytics');
+  const store = getStore('tlo-analytics');
   const results: any[] = [];
 
   for (let i = 0; i < days; i++) {
