@@ -1,4 +1,5 @@
 import type { APIRoute } from 'astro';
+import { Webhook } from 'svix';
 import { findByEmail, addMessage, saveSubmission } from '../../../lib/inbox';
 
 export const prerender = false;
@@ -7,7 +8,29 @@ export const prerender = false;
 // We must fetch the full email via GET /emails/receiving/:email_id
 export const POST: APIRoute = async ({ request }) => {
   try {
-    const webhook = await request.json();
+    const rawBody = await request.text();
+
+    // Verify webhook signature if secret is configured
+    const webhookSecret = import.meta.env.RESEND_WEBHOOK_SECRET;
+    if (webhookSecret) {
+      const svixId = request.headers.get('svix-id');
+      const svixTimestamp = request.headers.get('svix-timestamp');
+      const svixSignature = request.headers.get('svix-signature');
+
+      if (!svixId || !svixTimestamp || !svixSignature) {
+        return new Response(JSON.stringify({ error: 'Missing signature headers' }), { status: 401 });
+      }
+
+      try {
+        const wh = new Webhook(webhookSecret);
+        wh.verify(rawBody, { 'svix-id': svixId, 'svix-timestamp': svixTimestamp, 'svix-signature': svixSignature });
+      } catch {
+        console.error('Webhook signature verification failed');
+        return new Response(JSON.stringify({ error: 'Invalid signature' }), { status: 401 });
+      }
+    }
+
+    const webhook = JSON.parse(rawBody);
 
     // Resend webhook format: { type: "email.received", data: { email_id, from, to, subject, ... } }
     const eventType = webhook.type;

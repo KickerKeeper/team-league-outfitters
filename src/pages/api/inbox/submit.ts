@@ -1,10 +1,16 @@
 import type { APIRoute } from 'astro';
 import { saveSubmission } from '../../../lib/inbox';
+import { checkRateLimit, getClientIp } from '../../../lib/ratelimit';
 
 export const prerender = false;
 
 export const POST: APIRoute = async ({ request }) => {
   try {
+    // Rate limit: 5 submissions per minute per IP
+    const ip = getClientIp(request);
+    if (!checkRateLimit(ip, 5, 60000)) {
+      return new Response(JSON.stringify({ error: 'Too many submissions. Please try again later.' }), { status: 429 });
+    }
     const contentType = request.headers.get('content-type') || '';
     let data: Record<string, string> = {};
 
@@ -68,6 +74,9 @@ Here's what we received:
 ${summaryLines}
 
 If anything looks off or you have questions, just reply to this email and we'll get it sorted.
+
+You can check your order status anytime at:
+https://teamleagueoutfitters.com/status
 
 Talk soon,
 Jamie Nadeau

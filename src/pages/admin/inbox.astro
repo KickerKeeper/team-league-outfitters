@@ -9,6 +9,7 @@ import Admin from '../../layouts/Admin.astro';
       <h1>Inbox</h1>
       <span class="inbox-count" id="inbox-count"></span>
       <button class="refresh-btn" id="refresh-btn" onclick="loadInbox()" title="Refresh">&#8635;</button>
+      <a href="/api/inbox/export" class="refresh-btn" title="Export CSV" style="text-decoration:none;">&#8615;</a>
     </div>
     <span class="filter-count" id="count-new" style="display:none;"></span>
   </div>

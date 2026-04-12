@@ -1,9 +1,17 @@
 import { createHmac } from 'node:crypto';
 
-// Default credentials — change these via environment variables in production
+// Credentials — set via environment variables in production
 const ADMIN_USER = import.meta.env.ADMIN_USER || 'admin';
 const ADMIN_PASS = import.meta.env.ADMIN_PASS || 'TLO2026!';
 const SESSION_SECRET = import.meta.env.SESSION_SECRET || 'tlo-session-secret-change-me';
+
+// Warn if defaults are in use
+if (ADMIN_PASS === 'TLO2026!') {
+  console.warn('[AUTH WARNING] Using default admin password. Set ADMIN_PASS environment variable in Netlify.');
+}
+if (SESSION_SECRET === 'tlo-session-secret-change-me') {
+  console.warn('[AUTH WARNING] Using default session secret. Set SESSION_SECRET environment variable in Netlify.');
+}
 
 const SESSION_DURATION = 8 * 60 * 60 * 1000; // 8 hours
 
