@@ -9,14 +9,14 @@ export const POST: APIRoute = async ({ request }) => {
     // Rate limit: 30 page views per minute per IP
     const ip = getClientIp(request);
     if (!checkRateLimit(ip, 30, 60000)) {
-      return new Response('', { status: 429 });
+      return new Response(null, { status: 429 });
     }
 
     const body = await request.json();
     const { path, referrer, visitorId } = body;
 
     if (!path || !visitorId) {
-      return new Response('', { status: 400 });
+      return new Response(null, { status: 400 });
     }
 
     // Get country from Netlify geo headers (safely)
@@ -39,9 +39,9 @@ export const POST: APIRoute = async ({ request }) => {
       timestamp: Date.now(),
     }, country);
 
-    return new Response('', { status: 204 });
+    return new Response(null, { status: 200 });
   } catch (e) {
     console.error('Analytics track error:', e);
-    return new Response('', { status: 500 });
+    return new Response(null, { status: 500 });
   }
 };
