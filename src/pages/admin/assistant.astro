@@ -1,0 +1,575 @@
+---
+export const prerender = false;
+import Admin from '../../layouts/Admin.astro';
+---
+
+<Admin title="Assistant" activeTab="assistant">
+  <div class="assistant-layout">
+    <!-- Chat panel -->
+    <div class="chat-panel">
+      <div class="chat-header">
+        <h1>Assistant</h1>
+        <span class="chat-hint">Ask about orders, site features, or describe a new feature/bug</span>
+      </div>
+      <div class="chat-messages" id="chat-messages">
+        <div class="chat-welcome">
+          <div class="welcome-icon">&#9889;</div>
+          <h2>How can I help?</h2>
+          <div class="welcome-chips">
+            <button class="chip" onclick="askChip(this)">How do I process a new order?</button>
+            <button class="chip" onclick="askChip(this)">How many orders do I have?</button>
+            <button class="chip" onclick="askChip(this)">How do I send an email to a customer?</button>
+            <button class="chip" onclick="askChip(this)">I want to add a new feature</button>
+          </div>
+        </div>
+      </div>
+      <div class="chat-input-area">
+        <textarea class="chat-input" id="chat-input" placeholder="Type your message..." rows="1" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendChat();}"></textarea>
+        <button class="chat-send" id="chat-send" onclick="sendChat()">&#10148;</button>
+      </div>
+    </div>
+
+    <!-- Specs panel -->
+    <div class="specs-panel">
+      <div class="specs-header">
+        <h2>Feature Specs</h2>
+        <button class="refresh-btn" onclick="loadSpecs()" title="Refresh">&#8635;</button>
+      </div>
+      <div class="specs-list" id="specs-list">
+        <div class="specs-empty">No specs yet. Ask the assistant to create a feature request or defect report.</div>
+      </div>
+    </div>
+  </div>
+</Admin>
+
+<style is:global>
+  .assistant-layout {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--space-4);
+    min-height: calc(75vh);
+  }
+
+  @media (min-width: 1024px) {
+    .assistant-layout { grid-template-columns: 1fr 340px; }
+  }
+
+  /* Chat panel */
+  .chat-panel {
+    display: flex;
+    flex-direction: column;
+    background: #fff;
+    border: 1px solid var(--color-neutral-200);
+    border-radius: var(--radius-xl);
+    overflow: hidden;
+  }
+
+  .chat-header {
+    padding: var(--space-4) var(--space-6);
+    border-bottom: 1px solid var(--color-neutral-200);
+    flex-shrink: 0;
+  }
+
+  .chat-header h1 { font-size: var(--text-xl); margin-bottom: 2px; }
+
+  .chat-hint {
+    font-size: var(--text-xs);
+    color: var(--color-neutral-600);
+  }
+
+  .chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: var(--space-6);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    max-height: 55vh;
+  }
+
+  /* Welcome state */
+  .chat-welcome {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+    text-align: center;
+    color: var(--color-neutral-600);
+    gap: var(--space-3);
+    padding: var(--space-8);
+  }
+
+  .welcome-icon { font-size: 2.5rem; }
+
+  .chat-welcome h2 {
+    font-size: var(--text-xl);
+    color: var(--color-neutral-900);
+  }
+
+  .welcome-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    justify-content: center;
+    margin-top: var(--space-2);
+  }
+
+  .chip {
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    padding: 8px 16px;
+    border: 1px solid var(--color-neutral-200);
+    background: var(--color-neutral-50);
+    border-radius: var(--radius-full);
+    cursor: pointer;
+    color: var(--color-neutral-900);
+    transition: all var(--transition-fast);
+  }
+
+  .chip:hover {
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+    background: #fff;
+  }
+
+  /* Message bubbles */
+  .msg-user, .msg-ai {
+    max-width: 85%;
+    padding: var(--space-3) var(--space-4);
+    border-radius: var(--radius-lg);
+    font-size: var(--text-sm);
+    line-height: 1.6;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+  }
+
+  .msg-user {
+    align-self: flex-end;
+    background: var(--color-primary);
+    color: #fff;
+    border-bottom-right-radius: 4px;
+  }
+
+  .msg-ai {
+    align-self: flex-start;
+    background: var(--color-neutral-50);
+    color: var(--color-neutral-900);
+    border: 1px solid var(--color-neutral-200);
+    border-bottom-left-radius: 4px;
+  }
+
+  .msg-ai p { margin-bottom: var(--space-2); }
+  .msg-ai p:last-child { margin-bottom: 0; }
+  .msg-ai strong { font-weight: 600; }
+  .msg-ai code { background: var(--color-neutral-200); padding: 1px 4px; border-radius: 3px; font-size: var(--text-xs); }
+
+  .msg-typing {
+    align-self: flex-start;
+    padding: var(--space-3) var(--space-4);
+    font-size: var(--text-sm);
+    color: var(--color-neutral-600);
+    font-style: italic;
+  }
+
+  .msg-spec-saved {
+    align-self: flex-start;
+    background: #e8f5e9;
+    border: 1px solid #c8e6c9;
+    color: #2e7d32;
+    padding: var(--space-2) var(--space-4);
+    border-radius: var(--radius-md);
+    font-size: var(--text-sm);
+    font-weight: 600;
+  }
+
+  /* Input area */
+  .chat-input-area {
+    display: flex;
+    gap: var(--space-2);
+    padding: var(--space-3) var(--space-4);
+    border-top: 1px solid var(--color-neutral-200);
+    background: var(--color-neutral-50);
+    align-items: flex-end;
+  }
+
+  .chat-input {
+    flex: 1;
+    border: 1px solid var(--color-neutral-200);
+    border-radius: var(--radius-lg);
+    padding: 10px 14px;
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    resize: none;
+    max-height: 120px;
+    line-height: 1.5;
+    background: #fff;
+  }
+
+  .chat-input:focus { outline: none; border-color: var(--color-primary); }
+
+  .chat-send {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--color-primary);
+    color: #fff;
+    border: none;
+    font-size: 1.1rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: background var(--transition-fast);
+  }
+
+  .chat-send:hover { background: var(--color-primary-dark); }
+  .chat-send:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  /* Specs panel */
+  .specs-panel {
+    background: #fff;
+    border: 1px solid var(--color-neutral-200);
+    border-radius: var(--radius-xl);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .specs-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--space-4) var(--space-6);
+    border-bottom: 1px solid var(--color-neutral-200);
+    flex-shrink: 0;
+  }
+
+  .specs-header h2 { font-size: var(--text-base); font-weight: 600; }
+
+  .specs-list {
+    overflow-y: auto;
+    max-height: 60vh;
+    flex: 1;
+  }
+
+  .specs-empty {
+    padding: var(--space-8);
+    text-align: center;
+    color: var(--color-neutral-600);
+    font-size: var(--text-sm);
+  }
+
+  .spec-item {
+    padding: var(--space-4) var(--space-6);
+    border-bottom: 1px solid var(--color-neutral-50);
+    cursor: pointer;
+    transition: background var(--transition-fast);
+  }
+
+  .spec-item:hover { background: var(--color-neutral-50); }
+
+  .spec-item-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+  }
+
+  .spec-item-title {
+    font-family: var(--font-heading);
+    font-size: var(--text-sm);
+    font-weight: 600;
+    color: var(--color-neutral-900);
+  }
+
+  .spec-type-tag {
+    font-size: 9px;
+    padding: 1px 7px;
+    border-radius: var(--radius-full);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .spec-type-feature { background: #e3f2fd; color: #1565c0; }
+  .spec-type-defect { background: #fce4ec; color: #c62828; }
+
+  .spec-item-desc {
+    font-size: var(--text-xs);
+    color: var(--color-neutral-600);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .spec-item-date {
+    font-size: var(--text-xs);
+    color: var(--color-neutral-600);
+    margin-top: 4px;
+  }
+
+  /* Spec detail modal */
+  .spec-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-4);
+  }
+
+  .spec-modal {
+    background: #fff;
+    border-radius: var(--radius-xl);
+    max-width: 700px;
+    width: 100%;
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+  }
+
+  .spec-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--space-4) var(--space-6);
+    border-bottom: 1px solid var(--color-neutral-200);
+    flex-shrink: 0;
+  }
+
+  .spec-modal-header h3 { font-size: var(--text-lg); font-weight: 700; }
+
+  .spec-modal-close {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: var(--color-neutral-600);
+    padding: 4px;
+    min-width: 32px;
+    min-height: 32px;
+  }
+
+  .spec-modal-body {
+    padding: var(--space-6);
+    overflow-y: auto;
+    font-size: var(--text-sm);
+    line-height: 1.7;
+    white-space: pre-wrap;
+    color: var(--color-neutral-900);
+  }
+
+  .spec-section { margin-bottom: var(--space-4); }
+
+  .spec-section-title {
+    font-family: var(--font-heading);
+    font-size: var(--text-xs);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--color-primary);
+    margin-bottom: var(--space-2);
+  }
+
+  .spec-modal-footer {
+    padding: var(--space-3) var(--space-6);
+    border-top: 1px solid var(--color-neutral-200);
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--space-2);
+    flex-shrink: 0;
+  }
+
+  .spec-copy-btn {
+    font-family: var(--font-heading);
+    font-size: var(--text-xs);
+    font-weight: 600;
+    padding: 8px 16px;
+    border: 1px solid var(--color-neutral-200);
+    background: #fff;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .spec-copy-btn:hover { border-color: var(--color-primary); color: var(--color-primary); }
+</style>
+
+<script is:inline>
+  var chatMessages = [];
+  var allSpecs = [];
+
+  function askChip(btn) {
+    document.getElementById('chat-input').value = btn.textContent;
+    sendChat();
+  }
+
+  function sendChat() {
+    var input = document.getElementById('chat-input');
+    var msg = input.value.trim();
+    if (!msg) return;
+
+    // Remove welcome screen
+    var welcome = document.querySelector('.chat-welcome');
+    if (welcome) welcome.remove();
+
+    // Add user message
+    chatMessages.push({ role: 'user', content: msg });
+    appendMessage('user', msg);
+    input.value = '';
+    input.style.height = 'auto';
+
+    // Show typing indicator
+    var typing = document.createElement('div');
+    typing.className = 'msg-typing';
+    typing.id = 'typing';
+    typing.textContent = 'Thinking...';
+    document.getElementById('chat-messages').appendChild(typing);
+    scrollChat();
+
+    // Disable send
+    document.getElementById('chat-send').disabled = true;
+
+    fetch('/api/assistant/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ messages: chatMessages })
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      var el = document.getElementById('typing');
+      if (el) el.remove();
+      document.getElementById('chat-send').disabled = false;
+
+      if (data.error) {
+        appendMessage('ai', 'Error: ' + data.error);
+        return;
+      }
+
+      chatMessages.push({ role: 'assistant', content: data.response });
+      appendMessage('ai', data.response);
+
+      if (data.savedSpecId) {
+        var specMsg = document.createElement('div');
+        specMsg.className = 'msg-spec-saved';
+        specMsg.textContent = '&#10003; Spec saved! View it in the Specs panel.';
+        specMsg.innerHTML = '&#10003; Spec saved! View it in the Specs panel.';
+        document.getElementById('chat-messages').appendChild(specMsg);
+        loadSpecs();
+      }
+
+      scrollChat();
+    })
+    .catch(function() {
+      var el = document.getElementById('typing');
+      if (el) el.remove();
+      document.getElementById('chat-send').disabled = false;
+      appendMessage('ai', 'Sorry, something went wrong. Please try again.');
+    });
+  }
+
+  function appendMessage(role, text) {
+    var div = document.createElement('div');
+    div.className = role === 'user' ? 'msg-user' : 'msg-ai';
+
+    if (role === 'ai') {
+      // Simple markdown-like formatting
+      var html = esc(text)
+        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+        .replace(/`([^`]+)`/g, '<code>$1</code>')
+        .replace(/\n/g, '<br>');
+      div.innerHTML = html;
+    } else {
+      div.textContent = text;
+    }
+
+    document.getElementById('chat-messages').appendChild(div);
+    scrollChat();
+  }
+
+  function scrollChat() {
+    var el = document.getElementById('chat-messages');
+    el.scrollTop = el.scrollHeight;
+  }
+
+  // Auto-resize textarea
+  document.getElementById('chat-input').addEventListener('input', function() {
+    this.style.height = 'auto';
+    this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+  });
+
+  // Specs
+  function loadSpecs() {
+    fetch('/api/assistant/specs')
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        allSpecs = data;
+        renderSpecs();
+      })
+      .catch(function() {});
+  }
+
+  function renderSpecs() {
+    var list = document.getElementById('specs-list');
+    if (!allSpecs.length) {
+      list.innerHTML = '<div class="specs-empty">No specs yet. Ask the assistant to create a feature request or defect report.</div>';
+      return;
+    }
+
+    list.innerHTML = allSpecs.map(function(s, i) {
+      var date = new Date(s.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      return '<div class="spec-item" onclick="showSpec(' + i + ')">' +
+        '<div class="spec-item-header">' +
+          '<span class="spec-item-title">' + esc(s.title) + '</span>' +
+          '<span class="spec-type-tag spec-type-' + s.type + '">' + s.type + '</span>' +
+        '</div>' +
+        '<div class="spec-item-desc">' + esc(s.description.substring(0, 80)) + '</div>' +
+        '<div class="spec-item-date">' + date + '</div>' +
+      '</div>';
+    }).join('');
+  }
+
+  function showSpec(idx) {
+    var s = allSpecs[idx];
+    if (!s) return;
+
+    var overlay = document.createElement('div');
+    overlay.className = 'spec-modal-overlay';
+    overlay.onclick = function(e) { if (e.target === overlay) overlay.remove(); };
+
+    var fullText = '## Description\n' + s.description + '\n\n## Technical Spec\n' + s.spec;
+
+    overlay.innerHTML =
+      '<div class="spec-modal">' +
+        '<div class="spec-modal-header"><h3>' + esc(s.title) + '</h3><button class="spec-modal-close" onclick="this.closest(\'.spec-modal-overlay\').remove()">&times;</button></div>' +
+        '<div class="spec-modal-body">' +
+          '<div class="spec-section"><span class="spec-section-title">Type</span><br><span class="spec-type-tag spec-type-' + s.type + '">' + s.type + '</span></div>' +
+          '<div class="spec-section"><span class="spec-section-title">Description</span><br>' + esc(s.description) + '</div>' +
+          '<div class="spec-section"><span class="spec-section-title">Technical Spec</span><br>' + esc(s.spec) + '</div>' +
+        '</div>' +
+        '<div class="spec-modal-footer"><button class="spec-copy-btn" onclick="copySpec(' + idx + ')">Copy to Clipboard</button></div>' +
+      '</div>';
+
+    document.body.appendChild(overlay);
+    document.addEventListener('keydown', function close(e) { if (e.key === 'Escape') { overlay.remove(); document.removeEventListener('keydown', close); } });
+  }
+
+  function copySpec(idx) {
+    var s = allSpecs[idx];
+    var text = '# ' + s.title + '\n\nType: ' + s.type + '\nCreated: ' + s.createdAt + '\n\n## Description\n' + s.description + '\n\n## Technical Spec\n' + s.spec;
+    navigator.clipboard.writeText(text).then(function() {
+      var btn = document.querySelector('.spec-copy-btn');
+      if (btn) { btn.textContent = 'Copied!'; setTimeout(function() { btn.textContent = 'Copy to Clipboard'; }, 2000); }
+    });
+  }
+
+  function esc(s) { if (!s) return ''; var d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+  loadSpecs();
+</script>
