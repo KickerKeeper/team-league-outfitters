@@ -87,5 +87,41 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
     }).catch(function(){});
   })();
   </script>
+  <!-- Sentinel: Error & Performance Beacon -->
+  <script is:inline>
+  window.addEventListener('error', function(e) {
+    fetch('/api/monitor/errors', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        message: e.message,
+        stack: e.error && e.error.stack ? e.error.stack.slice(0, 2000) : null,
+        url: window.location.href,
+        timestamp: new Date().toISOString()
+      }),
+      keepalive: true
+    }).catch(function(){});
+  });
+  window.addEventListener('load', function() {
+    setTimeout(function() {
+      var entries = performance.getEntriesByType('navigation');
+      if (entries.length) {
+        var p = entries[0];
+        fetch('/api/monitor/performance', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            url: window.location.href,
+            ttfb: p.responseStart - p.requestStart,
+            domLoad: p.domContentLoadedEventEnd - p.startTime,
+            fullLoad: p.loadEventEnd - p.startTime,
+            timestamp: new Date().toISOString()
+          }),
+          keepalive: true
+        }).catch(function(){});
+      }
+    }, 1000);
+  });
+  </script>
 </body>
 </html>
