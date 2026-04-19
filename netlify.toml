@@ -2,6 +2,24 @@
   command = "npm run build"
   publish = "dist"
 
+[[redirects]]
+  from = "https://teamleagueoutfitters.com/*"
+  to = "https://gtownjerseys.com/:splat"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "https://www.teamleagueoutfitters.com/*"
+  to = "https://gtownjerseys.com/:splat"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "https://www.gtownjerseys.com/*"
+  to = "https://gtownjerseys.com/:splat"
+  status = 301
+  force = true
+
 [[headers]]
   for = "/*"
   [headers.values]
