@@ -9,7 +9,7 @@ export const prerender = false;
 
 const GEMINI_MODEL = 'gemini-2.5-flash';
 
-const SYSTEM_PROMPT = `You are the AI assistant for Team & League Outfitters admin portal. You help Jamie Nadeau (the owner) manage her business.
+const SYSTEM_PROMPT = `You are the AI assistant for Georgetown Jerseys admin portal. You help Jamie Nadeau (the owner) manage her business.
 
 You have three modes:
 

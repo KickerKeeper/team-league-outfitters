@@ -52,7 +52,7 @@ export const GET: APIRoute = async ({ request }) => {
   return new Response(csv, {
     headers: {
       'Content-Type': 'text/csv',
-      'Content-Disposition': `attachment; filename="tlo-orders-${date}.csv"`,
+      'Content-Disposition': `attachment; filename="gtownjerseys-orders-${date}.csv"`,
     },
   });
 };

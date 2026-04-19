@@ -9,16 +9,16 @@ const validStages = ['review', 'production', 'ready', 'picked-up'];
 
 const stageEmails: Record<string, { subject: string; body: (name: string) => string }> = {
   'production': {
-    subject: 'Your order is in production — Team & League Outfitters',
-    body: (name) => `Hi ${name},\n\nGood news! Your order has been confirmed and is now in production. We'll let you know as soon as it's ready for pickup.\n\nIf you have any questions, just reply to this email.\n\n— Jamie Nadeau\nTeam & League Outfitters\n(978) 352-8240`,
+    subject: 'Your order is in production — Georgetown Jerseys',
+    body: (name) => `Hi ${name},\n\nGood news! Your order has been confirmed and is now in production. We'll let you know as soon as it's ready for pickup.\n\nIf you have any questions, just reply to this email.\n\n— Jamie Nadeau\nGeorgetown Jerseys\n(978) 352-8240`,
   },
   'ready': {
-    subject: 'Your order is ready for pickup! — Team & League Outfitters',
-    body: (name) => `Hi ${name},\n\nYour order is ready! Come pick it up at:\n\nTeam & League Outfitters\n103 E Main St #2\nGeorgetown Building Supply Plaza\nGeorgetown, MA 01833\n\nHours:\nWed–Fri: 11am–5pm\nSat: 8am–Noon\n\nIf you need to arrange a different pickup time, just reply to this email or call (978) 352-8240.\n\nSee you soon!\n— Jamie Nadeau`,
+    subject: 'Your order is ready for pickup! — Georgetown Jerseys',
+    body: (name) => `Hi ${name},\n\nYour order is ready! Come pick it up at:\n\nGeorgetown Jerseys\n103 E Main St #2\nGeorgetown Building Supply Plaza\nGeorgetown, MA 01833\n\nHours:\nWed–Fri: 11am–5pm\nSat: 8am–Noon\n\nIf you need to arrange a different pickup time, just reply to this email or call (978) 352-8240.\n\nSee you soon!\n— Jamie Nadeau`,
   },
   'picked-up': {
-    subject: 'Thanks for picking up your order! — Team & League Outfitters',
-    body: (name) => `Hi ${name},\n\nThanks for picking up your order! We hope your team loves the new gear.\n\nIf you have a moment, we'd really appreciate a Google review — it helps other local teams find us:\nhttps://g.page/r/teamleagueoutfitters/review\n\nSee you next season!\n— Jamie Nadeau\nTeam & League Outfitters`,
+    subject: 'Thanks for picking up your order! — Georgetown Jerseys',
+    body: (name) => `Hi ${name},\n\nThanks for picking up your order! We hope your team loves the new gear.\n\nIf you have a moment, we'd really appreciate a Google review — it helps other local teams find us:\nhttps://g.page/r/teamleagueoutfitters/review\n\nSee you next season!\n— Jamie Nadeau\nGeorgetown Jerseys`,
   },
 };
 
@@ -55,8 +55,8 @@ export const POST: APIRoute = async ({ request }) => {
     const emailConfig = stageEmails[stage];
     if (emailConfig) {
       const resendKey = import.meta.env.RESEND_API_KEY;
-      const fromAddress = import.meta.env.RESEND_FROM || 'Team & League Outfitters <orders@teamleagueoutfitters.com>';
-      const replyTo = 'orders@teamleagueoutfitters.com';
+      const fromAddress = import.meta.env.RESEND_FROM || 'Georgetown Jerseys <orders@gtownjerseys.com>';
+      const replyTo = 'orders@gtownjerseys.com';
       const customerName = before.data.name || 'there';
 
       if (resendKey) {

@@ -1,13 +1,13 @@
 // Comprehensive site documentation for the AI assistant
 export const SITE_DOCUMENTATION = `
-# Team & League Outfitters — Site Documentation
+# Georgetown Jerseys — Site Documentation
 
 ## Business Overview
-Team & League Outfitters is a sports team uniform and custom apparel shop in Georgetown, MA.
+Georgetown Jerseys is a sports team uniform and custom apparel shop in Georgetown, MA.
 Owner: Jamie Nadeau. Founded 2013 (formerly The Soccer Shoppe).
 Address: 103 E Main St #2, Georgetown Building Supply Plaza, Georgetown, MA 01833
 Phone: (978) 352-8240 / (978) 360-4359
-Email: orders@teamleagueoutfitters.com
+Email: orders@gtownjerseys.com
 Hours: Wed-Fri 11am-5pm, Sat 8am-Noon
 
 ## Services Offered
@@ -87,7 +87,7 @@ The inbox manages all customer communications:
   - "Picked Up": thank you + Google review request
 
 ### Email System
-- Outbound: sends from orders@teamleagueoutfitters.com via Resend API
+- Outbound: sends from orders@gtownjerseys.com via Resend API
 - Inbound: customers reply to emails, replies flow into the inbox thread
 - Email threading: uses In-Reply-To and References headers so emails group in Gmail
 - Confirmation email: auto-sent when customer submits order form, includes order summary
@@ -105,7 +105,7 @@ The inbox manages all customer communications:
 - Hosting: Netlify (free tier)
 - Storage: Netlify Blobs (inbox data, analytics, feature specs)
 - Email: Resend API (sending + inbound webhooks)
-- Domain: teamleagueoutfitters.com
+- Domain: gtownjerseys.com
 - DNS: Namecheap
 - GitHub: KickerKeeper/team-league-outfitters (auto-deploys on push to main)
 
@@ -140,7 +140,7 @@ The inbox manages all customer communications:
 1. Customer reply shows up in the order's email thread
 2. Click on the order in the inbox list
 3. In the Emails tab, type your response in the compose box
-4. Click "Send Email" — sent from orders@teamleagueoutfitters.com
+4. Click "Send Email" — sent from orders@gtownjerseys.com
 
 ### Adding Internal Notes
 1. Open the order

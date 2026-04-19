@@ -4,12 +4,12 @@ import CTABanner from '../components/CTABanner.astro';
 
 const photos = Array.from({ length: 10 }, (_, i) => ({
   src: `/images/photos/photo-${String(i + 1).padStart(2, '0')}.png`,
-  alt: `Youth sports team outfitted by Team & League Outfitters — photo ${i + 1}`,
+  alt: `Youth sports team outfitted by Georgetown Jerseys — photo ${i + 1}`,
 }));
 ---
 
 <Base
-  title="Our Teams — Team & League Outfitters"
+  title="Our Teams — Georgetown Jerseys"
   description="See the teams we've outfitted. Youth soccer, basketball, and baseball teams from Georgetown and the North Shore."
 >
   <!-- Page Header -->
@@ -183,7 +183,7 @@ const photos = Array.from({ length: 10 }, (_, i) => ({
 <script>
   const photos = Array.from({ length: 10 }, (_, i) => ({
     src: `/images/photos/photo-${String(i + 1).padStart(2, '0')}.png`,
-    alt: `Youth sports team outfitted by Team & League Outfitters — photo ${i + 1}`,
+    alt: `Youth sports team outfitted by Georgetown Jerseys — photo ${i + 1}`,
   }));
 
   const dialog = document.getElementById('lightbox') as HTMLDialogElement;

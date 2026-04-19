@@ -20,8 +20,8 @@ export const POST: APIRoute = async ({ request }) => {
   // If sending an email, use Resend
   if (messageType === 'sent' && to) {
     const resendKey = import.meta.env.RESEND_API_KEY;
-    const fromAddress = import.meta.env.RESEND_FROM || 'Team & League Outfitters <orders@teamleagueoutfitters.com>';
-    const replyTo = 'orders@teamleagueoutfitters.com';
+    const fromAddress = import.meta.env.RESEND_FROM || 'Georgetown Jerseys <orders@gtownjerseys.com>';
+    const replyTo = 'orders@gtownjerseys.com';
 
     if (resendKey) {
       // Look up the submission to find threading info
@@ -55,7 +55,7 @@ export const POST: APIRoute = async ({ request }) => {
       }
 
       // Build subject — prefix with Re: if not already
-      let subject = originalSubject || 'Your Order — Team & League Outfitters';
+      let subject = originalSubject || 'Your Order — Georgetown Jerseys';
       if (originalSubject && !originalSubject.startsWith('Re:')) {
         subject = 'Re: ' + originalSubject;
       }
@@ -65,7 +65,7 @@ export const POST: APIRoute = async ({ request }) => {
         reply_to: replyTo,
         to: [to],
         subject: subject,
-        text: msgBody + '\n\n—\nTeam & League Outfitters\n(978) 352-8240\n103 E Main St #2, Georgetown, MA 01833',
+        text: msgBody + '\n\n—\nGeorgetown Jerseys\n(978) 352-8240\n103 E Main St #2, Georgetown, MA 01833',
       };
 
       // Add threading headers

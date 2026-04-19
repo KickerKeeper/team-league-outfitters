@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://teamleagueoutfitters.com/sitemap-index.xml
+Sitemap: https://gtownjerseys.com/sitemap-index.xml

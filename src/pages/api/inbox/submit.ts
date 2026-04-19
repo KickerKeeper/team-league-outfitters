@@ -43,8 +43,8 @@ export const POST: APIRoute = async ({ request }) => {
     // Send confirmation email if customer provided an email
     const email = data.email;
     const resendKey = import.meta.env.RESEND_API_KEY;
-    const fromAddress = import.meta.env.RESEND_FROM || 'Team & League Outfitters <orders@teamleagueoutfitters.com>';
-    const inboundDomain = 'teamleagueoutfitters.com';
+    const fromAddress = import.meta.env.RESEND_FROM || 'Georgetown Jerseys <orders@gtownjerseys.com>';
+    const inboundDomain = 'gtownjerseys.com';
     const replyTo = `orders@${inboundDomain}`;
 
     if (email && resendKey) {
@@ -76,16 +76,16 @@ ${summaryLines}
 If anything looks off or you have questions, just reply to this email and we'll get it sorted.
 
 You can check your order status anytime at:
-https://teamleagueoutfitters.com/status
+https://gtownjerseys.com/status
 
 Talk soon,
 Jamie Nadeau
-Team & League Outfitters
+Georgetown Jerseys
 (978) 352-8240
 103 E Main St #2, Georgetown, MA 01833`;
 
       try {
-        const confirmSubject = 'Your Order — Team & League Outfitters';
+        const confirmSubject = 'Your Order — Georgetown Jerseys';
         const emailRes = await fetch('https://api.resend.com/emails', {
           method: 'POST',
           headers: {

@@ -24,9 +24,9 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
   <meta property="og:title" content={title} />
   <meta property="og:description" content={description} />
   <meta property="og:url" content={canonicalURL} />
-  <meta property="og:image" content="https://teamleagueoutfitters.com/images/logo/logo-stacked.png" />
+  <meta property="og:image" content="https://gtownjerseys.com/images/logo/logo-stacked.png" />
   <meta property="og:type" content="website" />
-  <meta property="og:site_name" content="Team & League Outfitters" />
+  <meta property="og:site_name" content="Georgetown Jerseys" />
   <meta name="twitter:card" content="summary" />
   <link rel="icon" type="image/png" href="/favicon.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="/images/logo/logo-icon.png" />
@@ -40,11 +40,11 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
   <script type="application/ld+json" set:html={JSON.stringify({
     "@context": "https://schema.org",
     "@type": "LocalBusiness",
-    "name": "Team & League Outfitters",
+    "name": "Georgetown Jerseys",
     "description": "Custom team uniforms, apparel, and embroidery for youth sports teams in Georgetown, MA.",
-    "url": "https://teamleagueoutfitters.com",
+    "url": "https://gtownjerseys.com",
     "telephone": "+19783528240",
-    "email": "teamleagueoutfitters@comcast.net",
+    "email": "orders@gtownjerseys.com",
     "address": {
       "@type": "PostalAddress",
       "streetAddress": "103 E Main St #2",
@@ -63,7 +63,7 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
       { "@type": "OpeningHoursSpecification", "dayOfWeek": "Saturday", "opens": "08:00", "closes": "12:00" }
     ],
     "priceRange": "$$",
-    "image": "https://teamleagueoutfitters.com/images/logo/logo-horizontal.png",
+    "image": "https://gtownjerseys.com/images/logo/logo-horizontal.png",
     "foundingDate": "2013"
   })} />
 </head>
@@ -77,8 +77,8 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
   <script is:inline>
   (function(){
     if (location.pathname.startsWith('/admin')) return;
-    var vid = localStorage.getItem('_tlo_vid');
-    if (!vid) { vid = Math.random().toString(36).slice(2) + Date.now().toString(36); localStorage.setItem('_tlo_vid', vid); }
+    var vid = localStorage.getItem('_gj_vid');
+    if (!vid) { vid = Math.random().toString(36).slice(2) + Date.now().toString(36); localStorage.setItem('_gj_vid', vid); }
     fetch('/api/analytics/track', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
