@@ -36,7 +36,6 @@ export const POST: APIRoute = async ({ request }) => {
       data,
       createdAt: new Date().toISOString(),
       status: 'new',
-      stage: formName === 'order' ? 'review' : undefined,
       messages: [],
     });
 
@@ -74,9 +73,6 @@ Here's what we received:
 ${summaryLines}
 
 If anything looks off or you have questions, just reply to this email and we'll get it sorted.
-
-You can check your order status anytime at:
-https://gtownjerseys.com/status
 
 Talk soon,
 Jamie Nadeau

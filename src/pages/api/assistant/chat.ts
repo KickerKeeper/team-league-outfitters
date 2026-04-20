@@ -67,25 +67,23 @@ export const POST: APIRoute = async ({ request }) => {
     let contextData = '';
     try {
       const submissions = await getSubmissions();
-      const orderCount = submissions.filter(s => s.formName !== 'email').length;
+      const orders = submissions.filter(s => s.formName !== 'email');
       const emailCount = submissions.filter(s => s.formName === 'email').length;
-      const stages: Record<string, number> = {};
-      submissions.forEach(s => {
-        if (s.formName !== 'email') {
-          const stage = s.stage || 'review';
-          stages[stage] = (stages[stage] || 0) + 1;
-        }
-      });
+      const openCount = orders.filter(s => s.status !== 'completed').length;
+      const closedCount = orders.filter(s => s.status === 'completed').length;
+      const paidCount = orders.filter(s => s.paid).length;
 
-      const recentOrders = submissions
-        .filter(s => s.formName !== 'email')
+      const recentOrders = orders
         .slice(0, 10)
-        .map(s => `- ${s.data.name || 'Unknown'} | ${s.data.team || ''} | ${s.data.sport || ''} | Stage: ${s.stage || 'review'} | ${new Date(s.createdAt).toLocaleDateString()}`)
+        .map(s => {
+          const status = s.status === 'completed' ? 'Closed' : 'Open';
+          const paid = s.paid ? 'Paid' : 'Unpaid';
+          return `- ${s.data.name || 'Unknown'} | ${s.data.team || ''} | ${s.data.sport || ''} | ${status} · ${paid} | ${new Date(s.createdAt).toLocaleDateString()}`;
+        })
         .join('\n');
 
       contextData = `\n\n## Live Data (as of now)
-Orders: ${orderCount} total | Emails: ${emailCount}
-By stage: ${Object.entries(stages).map(([k, v]) => `${k}: ${v}`).join(', ')}
+Orders: ${orders.length} total (${openCount} open, ${closedCount} closed, ${paidCount} paid) | Email threads: ${emailCount}
 
 Recent orders:
 ${recentOrders || 'No orders yet'}`;

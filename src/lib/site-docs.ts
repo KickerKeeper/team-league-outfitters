@@ -33,7 +33,6 @@ Hours: Wed-Fri 11am-5pm, Sat 8am-Noon
 - /about — business story, differentiators
 - /order — order form (primary CTA) with 12 fields in 3 sections
 - /contact — phone, email, hours, Google Maps
-- /status — customer order status lookup (enter email to see pipeline stage)
 - /privacy — privacy policy
 - /404 — custom error page
 
@@ -58,33 +57,32 @@ The inbox manages all customer communications:
 
 **List View (left panel):**
 - Toggle between Orders and Emails tabs
-- Stage filter for orders: All, Review, Prod, Ready, Done
+- Order filter: All / Open / Closed
 - Search by name, team, or organization
-- Each item shows name, preview, stage tag, date
+- Each item shows name, preview, Open/Closed tag (plus a Paid tag if paid), date
 - Blue dot = unread/new, auto-refreshes every 30 seconds
 
 **Detail View (right panel):**
 - Contact info (clickable email and phone links)
 - Order fields grouped into sections (Contact, Team Details, Sizing, Preferences)
-- Step flow graphic for orders (4 stages, click circle to change)
+- Three action buttons: Close Order (or Reopen), Mark Paid (or ✓ Paid), Delete
 - Email tab: compose and send emails to customer, view thread
 - Notes tab: internal notes only visible to admin
-- Delete button (with confirmation)
 - Download icon for CSV export of all orders
 
-**Order Stages (pipeline):**
-1. Needs Review — new order just received, needs to be reviewed
-2. In Production — confirmed, being made
-3. Ready for Pickup — done, waiting for customer
-4. Picked Up — customer collected, order complete
+**Order Status:**
+- Open — the order is still in progress (new or in-progress)
+- Closed — the order is complete (picked up, shipped, or otherwise done)
 
-**Stage change behavior:**
-- Click the numbered circle in the step flow to change stage
-- Clicking current stage does nothing
-- Auto-emails are sent to customer on stage transitions:
-  - "In Production": confirms order is being made
-  - "Ready for Pickup": pickup details with address and hours
-  - "Picked Up": thank you + Google review request
+**Close Order behavior:**
+- Click "Close Order" in the detail view — marks the order completed
+- When a new order (not an email thread) transitions to closed and has a customer email on file, an auto "Your order is complete" email is sent to the customer with pickup reminder and a Google review ask
+- Click "Reopen" on a closed order to put it back to Open (does NOT send another email)
+
+**Paid tracking:**
+- "Mark Paid" button toggles a paid flag on the order independently of Open/Closed
+- Paid orders show a green "Paid" tag in the list view
+- Paid toggle does not send any emails
 
 ### Email System
 - Outbound: sends from orders@gtownjerseys.com via Resend API
@@ -129,12 +127,12 @@ The inbox manages all customer communications:
 ## Common Workflows
 
 ### Processing a New Order
-1. Order appears in inbox with "Needs Review" stage
+1. Order appears in inbox as "Open" with a blue unread dot
 2. Review the order details (team, sport, sizes, customization)
-3. Send an email to customer confirming details or asking questions
-4. When confirmed, click step 2 "In Production" — auto-email sent
-5. When done, click step 3 "Ready for Pickup" — auto-email with address sent
-6. When picked up, click step 4 "Picked Up" — thank you email sent
+3. Send an email to customer confirming details or asking questions (use the Emails tab)
+4. Mark the order as Paid when payment comes in (Mark Paid button — no email sent)
+5. When the order is complete and handed off to the customer (pickup, shipped, etc.), click Close Order — this sends a completion email with pickup reminder and a Google review ask
+6. If anything changes later, click Reopen to put it back to Open
 
 ### Responding to Customer Email
 1. Customer reply shows up in the order's email thread

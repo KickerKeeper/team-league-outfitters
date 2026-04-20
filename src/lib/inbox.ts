@@ -6,7 +6,6 @@ export interface Submission {
   data: Record<string, string>;
   createdAt: string;
   status: 'new' | 'read' | 'completed';
-  stage?: 'review' | 'production' | 'ready' | 'picked-up';
   paid?: boolean;
   paidAt?: string;
   messages: Message[];
@@ -98,14 +97,13 @@ export async function saveSubmission(sub: Submission) {
   }
 }
 
-export async function updateSubmissionStatus(id: string, status: Submission['status'], stage?: Submission['stage']) {
+export async function updateSubmissionStatus(id: string, status: Submission['status']) {
   const store = getStore('inbox');
   const data = await store.get(`submission/${id}`);
   if (!data) return null;
 
   const sub: Submission = JSON.parse(data);
   sub.status = status;
-  if (stage !== undefined) sub.stage = stage;
   await store.set(`submission/${id}`, JSON.stringify(sub));
   return sub;
 }
