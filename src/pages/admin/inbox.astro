@@ -96,6 +96,7 @@ import Admin from '../../layouts/Admin.astro';
   .tag-sport { background: #e8eaf6; color: #283593; } .tag-completed { background: #e8f5e9; color: #2e7d32; }
   .tag-review { background: #fff3e0; color: #e65100; } .tag-production { background: #e3f2fd; color: #1565c0; }
   .tag-ready { background: #e8f5e9; color: #2e7d32; } .tag-picked-up { background: var(--color-neutral-50); color: var(--color-neutral-600); }
+  .tag-paid { background: #e8f5e9; color: #2e7d32; border: 1px solid #2e7d32; }
 
   /* Detail panel */
   .inbox-detail { overflow-y: auto; max-height: 75vh; }
@@ -120,6 +121,10 @@ import Admin from '../../layouts/Admin.astro';
   .action-btn.complete-btn { background: var(--color-success); color: #fff; border-color: var(--color-success); }
   .action-btn.complete-btn:hover { filter: brightness(0.9); color: #fff; }
   .action-btn.delete-btn { color: var(--color-neutral-600); }
+  .action-btn.paid-btn { color: var(--color-neutral-600); }
+  .action-btn.paid-btn:hover { border-color: var(--color-success); color: var(--color-success); }
+  .action-btn.paid-btn.paid-active { background: var(--color-success); color: #fff; border-color: var(--color-success); }
+  .action-btn.paid-btn.paid-active:hover { filter: brightness(0.92); color: #fff; }
   .action-btn.delete-btn:hover { color: var(--color-error); border-color: var(--color-error); }
   .completed-badge { display: inline-flex; align-items: center; gap: 4px; font-size: var(--text-xs); font-weight: 600; color: #2e7d32; background: #e8f5e9; padding: 4px 12px; border-radius: var(--radius-full); text-transform: uppercase; letter-spacing: 0.5px; }
 
@@ -285,11 +290,14 @@ import Admin from '../../layouts/Admin.astro';
       if (preview.length > 80) preview = preview.substring(0, 80) + '...';
 
       var stageHtml = '';
+      var paidTag = s.paid ? ' <span class="tag tag-paid">Paid</span>' : '';
       if (currentType === 'order') {
         var stg = s.stage || 'review';
         var si = stageOrder.indexOf(stg);
         if (si === -1) si = 0;
-        stageHtml = '<div class="inbox-item-stage"><span class="tag tag-' + stg + '">Step ' + (si + 1) + '/4 — ' + esc(stageLabels[stg]) + '</span></div>';
+        stageHtml = '<div class="inbox-item-stage"><span class="tag tag-' + stg + '">Step ' + (si + 1) + '/4 — ' + esc(stageLabels[stg]) + '</span>' + paidTag + '</div>';
+      } else if (s.paid) {
+        stageHtml = '<div class="inbox-item-stage"><span class="tag tag-paid">Paid</span></div>';
       }
 
       return '<div class="inbox-item' + (s.status === 'new' ? ' is-new' : '') + (s.id === selectedId ? ' selected' : '') + '" data-id="' + s.id + '">' +
@@ -324,7 +332,11 @@ import Admin from '../../layouts/Admin.astro';
     if (email) contactHtml += '<a href="mailto:' + esc(email) + '"><span class="contact-icon">&#9993;</span> ' + esc(email) + '</a>';
     if (phone) contactHtml += '<a href="tel:' + esc(phone) + '"><span class="contact-icon">&#9742;</span> ' + esc(phone) + '</a>';
 
-    var actionsHtml = '<button class="action-btn delete-btn" onclick="deleteSubmission(\'' + id + '\')">&#128465;</button>';
+    var paidBtnLabel = sub.paid ? '&#10003; Paid' : 'Mark Paid';
+    var paidBtnTitle = sub.paid && sub.paidAt ? 'Paid on ' + new Date(sub.paidAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) + ' — click to unmark' : 'Mark this order paid';
+    var actionsHtml =
+      '<button class="action-btn paid-btn' + (sub.paid ? ' paid-active' : '') + '" onclick="togglePaid(\'' + id + '\')" title="' + paidBtnTitle + '">' + paidBtnLabel + '</button>' +
+      '<button class="action-btn delete-btn" onclick="deleteSubmission(\'' + id + '\')">&#128465;</button>';
 
     // Step flow — click handler on circle only to prevent accidental triggers
     var pipelineHtml = '';
@@ -499,6 +511,36 @@ import Admin from '../../layouts/Admin.astro';
   function updateStatus(id, status) {
     fetch('/api/inbox/update', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: id, status: status }) })
     .then(function() { var s = allSubmissions.find(function(x) { return x.id === id; }); if (s) s.status = status; updateCounts(); renderList(); showDetail(id); });
+  }
+
+  function togglePaid(id) {
+    var sub = allSubmissions.find(function(x) { return x.id === id; });
+    if (!sub) return;
+    var newPaid = !sub.paid;
+    // Optimistic update
+    sub.paid = newPaid;
+    sub.paidAt = newPaid ? new Date().toISOString() : undefined;
+    renderList();
+    showDetail(id);
+    fetch('/api/inbox/update', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: id, paid: newPaid })
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(updated) {
+      if (updated && typeof updated.paid === 'boolean') {
+        sub.paid = updated.paid;
+        sub.paidAt = updated.paidAt;
+      }
+    })
+    .catch(function() {
+      // Revert on error
+      sub.paid = !newPaid;
+      sub.paidAt = !newPaid ? new Date().toISOString() : undefined;
+      renderList();
+      showDetail(id);
+    });
   }
 
   function deleteSubmission(id) {

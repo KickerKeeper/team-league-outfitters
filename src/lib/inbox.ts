@@ -7,6 +7,8 @@ export interface Submission {
   createdAt: string;
   status: 'new' | 'read' | 'completed';
   stage?: 'review' | 'production' | 'ready' | 'picked-up';
+  paid?: boolean;
+  paidAt?: string;
   messages: Message[];
 }
 
@@ -104,6 +106,22 @@ export async function updateSubmissionStatus(id: string, status: Submission['sta
   const sub: Submission = JSON.parse(data);
   sub.status = status;
   if (stage !== undefined) sub.stage = stage;
+  await store.set(`submission/${id}`, JSON.stringify(sub));
+  return sub;
+}
+
+export async function setPaid(id: string, paid: boolean): Promise<Submission | null> {
+  const store = getStore('inbox');
+  const data = await store.get(`submission/${id}`);
+  if (!data) return null;
+
+  const sub: Submission = JSON.parse(data);
+  sub.paid = paid;
+  if (paid) {
+    sub.paidAt = new Date().toISOString();
+  } else {
+    delete sub.paidAt;
+  }
   await store.set(`submission/${id}`, JSON.stringify(sub));
   return sub;
 }

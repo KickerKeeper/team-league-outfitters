@@ -13,7 +13,7 @@ export const GET: APIRoute = async ({ request }) => {
   const submissions = await getSubmissions();
 
   // Build CSV
-  const headers = ['ID', 'Date', 'Type', 'Stage', 'Name', 'Email', 'Phone', 'Team', 'Sport', 'Colors', 'Players', 'Sizes', 'Numbers', 'Customization', 'Fulfillment', 'Notes', 'Messages'];
+  const headers = ['ID', 'Date', 'Type', 'Stage', 'Paid', 'Paid At', 'Name', 'Email', 'Phone', 'Team', 'Sport', 'Colors', 'Players', 'Sizes', 'Numbers', 'Customization', 'Fulfillment', 'Notes', 'Messages'];
 
   const escape = (val: string) => {
     if (!val) return '';
@@ -30,6 +30,8 @@ export const GET: APIRoute = async ({ request }) => {
       s.createdAt,
       s.formName === 'email' ? 'Email' : 'Order',
       s.stage || 'review',
+      s.paid ? 'Yes' : 'No',
+      s.paidAt || '',
       s.data.name || '',
       s.data.email || '',
       s.data.phone || '',

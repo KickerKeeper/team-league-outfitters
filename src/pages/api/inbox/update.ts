@@ -1,6 +1,6 @@
 import type { APIRoute } from 'astro';
 import { getSessionFromCookie } from '../../../lib/auth';
-import { updateSubmissionStatus, getSubmission, addMessage } from '../../../lib/inbox';
+import { updateSubmissionStatus, getSubmission, addMessage, setPaid } from '../../../lib/inbox';
 
 export const prerender = false;
 
@@ -28,7 +28,7 @@ export const POST: APIRoute = async ({ request }) => {
     return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
   }
 
-  const { id, status, stage } = await request.json();
+  const { id, status, stage, paid } = await request.json();
   if (!id) {
     return new Response(JSON.stringify({ error: 'Missing id' }), { status: 400 });
   }
@@ -39,6 +39,17 @@ export const POST: APIRoute = async ({ request }) => {
 
   if (stage && !validStages.includes(stage)) {
     return new Response(JSON.stringify({ error: 'Invalid stage' }), { status: 400 });
+  }
+
+  // Paid-only update: don't touch status/stage, don't fire stage-transition emails
+  if (typeof paid === 'boolean' && status === undefined && stage === undefined) {
+    const updated = await setPaid(id, paid);
+    if (!updated) {
+      return new Response(JSON.stringify({ error: 'Not found' }), { status: 404 });
+    }
+    return new Response(JSON.stringify(updated), {
+      headers: { 'Content-Type': 'application/json' },
+    });
   }
 
   // Get the submission before updating to check the previous stage
