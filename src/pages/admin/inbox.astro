@@ -268,7 +268,10 @@ import Admin from '../../layouts/Admin.astro';
       var date = new Date(s.createdAt);
       var now = new Date();
       var dateStr = date.toDateString() === now.toDateString() ? date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-      var preview = currentType === 'order' ? [s.data.team, s.data.sport, s.data.players ? s.data.players + ' players' : ''].filter(Boolean).join(' · ') : ((s.messages || []).slice(-1)[0] || {}).body || s.data.email || '';
+      var orderPreview = s.data.town || s.data.jersey_count
+        ? [s.data.town, s.data.jersey_count ? s.data.jersey_count + (s.data.jersey_count === '1' ? ' jersey' : ' jerseys') : ''].filter(Boolean).join(' · ')
+        : [s.data.team, s.data.sport, s.data.players ? s.data.players + ' players' : ''].filter(Boolean).join(' · ');
+      var preview = currentType === 'order' ? orderPreview : ((s.messages || []).slice(-1)[0] || {}).body || s.data.email || '';
       if (preview.length > 80) preview = preview.substring(0, 80) + '...';
 
       var stageHtml = '';

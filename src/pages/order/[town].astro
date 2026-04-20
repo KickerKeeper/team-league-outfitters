@@ -1,0 +1,406 @@
+---
+import Base from '../../layouts/Base.astro';
+import { TOWNS, getTown } from '../../lib/towns';
+import { getWeekOfLabel } from '../../lib/week';
+
+export function getStaticPaths() {
+  return TOWNS.map((town) => ({ params: { town: town.slug } }));
+}
+
+const { town: townSlug } = Astro.params;
+const town = getTown(townSlug!);
+
+if (!town) {
+  return Astro.redirect('/order');
+}
+
+const weekOf = getWeekOfLabel();
+
+const SIZES = [
+  'Youth XS',
+  'Youth S',
+  'Youth M',
+  'Youth L',
+  'Youth XL',
+  'Adult S',
+  'Adult M',
+  'Adult L',
+  'Adult XL',
+  'Adult XXL',
+];
+---
+
+<Base
+  title={`Order a Jersey — ${town.name} | Georgetown Jerseys`}
+  description={`Order your child's ${town.name} jersey. Fill out the form and we'll handle the rest.`}
+>
+  <section class="page-header">
+    <div class="container">
+      <p class="back-link"><a href="/order">&larr; Choose a different town</a></p>
+      <h1>{town.name} Jersey Order</h1>
+      <p>Tell us about your jersey order and we'll be in touch.</p>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container order-layout">
+      <div class="form-area">
+        <form id="order-form">
+          <input type="hidden" name="form-name" value="parent-order" />
+          <input type="hidden" name="town" value={town.name} />
+          <input type="hidden" name="town_slug" value={town.slug} />
+          <p class="hidden" aria-hidden="true">
+            <label>Don't fill this out: <input name="bot-field" /></label>
+          </p>
+
+          <fieldset class="form-section">
+            <legend>Your Info</legend>
+            <div class="form-grid">
+              <div class="form-field">
+                <label for="name">Parent / Guardian Name <span class="req" aria-hidden="true">*</span></label>
+                <input type="text" id="name" name="name" required autocomplete="name" />
+              </div>
+              <div class="form-field">
+                <label for="email">Email <span class="req" aria-hidden="true">*</span></label>
+                <input type="email" id="email" name="email" required autocomplete="email" />
+              </div>
+              <div class="form-field">
+                <label for="phone">Phone <span class="req" aria-hidden="true">*</span></label>
+                <input type="tel" id="phone" name="phone" required autocomplete="tel" />
+              </div>
+            </div>
+          </fieldset>
+
+          <fieldset class="form-section">
+            <legend>Jersey Details</legend>
+            <p class="section-hint">One row per kid. Add another if you're ordering for more than one.</p>
+
+            <div id="jerseys-list">
+              <div class="jersey-row" data-jersey-row>
+                <div class="jersey-row-header">
+                  <span class="jersey-row-label" data-jersey-label>Jersey 1</span>
+                  <button type="button" class="jersey-remove" data-jersey-remove hidden>Remove</button>
+                </div>
+                <div class="form-grid">
+                  <div class="form-field">
+                    <label>Player Name <span class="req" aria-hidden="true">*</span></label>
+                    <input type="text" name="jersey_name[]" required />
+                  </div>
+                  <div class="form-field">
+                    <label>Size <span class="req" aria-hidden="true">*</span></label>
+                    <select name="jersey_size[]" required>
+                      <option value="">Select a size</option>
+                      {SIZES.map((s) => <option value={s}>{s}</option>)}
+                    </select>
+                  </div>
+                  <div class="form-field">
+                    <label>Number <span class="req" aria-hidden="true">*</span></label>
+                    <input type="text" name="jersey_number[]" required inputmode="numeric" pattern="[0-9]{1,3}" placeholder="e.g., 7" />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <button type="button" id="add-jersey" class="btn btn-secondary add-jersey-btn">+ Add another jersey</button>
+          </fieldset>
+
+          <fieldset class="form-section">
+            <legend>Anything else?</legend>
+            <div class="form-grid">
+              <div class="form-field full-width">
+                <label for="notes">Notes</label>
+                <textarea id="notes" name="notes" rows="3" placeholder="Anything we should know? (e.g., specific number not available, deadline, etc.)"></textarea>
+              </div>
+            </div>
+          </fieldset>
+
+          <button type="submit" class="btn btn-primary submit-btn">Submit Order</button>
+
+          <p class="payment-note">
+            Payment will be collected after we confirm your order details. We'll be in touch within 1 business day.
+          </p>
+        </form>
+
+        <div class="form-success" id="form-success" hidden>
+          <div class="success-icon">&#10003;</div>
+          <h2>Got it!</h2>
+          <p>Thanks! We'll be in touch within 1 business day to confirm your order and arrange payment.</p>
+          <a href="/" class="btn btn-secondary">Back to Home</a>
+        </div>
+
+        <div class="form-error" id="form-error" hidden>
+          <h2>Something went wrong</h2>
+          <p>Please call us at <a href="tel:+19783528240">(978) 352-8240</a> and we'll get you sorted.</p>
+        </div>
+      </div>
+
+      <aside class="order-sidebar">
+        <div class="sidebar-card card">
+          <h3>Prefer to call?</h3>
+          <p>We're happy to help over the phone.</p>
+          <p class="sidebar-phone"><a href="tel:+19783528240">(978) 352-8240</a></p>
+          <p class="sidebar-phone"><a href="tel:+19783604359">(978) 360-4359</a></p>
+          <hr />
+          <h4>Hours &mdash; Week of {weekOf}</h4>
+          <p>Wed &ndash; Fri: 11am &ndash; 5pm<br />Sat: 8am &ndash; Noon</p>
+          <p class="sidebar-hours-note">Hours vary weekly &mdash; call ahead to confirm.</p>
+          <hr />
+          <h4>Visit Us</h4>
+          <p>103 E Main St #2<br />Georgetown, MA 01833</p>
+        </div>
+      </aside>
+    </div>
+  </section>
+</Base>
+
+<style>
+  .page-header {
+    background: var(--color-primary);
+    color: #fff;
+    padding: var(--space-10) var(--space-6) var(--space-12);
+    text-align: center;
+  }
+
+  .page-header h1 { color: #fff; margin-bottom: var(--space-3); }
+  .page-header p { opacity: 0.9; max-width: 520px; margin: 0 auto; }
+
+  .back-link {
+    margin-bottom: var(--space-4);
+    font-size: var(--text-sm);
+    opacity: 0.85;
+  }
+  .back-link a { color: #fff; text-decoration: underline; }
+
+  .order-layout {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--space-8);
+  }
+
+  @media (min-width: 768px) {
+    .order-layout {
+      grid-template-columns: 1fr 300px;
+      align-items: start;
+    }
+  }
+
+  .form-section {
+    border: 1px solid var(--color-neutral-200);
+    border-radius: var(--radius-xl);
+    padding: var(--space-6);
+    margin-bottom: var(--space-6);
+  }
+
+  .form-section legend {
+    font-family: var(--font-heading);
+    font-weight: 600;
+    font-size: var(--text-xl);
+    color: var(--color-primary);
+    padding: 0 var(--space-2);
+  }
+
+  .section-hint {
+    color: var(--color-neutral-600);
+    font-size: var(--text-sm);
+    margin-top: var(--space-2);
+  }
+
+  .form-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--space-4);
+    margin-top: var(--space-4);
+  }
+
+  @media (min-width: 768px) {
+    .form-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+    .form-field.full-width { grid-column: 1 / -1; }
+  }
+
+  .form-field label { margin-bottom: var(--space-1); }
+  .req { color: var(--color-error); }
+  .hidden { display: none !important; }
+
+  /* Jersey rows */
+  .jersey-row {
+    border: 1px solid var(--color-neutral-200);
+    border-radius: var(--radius-lg);
+    padding: var(--space-4);
+    margin-top: var(--space-4);
+    background: var(--color-neutral-50, #fafafa);
+  }
+
+  .jersey-row-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .jersey-row-label {
+    font-family: var(--font-heading);
+    font-weight: 600;
+    color: var(--color-primary);
+  }
+
+  .jersey-remove {
+    background: none;
+    border: none;
+    color: var(--color-error);
+    font-size: var(--text-sm);
+    cursor: pointer;
+    padding: var(--space-1) var(--space-2);
+  }
+  .jersey-remove:hover { text-decoration: underline; }
+
+  .add-jersey-btn {
+    margin-top: var(--space-4);
+  }
+
+  .submit-btn {
+    width: 100%;
+    padding: 16px;
+    font-size: var(--text-lg);
+    margin-top: var(--space-2);
+  }
+
+  .payment-note {
+    margin-top: var(--space-3);
+    font-size: var(--text-sm);
+    color: var(--color-neutral-600);
+    text-align: center;
+  }
+
+  /* Success / Error states */
+  .form-success,
+  .form-error {
+    text-align: center;
+    padding: var(--space-12) var(--space-6);
+  }
+
+  .success-icon {
+    width: 64px;
+    height: 64px;
+    background: var(--color-success);
+    color: #fff;
+    font-size: 2rem;
+    border-radius: var(--radius-full);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto var(--space-4);
+  }
+
+  .form-success h2,
+  .form-error h2 { margin-bottom: var(--space-3); }
+
+  .form-success p,
+  .form-error p {
+    color: var(--color-neutral-600);
+    margin-bottom: var(--space-6);
+  }
+
+  /* Sidebar */
+  .sidebar-card {
+    position: sticky;
+    top: calc(var(--header-height) + var(--space-6));
+  }
+  .sidebar-card h3 { font-size: var(--text-xl); margin-bottom: var(--space-2); }
+  .sidebar-card h4 { font-size: var(--text-base); margin-bottom: var(--space-1); }
+  .sidebar-card p { font-size: var(--text-sm); color: var(--color-neutral-600); }
+
+  .sidebar-phone a {
+    font-family: var(--font-heading);
+    font-weight: 600;
+    font-size: var(--text-lg);
+    color: var(--color-primary);
+  }
+
+  .sidebar-card hr {
+    border: none;
+    border-top: 1px solid var(--color-neutral-200);
+    margin: var(--space-4) 0;
+  }
+
+  .sidebar-hours-note {
+    font-size: var(--text-xs);
+    color: var(--color-neutral-900);
+    background: var(--color-accent-light);
+    border-left: 3px solid var(--color-accent);
+    padding: var(--space-2) var(--space-3);
+    border-radius: var(--radius-sm);
+    margin-top: var(--space-2);
+    line-height: 1.4;
+  }
+</style>
+
+<script>
+  const list = document.getElementById('jerseys-list') as HTMLElement;
+  const addBtn = document.getElementById('add-jersey') as HTMLButtonElement;
+  const form = document.getElementById('order-form') as HTMLFormElement;
+  const successDiv = document.getElementById('form-success') as HTMLElement;
+  const errorDiv = document.getElementById('form-error') as HTMLElement;
+
+  function relabelRows() {
+    const rows = list.querySelectorAll<HTMLElement>('[data-jersey-row]');
+    rows.forEach((row, i) => {
+      const label = row.querySelector<HTMLElement>('[data-jersey-label]');
+      const remove = row.querySelector<HTMLButtonElement>('[data-jersey-remove]');
+      if (label) label.textContent = `Jersey ${i + 1}`;
+      if (remove) remove.hidden = rows.length <= 1;
+    });
+  }
+
+  addBtn.addEventListener('click', () => {
+    const first = list.querySelector<HTMLElement>('[data-jersey-row]');
+    if (!first) return;
+    const clone = first.cloneNode(true) as HTMLElement;
+    clone.querySelectorAll<HTMLInputElement | HTMLSelectElement>('input, select').forEach((el) => {
+      el.value = '';
+    });
+    list.appendChild(clone);
+    relabelRows();
+    clone.querySelector<HTMLInputElement>('input[name="jersey_name[]"]')?.focus();
+  });
+
+  list.addEventListener('click', (e) => {
+    const target = e.target as HTMLElement;
+    if (target.matches('[data-jersey-remove]')) {
+      const row = target.closest<HTMLElement>('[data-jersey-row]');
+      if (row && list.querySelectorAll('[data-jersey-row]').length > 1) {
+        row.remove();
+        relabelRows();
+      }
+    }
+  });
+
+  relabelRows();
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    // Build a serializable payload. URLSearchParams handles repeated keys
+    // (jersey_name[], jersey_size[], jersey_number[]) by appending each value.
+    const formData = new FormData(form);
+
+    try {
+      const response = await fetch('/api/inbox/submit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams(formData as any).toString(),
+      });
+
+      if (response.ok) {
+        form.hidden = true;
+        successDiv.hidden = false;
+        successDiv.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      } else {
+        throw new Error('Server error');
+      }
+    } catch {
+      errorDiv.hidden = false;
+      errorDiv.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  });
+</script>

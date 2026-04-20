@@ -13,17 +13,45 @@ export const POST: APIRoute = async ({ request }) => {
     }
     const contentType = request.headers.get('content-type') || '';
     let data: Record<string, string> = {};
+    const arrays: Record<string, string[]> = {};
 
     if (contentType.includes('application/x-www-form-urlencoded')) {
       const body = await request.text();
       const params = new URLSearchParams(body);
       for (const [key, value] of params) {
-        if (key !== 'form-name' && key !== 'bot-field') {
+        if (key === 'form-name' || key === 'bot-field') continue;
+        if (key.endsWith('[]')) {
+          const baseKey = key.slice(0, -2);
+          (arrays[baseKey] ||= []).push(value);
+        } else {
           data[key] = value;
         }
       }
     } else {
       data = await request.json();
+    }
+
+    // Combine repeated jersey_* fields into a single readable "jerseys" summary.
+    const names = arrays.jersey_name || [];
+    const sizes = arrays.jersey_size || [];
+    const numbers = arrays.jersey_number || [];
+    const jerseyCount = Math.max(names.length, sizes.length, numbers.length);
+    if (jerseyCount > 0) {
+      const lines: string[] = [];
+      for (let i = 0; i < jerseyCount; i++) {
+        const n = names[i] || '';
+        const s = sizes[i] || '';
+        const num = numbers[i] || '';
+        lines.push(`${i + 1}. ${n} — ${s}, #${num}`);
+      }
+      data.jerseys = lines.join('\n');
+      data.jersey_count = String(jerseyCount);
+    }
+
+    // Any remaining repeated fields fall back to comma-joined strings.
+    for (const [key, vals] of Object.entries(arrays)) {
+      if (key === 'jersey_name' || key === 'jersey_size' || key === 'jersey_number') continue;
+      if (data[key] === undefined) data[key] = vals.join(', ');
     }
 
     const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
@@ -48,25 +76,19 @@ export const POST: APIRoute = async ({ request }) => {
 
     if (email && resendKey) {
       const name = data.name || 'there';
-      const team = data.team || '';
-      const sport = data.sport || '';
-      const players = data.players || '';
-      const colors = data.colors || '';
-      const customization = data.customization || '';
-      const fulfillment = data.fulfillment || '';
+      const town = data.town || '';
+      const jerseys = data.jerseys || '';
+      const notes = data.notes || '';
 
       const summaryLines = [
-        team ? `Team: ${team}` : '',
-        sport ? `Sport: ${sport}` : '',
-        players ? `Players: ${players}` : '',
-        colors ? `Colors: ${colors}` : '',
-        customization ? `Customization: ${customization}` : '',
-        fulfillment ? `Fulfillment: ${fulfillment}` : '',
-      ].filter(Boolean).join('\n');
+        town ? `Town: ${town}` : '',
+        jerseys ? `Jerseys:\n${jerseys}` : '',
+        notes ? `Notes: ${notes}` : '',
+      ].filter(Boolean).join('\n\n');
 
       const emailBody = `Hi ${name},
 
-Thanks for reaching out! We got your order details and we'll be in touch within 1 business day to go over everything.
+Thanks for your order! We got your details and we'll be in touch within 1 business day to confirm everything and arrange payment.
 
 Here's what we received:
 
