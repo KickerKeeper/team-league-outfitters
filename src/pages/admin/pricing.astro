@@ -1,0 +1,255 @@
+---
+export const prerender = false;
+import Admin from '../../layouts/Admin.astro';
+import { TOWNS } from '../../lib/towns';
+import { getAllPrices, formatPriceCents, DEFAULT_PRICE_CENTS } from '../../lib/pricing';
+
+const prices = await getAllPrices();
+
+const rows = TOWNS.map((town) => {
+  const entry = prices[town.slug];
+  return {
+    slug: town.slug,
+    name: town.name,
+    priceDollars: formatPriceCents(entry?.jerseyPriceCents ?? DEFAULT_PRICE_CENTS),
+    isDefault: !entry,
+    updatedAt: entry?.updatedAt ?? null,
+  };
+});
+
+const defaultDollars = formatPriceCents(DEFAULT_PRICE_CENTS);
+---
+
+<Admin title="Pricing" activeTab="pricing">
+  <div class="pricing-header">
+    <h1>Per-Town Jersey Pricing</h1>
+    <p class="pricing-sub">
+      Sets the per-jersey price used at checkout for each town. Towns without a saved price use the default of <strong>${defaultDollars}</strong>.
+    </p>
+  </div>
+
+  <div class="pricing-table">
+    <div class="pricing-row pricing-head">
+      <div>Town</div>
+      <div>Per-Jersey Price</div>
+      <div>Last Updated</div>
+      <div></div>
+    </div>
+
+    {rows.map((row) => (
+      <form class="pricing-row" data-pricing-form data-slug={row.slug}>
+        <div class="town-cell">
+          <strong>{row.name}</strong>
+          <span class="town-slug">{row.slug}</span>
+        </div>
+        <div class="price-cell">
+          <span class="dollar">$</span>
+          <input
+            type="number"
+            name="priceDollars"
+            value={row.priceDollars}
+            min="0"
+            max="1000"
+            step="0.01"
+            inputmode="decimal"
+            required
+            data-original={row.priceDollars}
+          />
+          {row.isDefault && <span class="default-badge">default</span>}
+        </div>
+        <div class="updated-cell">
+          {row.updatedAt
+            ? new Date(row.updatedAt).toLocaleString()
+            : <span class="muted">Never</span>}
+        </div>
+        <div class="action-cell">
+          <button type="submit" class="btn-save">Save</button>
+          <span class="row-status" data-status></span>
+        </div>
+      </form>
+    ))}
+  </div>
+</Admin>
+
+<style is:global>
+  .pricing-header {
+    margin-bottom: var(--space-6);
+  }
+  .pricing-header h1 {
+    font-size: var(--text-2xl);
+    margin-bottom: var(--space-2);
+  }
+  .pricing-sub {
+    color: var(--color-neutral-600);
+    font-size: var(--text-sm);
+    max-width: 640px;
+  }
+
+  .pricing-table {
+    background: #fff;
+    border: 1px solid var(--color-neutral-200);
+    border-radius: var(--radius-xl);
+    overflow: hidden;
+  }
+
+  .pricing-row {
+    display: grid;
+    grid-template-columns: 1.4fr 1.4fr 1.4fr auto;
+    gap: var(--space-4);
+    align-items: center;
+    padding: var(--space-4) var(--space-6);
+    border-bottom: 1px solid var(--color-neutral-100);
+  }
+
+  .pricing-row:last-child { border-bottom: none; }
+
+  .pricing-head {
+    background: var(--color-neutral-50);
+    font-family: var(--font-heading);
+    font-weight: 600;
+    font-size: var(--text-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--color-neutral-600);
+  }
+
+  .town-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .town-slug {
+    font-family: var(--font-mono, monospace);
+    font-size: var(--text-xs);
+    color: var(--color-neutral-600);
+  }
+
+  .price-cell {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+  }
+  .price-cell .dollar {
+    font-family: var(--font-heading);
+    font-weight: 600;
+    color: var(--color-neutral-600);
+  }
+  .price-cell input {
+    width: 100px;
+    padding: 6px 10px;
+    border: 1px solid var(--color-neutral-200);
+    border-radius: var(--radius-md);
+    font-size: var(--text-base);
+  }
+
+  .default-badge {
+    font-size: var(--text-xs);
+    color: var(--color-neutral-600);
+    background: var(--color-neutral-50);
+    border: 1px solid var(--color-neutral-200);
+    border-radius: var(--radius-sm);
+    padding: 2px 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .updated-cell {
+    font-size: var(--text-sm);
+    color: var(--color-neutral-600);
+  }
+  .updated-cell .muted { color: var(--color-neutral-400, #aaa); font-style: italic; }
+
+  .action-cell {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    justify-content: flex-end;
+  }
+
+  .btn-save {
+    background: var(--color-primary);
+    color: #fff;
+    border: none;
+    padding: 8px 18px;
+    border-radius: var(--radius-md);
+    font-family: var(--font-heading);
+    font-weight: 600;
+    font-size: var(--text-sm);
+    cursor: pointer;
+  }
+  .btn-save:hover { opacity: 0.9; }
+  .btn-save:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .row-status {
+    font-size: var(--text-sm);
+    min-width: 60px;
+  }
+  .row-status.ok { color: var(--color-success); }
+  .row-status.err { color: var(--color-error); }
+
+  @media (max-width: 767px) {
+    .pricing-row {
+      grid-template-columns: 1fr;
+      gap: var(--space-2);
+    }
+    .pricing-head { display: none; }
+    .pricing-row[data-pricing-form] {
+      padding: var(--space-5) var(--space-4);
+      gap: var(--space-3);
+    }
+    .action-cell { justify-content: flex-start; }
+  }
+</style>
+
+<script is:inline>
+  document.querySelectorAll('[data-pricing-form]').forEach(function(form) {
+    form.addEventListener('submit', function(e) {
+      e.preventDefault();
+      var slug = form.getAttribute('data-slug');
+      var input = form.querySelector('input[name="priceDollars"]');
+      var statusEl = form.querySelector('[data-status]');
+      var btn = form.querySelector('button');
+      var price = input.value;
+
+      statusEl.className = 'row-status';
+      statusEl.textContent = '';
+      btn.disabled = true;
+
+      fetch('/api/pricing/update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ slug: slug, priceDollars: parseFloat(price) }),
+      })
+        .then(function(r) {
+          return r.json().then(function(body) {
+            return { ok: r.ok, body: body };
+          });
+        })
+        .then(function(res) {
+          btn.disabled = false;
+          if (res.ok) {
+            statusEl.className = 'row-status ok';
+            statusEl.textContent = 'Saved';
+            input.setAttribute('data-original', price);
+            // Update the "Last Updated" cell live.
+            var updatedCell = form.querySelector('.updated-cell');
+            if (updatedCell) updatedCell.textContent = new Date().toLocaleString();
+            // Drop the "default" badge if it was there.
+            var badge = form.querySelector('.default-badge');
+            if (badge) badge.remove();
+            setTimeout(function() {
+              if (statusEl.textContent === 'Saved') statusEl.textContent = '';
+            }, 2500);
+          } else {
+            statusEl.className = 'row-status err';
+            statusEl.textContent = (res.body && res.body.error) || 'Failed';
+          }
+        })
+        .catch(function() {
+          btn.disabled = false;
+          statusEl.className = 'row-status err';
+          statusEl.textContent = 'Network error';
+        });
+    });
+  });
+</script>
