@@ -1,5 +1,7 @@
 ---
+import { getWeekOfLabel } from '../lib/week';
 const currentYear = new Date().getFullYear();
+const weekOf = getWeekOfLabel();
 ---
 
 <footer class="site-footer">
@@ -13,12 +15,13 @@ const currentYear = new Date().getFullYear();
       </p>
     </div>
     <div class="footer-col">
-      <h4>Hours</h4>
+      <h4>Hours &mdash; Week of {weekOf}</h4>
       <p>
         Wednesday &ndash; Friday: 11am &ndash; 5pm<br />
         Saturday: 8am &ndash; Noon<br />
         Sunday &ndash; Tuesday: Closed
       </p>
+      <p class="hours-note">Hours change weekly &mdash; call <a href="tel:+19783528240">(978) 352-8240</a> to confirm before stopping by.</p>
     </div>
     <div class="footer-col">
       <h4>Quick Links</h4>
@@ -83,6 +86,20 @@ const currentYear = new Date().getFullYear();
 
   .footer-col a:hover {
     color: var(--color-accent);
+  }
+
+  .hours-note {
+    margin-top: var(--space-3);
+    padding: var(--space-2) var(--space-3);
+    border-left: 3px solid var(--color-accent);
+    background: rgba(255, 255, 255, 0.06);
+    font-size: var(--text-xs) !important;
+    line-height: 1.5 !important;
+  }
+
+  .hours-note a {
+    color: var(--color-accent) !important;
+    font-weight: 600;
   }
 
   .footer-col ul {

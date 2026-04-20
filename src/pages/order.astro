@@ -1,5 +1,7 @@
 ---
 import Base from '../layouts/Base.astro';
+import { getWeekOfLabel } from '../lib/week';
+const weekOf = getWeekOfLabel();
 ---
 
 <Base
@@ -148,8 +150,9 @@ import Base from '../layouts/Base.astro';
           <p class="sidebar-phone"><a href="tel:+19783528240">(978) 352-8240</a></p>
           <p class="sidebar-phone"><a href="tel:+19783604359">(978) 360-4359</a></p>
           <hr />
-          <h4>Hours</h4>
+          <h4>Hours &mdash; Week of {weekOf}</h4>
           <p>Wed &ndash; Fri: 11am &ndash; 5pm<br />Sat: 8am &ndash; Noon</p>
+          <p class="sidebar-hours-note">Hours vary weekly &mdash; call ahead to confirm.</p>
           <hr />
           <h4>Visit Us</h4>
           <p>103 E Main St #2<br />Georgetown, MA 01833</p>
@@ -318,6 +321,17 @@ import Base from '../layouts/Base.astro';
     border: none;
     border-top: 1px solid var(--color-neutral-200);
     margin: var(--space-4) 0;
+  }
+
+  .sidebar-hours-note {
+    font-size: var(--text-xs);
+    color: var(--color-neutral-900);
+    background: var(--color-accent-light);
+    border-left: 3px solid var(--color-accent);
+    padding: var(--space-2) var(--space-3);
+    border-radius: var(--radius-sm);
+    margin-top: var(--space-2);
+    line-height: 1.4;
   }
 </style>
 

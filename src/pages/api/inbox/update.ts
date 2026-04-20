@@ -14,7 +14,7 @@ const stageEmails: Record<string, { subject: string; body: (name: string) => str
   },
   'ready': {
     subject: 'Your order is ready for pickup! — Georgetown Jerseys',
-    body: (name) => `Hi ${name},\n\nYour order is ready! Come pick it up at:\n\nGeorgetown Jerseys\n103 E Main St #2\nGeorgetown Building Supply Plaza\nGeorgetown, MA 01833\n\nHours:\nWed–Fri: 11am–5pm\nSat: 8am–Noon\n\nIf you need to arrange a different pickup time, just reply to this email or call (978) 352-8240.\n\nSee you soon!\n— Jamie Nadeau`,
+    body: (name) => `Hi ${name},\n\nYour order is ready! Come pick it up at:\n\nGeorgetown Jerseys\n103 E Main St #2\nGeorgetown Building Supply Plaza\nGeorgetown, MA 01833\n\nA quick heads-up: our shop hours change week to week. Please reply to this email or call (978) 352-8240 to confirm a pickup time before heading over — we'd hate for you to make the trip and find us closed.\n\nSee you soon!\n— Jamie Nadeau`,
   },
   'picked-up': {
     subject: 'Thanks for picking up your order! — Georgetown Jerseys',
