@@ -1,11 +1,10 @@
 ---
+export const prerender = false;
 import Base from '../../layouts/Base.astro';
-import { TOWNS, getTown } from '../../lib/towns';
+import { getTown } from '../../lib/towns';
 import { getWeekOfLabel } from '../../lib/week';
-
-export function getStaticPaths() {
-  return TOWNS.map((town) => ({ params: { town: town.slug } }));
-}
+import { getTownPrice, formatPriceCents } from '../../lib/pricing';
+import { isStripeConfigured } from '../../lib/stripe';
 
 const { town: townSlug } = Astro.params;
 const town = getTown(townSlug!);
@@ -15,6 +14,11 @@ if (!town) {
 }
 
 const weekOf = getWeekOfLabel();
+const priceInfo = await getTownPrice(town.slug);
+const unitPriceCents = priceInfo.jerseyPriceCents;
+const unitPriceDollars = formatPriceCents(unitPriceCents);
+const paymentEnabled = isStripeConfigured() && unitPriceCents > 0;
+const wasCanceled = Astro.url.searchParams.get('canceled') === '1';
 
 const SIZES = [
   'Youth XS',
@@ -32,20 +36,32 @@ const SIZES = [
 
 <Base
   title={`Order a Jersey — ${town.name} | Georgetown Jerseys`}
-  description={`Order your child's ${town.name} jersey. Fill out the form and we'll handle the rest.`}
+  description={`Order your child's ${town.name} jersey. Fill out the form and check out securely.`}
 >
   <section class="page-header">
     <div class="container">
       <p class="back-link"><a href="/order">&larr; Choose a different town</a></p>
       <h1>{town.name} Jersey Order</h1>
-      <p>Tell us about your jersey order and we'll be in touch.</p>
+      <p>Tell us about your jersey order{paymentEnabled ? ' and check out securely.' : '.'}</p>
     </div>
   </section>
 
   <section class="section">
     <div class="container order-layout">
       <div class="form-area">
-        <form id="order-form">
+        {wasCanceled && (
+          <div class="canceled-notice" role="alert">
+            <strong>Payment canceled.</strong> No charge was made. Your details below are still here — adjust anything and try again, or call <a href="tel:+19783528240">(978) 352-8240</a> if you'd rather order over the phone.
+          </div>
+        )}
+
+        <form
+          id="order-form"
+          data-payment-enabled={paymentEnabled ? '1' : '0'}
+          data-town-slug={town.slug}
+          data-town-name={town.name}
+          data-unit-price-cents={unitPriceCents}
+        >
           <input type="hidden" name="form-name" value="parent-order" />
           <input type="hidden" name="town" value={town.name} />
           <input type="hidden" name="town_slug" value={town.slug} />
@@ -73,7 +89,10 @@ const SIZES = [
 
           <fieldset class="form-section">
             <legend>Jersey Details</legend>
-            <p class="section-hint">One row per kid. Add another if you're ordering for more than one.</p>
+            <p class="section-hint">
+              One row per kid. Add another if you're ordering for more than one.
+              {paymentEnabled && <> Each jersey is <strong>${unitPriceDollars}</strong>.</>}
+            </p>
 
             <div id="jerseys-list">
               <div class="jersey-row" data-jersey-row>
@@ -114,6 +133,20 @@ const SIZES = [
             </div>
           </fieldset>
 
+          {paymentEnabled && (
+            <div class="order-total" id="order-total" aria-live="polite">
+              <div class="order-total-row">
+                <span>Subtotal</span>
+                <span><span id="jersey-count">1</span> &times; ${unitPriceDollars}</span>
+              </div>
+              <div class="order-total-row total">
+                <span>Subtotal</span>
+                <span id="subtotal-display">${unitPriceDollars}</span>
+              </div>
+              <p class="tax-note">MA sales tax (where applicable) is calculated at checkout.</p>
+            </div>
+          )}
+
           <div class="final-sale-notice" role="note">
             <strong>All custom jersey sales are final.</strong>
             Once an order is placed, it goes straight into production with your kid's name and number &mdash; we can't take it back.
@@ -126,10 +159,14 @@ const SIZES = [
             <span>I understand all custom jersey sales are final.</span>
           </label>
 
-          <button type="submit" class="btn btn-primary submit-btn">Submit Order</button>
+          <button type="submit" class="btn btn-primary submit-btn" id="submit-btn">
+            {paymentEnabled ? 'Continue to Payment' : 'Submit Order'}
+          </button>
 
           <p class="payment-note">
-            Payment will be collected after we confirm your order details. We'll be in touch within 1 business day.
+            {paymentEnabled
+              ? "You'll be redirected to Stripe to enter card details and complete checkout. We never see your card."
+              : "Payment will be collected after we confirm your order details. We'll be in touch within 1 business day."}
           </p>
         </form>
 
@@ -142,7 +179,7 @@ const SIZES = [
 
         <div class="form-error" id="form-error" hidden>
           <h2>Something went wrong</h2>
-          <p>Please call us at <a href="tel:+19783528240">(978) 352-8240</a> and we'll get you sorted.</p>
+          <p id="form-error-msg">Please call us at <a href="tel:+19783528240">(978) 352-8240</a> and we'll get you sorted.</p>
         </div>
       </div>
 
@@ -182,6 +219,18 @@ const SIZES = [
     opacity: 0.85;
   }
   .back-link a { color: #fff; text-decoration: underline; }
+
+  .canceled-notice {
+    background: #fff8e6;
+    border-left: 4px solid var(--color-accent);
+    border-radius: var(--radius-md);
+    padding: var(--space-4) var(--space-5);
+    margin-bottom: var(--space-6);
+    font-size: var(--text-sm);
+    line-height: 1.5;
+    color: var(--color-neutral-900);
+  }
+  .canceled-notice a { color: var(--color-primary); font-weight: 600; }
 
   .order-layout {
     display: grid;
@@ -235,7 +284,6 @@ const SIZES = [
   .req { color: var(--color-error); }
   .hidden { display: none !important; }
 
-  /* Jersey rows */
   .jersey-row {
     border: 1px solid var(--color-neutral-200);
     border-radius: var(--radius-lg);
@@ -266,8 +314,37 @@ const SIZES = [
   }
   .jersey-remove:hover { text-decoration: underline; }
 
-  .add-jersey-btn {
-    margin-top: var(--space-4);
+  .add-jersey-btn { margin-top: var(--space-4); }
+
+  /* Order total summary */
+  .order-total {
+    border: 1px solid var(--color-neutral-200);
+    border-radius: var(--radius-lg);
+    padding: var(--space-4) var(--space-5);
+    margin-bottom: var(--space-4);
+    background: #fff;
+  }
+  .order-total-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: var(--text-sm);
+    color: var(--color-neutral-600);
+    padding: var(--space-1) 0;
+  }
+  .order-total-row.total {
+    font-family: var(--font-heading);
+    font-weight: 600;
+    font-size: var(--text-lg);
+    color: var(--color-neutral-900);
+    border-top: 1px solid var(--color-neutral-200);
+    margin-top: var(--space-2);
+    padding-top: var(--space-2);
+  }
+  .tax-note {
+    font-size: var(--text-xs);
+    color: var(--color-neutral-600);
+    margin-top: var(--space-2);
+    font-style: italic;
   }
 
   /* Final-sale disclosure */
@@ -311,6 +388,7 @@ const SIZES = [
     font-size: var(--text-lg);
     margin-top: var(--space-2);
   }
+  .submit-btn:disabled { opacity: 0.6; cursor: progress; }
 
   .payment-note {
     margin-top: var(--space-3);
@@ -386,8 +464,26 @@ const SIZES = [
   const list = document.getElementById('jerseys-list') as HTMLElement;
   const addBtn = document.getElementById('add-jersey') as HTMLButtonElement;
   const form = document.getElementById('order-form') as HTMLFormElement;
+  const submitBtn = document.getElementById('submit-btn') as HTMLButtonElement;
   const successDiv = document.getElementById('form-success') as HTMLElement;
   const errorDiv = document.getElementById('form-error') as HTMLElement;
+  const errorMsg = document.getElementById('form-error-msg') as HTMLElement;
+
+  const paymentEnabled = form.dataset.paymentEnabled === '1';
+  const townSlug = form.dataset.townSlug || '';
+  const unitPriceCents = parseInt(form.dataset.unitPriceCents || '0', 10);
+
+  const subtotalDisplay = document.getElementById('subtotal-display');
+  const jerseyCountDisplay = document.getElementById('jersey-count');
+
+  function updateTotals() {
+    const rows = list.querySelectorAll<HTMLElement>('[data-jersey-row]');
+    if (jerseyCountDisplay) jerseyCountDisplay.textContent = String(rows.length);
+    if (subtotalDisplay) {
+      const cents = rows.length * unitPriceCents;
+      subtotalDisplay.textContent = '$' + (cents / 100).toFixed(2);
+    }
+  }
 
   function relabelRows() {
     const rows = list.querySelectorAll<HTMLElement>('[data-jersey-row]');
@@ -397,6 +493,7 @@ const SIZES = [
       if (label) label.textContent = `Jersey ${i + 1}`;
       if (remove) remove.hidden = rows.length <= 1;
     });
+    updateTotals();
   }
 
   addBtn.addEventListener('click', () => {
@@ -424,30 +521,68 @@ const SIZES = [
 
   relabelRows();
 
+  function collectJerseys() {
+    const rows = list.querySelectorAll<HTMLElement>('[data-jersey-row]');
+    return Array.from(rows).map((row) => ({
+      name: (row.querySelector<HTMLInputElement>('input[name="jersey_name[]"]')?.value || '').trim(),
+      size: row.querySelector<HTMLSelectElement>('select[name="jersey_size[]"]')?.value || '',
+      number: (row.querySelector<HTMLInputElement>('input[name="jersey_number[]"]')?.value || '').trim(),
+    }));
+  }
+
+  function showError(msg: string) {
+    errorMsg.textContent = msg;
+    errorDiv.hidden = false;
+    errorDiv.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
-
-    // Build a serializable payload. URLSearchParams handles repeated keys
-    // (jersey_name[], jersey_size[], jersey_number[]) by appending each value.
-    const formData = new FormData(form);
+    submitBtn.disabled = true;
 
     try {
-      const response = await fetch('/api/inbox/submit', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: new URLSearchParams(formData as any).toString(),
-      });
+      if (paymentEnabled) {
+        const payload = {
+          town_slug: townSlug,
+          name: (form.elements.namedItem('name') as HTMLInputElement).value.trim(),
+          email: (form.elements.namedItem('email') as HTMLInputElement).value.trim(),
+          phone: (form.elements.namedItem('phone') as HTMLInputElement).value.trim(),
+          notes: (form.elements.namedItem('notes') as HTMLTextAreaElement).value.trim(),
+          acknowledge_final_sale: (form.elements.namedItem('acknowledge_final_sale') as HTMLInputElement).checked,
+          jerseys: collectJerseys(),
+        };
 
-      if (response.ok) {
-        form.hidden = true;
-        successDiv.hidden = false;
-        successDiv.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        const response = await fetch('/api/checkout/create-session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+
+        const body = await response.json().catch(() => ({}));
+        if (response.ok && body.url) {
+          window.location.href = body.url;
+          return;
+        }
+        showError(body.error || 'Could not start checkout. Please try again.');
+        submitBtn.disabled = false;
       } else {
-        throw new Error('Server error');
+        const formData = new FormData(form);
+        const response = await fetch('/api/inbox/submit', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: new URLSearchParams(formData as any).toString(),
+        });
+        if (response.ok) {
+          form.hidden = true;
+          successDiv.hidden = false;
+          successDiv.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        } else {
+          throw new Error('Server error');
+        }
       }
     } catch {
-      errorDiv.hidden = false;
-      errorDiv.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      showError('Something went wrong. Please call (978) 352-8240 and we\'ll help you out.');
+      submitBtn.disabled = false;
     }
   });
 </script>

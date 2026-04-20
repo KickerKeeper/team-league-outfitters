@@ -15,6 +15,7 @@
     "@astrojs/netlify": "^7.0.6",
     "@astrojs/sitemap": "^3.7.2",
     "astro": "^6.1.5",
+    "stripe": "^22.0.2",
     "svix": "^1.90.0"
   }
 }

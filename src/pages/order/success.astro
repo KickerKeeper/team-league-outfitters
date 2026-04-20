@@ -1,0 +1,186 @@
+---
+export const prerender = false;
+import Base from '../../layouts/Base.astro';
+import { getStripe, isStripeConfigured } from '../../lib/stripe';
+
+const sessionId = Astro.url.searchParams.get('session_id');
+
+let status: 'paid' | 'pending' | 'unknown' | 'error' = 'unknown';
+let parentName = '';
+let totalDollars = '';
+let jerseyCount = 0;
+let town = '';
+let errorMessage = '';
+
+if (!sessionId) {
+  status = 'error';
+  errorMessage = 'Missing session ID.';
+} else if (!isStripeConfigured()) {
+  status = 'error';
+  errorMessage = 'Payment system is not configured.';
+} else {
+  try {
+    const stripe = getStripe();
+    const session = await stripe.checkout.sessions.retrieve(sessionId, {
+      expand: ['line_items'],
+    });
+    if (session.payment_status === 'paid') {
+      status = 'paid';
+      parentName = session.customer_details?.name || '';
+      totalDollars = session.amount_total != null ? (session.amount_total / 100).toFixed(2) : '';
+      jerseyCount = Number(session.metadata?.jersey_count || session.line_items?.data?.length || 0);
+      town = session.metadata?.town_slug || '';
+    } else {
+      status = 'pending';
+    }
+  } catch (e: any) {
+    console.error('Could not retrieve checkout session:', e?.message);
+    status = 'error';
+    errorMessage = 'We could not look up your order. If you were charged, please call (978) 352-8240.';
+  }
+}
+---
+
+<Base
+  title="Order Confirmed — Georgetown Jerseys"
+  description="Thanks for your order. We'll be in touch."
+>
+  <section class="page-header">
+    <div class="container">
+      <h1>{status === 'paid' ? 'Order Confirmed' : status === 'pending' ? 'Processing Your Payment' : 'Order Status'}</h1>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container">
+      <div class="confirm-card card">
+        {status === 'paid' && (
+          <>
+            <div class="success-icon">&#10003;</div>
+            <h2>Thanks{parentName ? `, ${parentName}` : ''}!</h2>
+            <p class="lede">
+              We got your order
+              {jerseyCount > 0 && ` for ${jerseyCount} ${jerseyCount === 1 ? 'jersey' : 'jerseys'}`}
+              {totalDollars && <> (<strong>${totalDollars}</strong>)</>}.
+              Stripe will email you a receipt, and we'll send a confirmation from <a href="mailto:orders@gtownjerseys.com">orders@gtownjerseys.com</a>.
+            </p>
+
+            <div class="reminders">
+              <h3>A couple reminders</h3>
+              <ul>
+                <li><strong>All custom jersey sales are final.</strong> Once production starts with your kid's name and number, we can't take it back.</li>
+                <li><strong>Sizing questions or changes?</strong> Call <a href="tel:+19783528240">(978) 352-8240</a> right away — the sooner the better.</li>
+              </ul>
+            </div>
+
+            <div class="cta-row">
+              <a href="/" class="btn btn-secondary">Back to Home</a>
+              {town && <a href={`/order/${town}`} class="btn btn-primary">Place Another Order</a>}
+            </div>
+          </>
+        )}
+
+        {status === 'pending' && (
+          <>
+            <h2>We're processing your payment.</h2>
+            <p>This usually only takes a moment. Refresh in a few seconds, or check your email for the Stripe receipt. If something looks off, call <a href="tel:+19783528240">(978) 352-8240</a>.</p>
+            <a href="/" class="btn btn-secondary">Back to Home</a>
+          </>
+        )}
+
+        {status === 'error' && (
+          <>
+            <h2>We hit a snag confirming your order</h2>
+            <p>{errorMessage}</p>
+            <p>If you were charged, your order is safe — call <a href="tel:+19783528240">(978) 352-8240</a> and we'll sort it out.</p>
+            <a href="/" class="btn btn-secondary">Back to Home</a>
+          </>
+        )}
+
+        {status === 'unknown' && (
+          <>
+            <h2>Order status unknown</h2>
+            <p>We couldn't find a session ID. If you just placed an order, call <a href="tel:+19783528240">(978) 352-8240</a> to confirm.</p>
+            <a href="/" class="btn btn-secondary">Back to Home</a>
+          </>
+        )}
+      </div>
+    </div>
+  </section>
+</Base>
+
+<style>
+  .page-header {
+    background: var(--color-primary);
+    color: #fff;
+    padding: var(--space-12) var(--space-6);
+    text-align: center;
+  }
+  .page-header h1 { color: #fff; }
+
+  .confirm-card {
+    max-width: 640px;
+    margin: 0 auto;
+    text-align: center;
+    padding: var(--space-8);
+  }
+
+  .success-icon {
+    width: 72px;
+    height: 72px;
+    background: var(--color-success);
+    color: #fff;
+    font-size: 2.25rem;
+    border-radius: var(--radius-full);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto var(--space-5);
+  }
+
+  .confirm-card h2 { margin-bottom: var(--space-3); }
+
+  .lede {
+    color: var(--color-neutral-600);
+    margin-bottom: var(--space-6);
+    line-height: 1.55;
+  }
+
+  .reminders {
+    background: var(--color-accent-light);
+    border-left: 4px solid var(--color-accent);
+    border-radius: var(--radius-md);
+    padding: var(--space-4) var(--space-5);
+    margin-bottom: var(--space-6);
+    text-align: left;
+  }
+
+  .reminders h3 {
+    font-size: var(--text-base);
+    margin-bottom: var(--space-2);
+  }
+
+  .reminders ul {
+    list-style: disc;
+    padding-left: var(--space-5);
+  }
+
+  .reminders li {
+    color: var(--color-neutral-900);
+    margin-bottom: var(--space-2);
+    font-size: var(--text-sm);
+    line-height: 1.5;
+  }
+
+  .reminders a {
+    color: var(--color-primary);
+    font-weight: 600;
+  }
+
+  .cta-row {
+    display: flex;
+    gap: var(--space-3);
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+</style>
