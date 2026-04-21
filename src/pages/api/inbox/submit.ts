@@ -4,31 +4,64 @@ import { checkRateLimit, getClientIp } from '../../../lib/ratelimit';
 
 export const prerender = false;
 
+const MAX_BODY_BYTES = 32 * 1024;       // 32 KB total
+const MAX_FIELD_LEN: Record<string, number> = {
+  email: 254,
+  phone: 32,
+  name: 200,
+  notes: 4000,
+  town: 64,
+  town_slug: 64,
+  jerseys: 4000,
+};
+const DEFAULT_MAX_FIELD_LEN = 500;
+
+function clipField(key: string, value: string): string {
+  const max = MAX_FIELD_LEN[key] ?? DEFAULT_MAX_FIELD_LEN;
+  return value.length > max ? value.slice(0, max) : value;
+}
+
 export const POST: APIRoute = async ({ request }) => {
   try {
     // Rate limit: 5 submissions per minute per IP
     const ip = getClientIp(request);
-    if (!checkRateLimit(ip, 5, 60000)) {
+    if (!checkRateLimit(`submit:${ip}`, 5, 60000)) {
       return new Response(JSON.stringify({ error: 'Too many submissions. Please try again later.' }), { status: 429 });
     }
     const contentType = request.headers.get('content-type') || '';
     let data: Record<string, string> = {};
     const arrays: Record<string, string[]> = {};
 
+    // Read body as text first so we can enforce a hard size cap before parsing.
+    const rawBody = await request.text();
+    if (rawBody.length > MAX_BODY_BYTES) {
+      return new Response(JSON.stringify({ error: 'Submission too large' }), { status: 413 });
+    }
+
     if (contentType.includes('application/x-www-form-urlencoded')) {
-      const body = await request.text();
-      const params = new URLSearchParams(body);
+      const params = new URLSearchParams(rawBody);
       for (const [key, value] of params) {
         if (key === 'form-name' || key === 'bot-field') continue;
+        if (key.length > 64) continue; // ignore garbage keys
         if (key.endsWith('[]')) {
           const baseKey = key.slice(0, -2);
-          (arrays[baseKey] ||= []).push(value);
+          (arrays[baseKey] ||= []).push(clipField(baseKey, value));
         } else {
-          data[key] = value;
+          data[key] = clipField(key, value);
         }
       }
     } else {
-      data = await request.json();
+      try {
+        const parsed = JSON.parse(rawBody);
+        if (parsed && typeof parsed === 'object') {
+          for (const [key, value] of Object.entries(parsed)) {
+            if (typeof value !== 'string' || key.length > 64) continue;
+            data[key] = clipField(key, value);
+          }
+        }
+      } catch {
+        return new Response(JSON.stringify({ error: 'Invalid JSON' }), { status: 400 });
+      }
     }
 
     // Combine repeated jersey_* fields into a single readable "jerseys" summary.
@@ -143,7 +176,9 @@ Georgetown Jerseys
       headers: { 'Content-Type': 'application/json' },
     });
   } catch (e) {
-    console.error('Submit error:', e);
+    // Log error type only — never the body or the full Error (which can carry
+    // user-submitted strings via parse messages and end up in Netlify logs).
+    console.error('Submit error:', (e as Error)?.name || 'Unknown');
     return new Response(JSON.stringify({ error: 'Failed to save' }), { status: 500 });
   }
 };

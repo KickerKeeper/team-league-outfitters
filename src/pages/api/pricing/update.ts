@@ -1,6 +1,7 @@
 import type { APIRoute } from 'astro';
 import { getSessionFromCookie } from '../../../lib/auth';
 import { setTownPrice } from '../../../lib/pricing';
+import { getTown } from '../../../lib/towns';
 
 export const prerender = false;
 
@@ -20,6 +21,13 @@ export const POST: APIRoute = async ({ request }) => {
   const { slug, priceDollars } = body || {};
   if (typeof slug !== 'string' || !slug) {
     return new Response(JSON.stringify({ error: 'Missing slug' }), { status: 400 });
+  }
+
+  // Slug must be one of the towns we actually serve. Without this, an attacker
+  // (or fat-fingered admin) could create price records for arbitrary slugs that
+  // confuse downstream reporting and pricing code.
+  if (!getTown(slug)) {
+    return new Response(JSON.stringify({ error: 'Unknown town' }), { status: 400 });
   }
 
   const dollars = Number(priceDollars);

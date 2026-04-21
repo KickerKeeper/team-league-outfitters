@@ -1,34 +1,37 @@
 import type { APIRoute } from 'astro';
-import { getSessionFromCookie } from '../../../lib/auth';
-import { getStore } from '@netlify/blobs';
+import { parseSessionFromCookie } from '../../../lib/auth';
+import { softDeleteSubmission, getSubmission, appendAudit } from '../../../lib/inbox';
 
 export const prerender = false;
 
 export const POST: APIRoute = async ({ request }) => {
   const cookie = request.headers.get('cookie');
-  if (!getSessionFromCookie(cookie)) {
+  const session = parseSessionFromCookie(cookie);
+  if (!session) {
     return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
   }
 
   const { id } = await request.json();
-  if (!id) {
+  if (!id || typeof id !== 'string') {
     return new Response(JSON.stringify({ error: 'Missing id' }), { status: 400 });
   }
 
-  const store = getStore('inbox');
+  const before = await getSubmission(id);
+  if (!before) {
+    return new Response(JSON.stringify({ error: 'Not found' }), { status: 404 });
+  }
 
-  // Delete the submission
-  await store.delete(`submission/${id}`);
+  await softDeleteSubmission(id);
 
-  // Remove from index
-  try {
-    const index = await store.get('index');
-    if (index) {
-      const ids: string[] = JSON.parse(index);
-      const updated = ids.filter(i => i !== id);
-      await store.set('index', JSON.stringify(updated));
-    }
-  } catch { /* ignore */ }
+  // Audit trail — who deleted what and when. Critical for any future payment
+  // dispute or accidental-deletion recovery.
+  await appendAudit({
+    ts: new Date().toISOString(),
+    actor: session.username,
+    submissionId: id,
+    action: 'delete',
+    before: { status: before.status, paid: !!before.paid, formName: before.formName },
+  });
 
   return new Response(JSON.stringify({ ok: true }), {
     headers: { 'Content-Type': 'application/json' },

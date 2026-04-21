@@ -1,7 +1,7 @@
 ---
 export const prerender = false;
 import Base from '../../layouts/Base.astro';
-import { getStripe, isStripeConfigured } from '../../lib/stripe';
+import { getStripe, isStripeConfigured, readCheckoutCookie } from '../../lib/stripe';
 
 const sessionId = Astro.url.searchParams.get('session_id');
 
@@ -12,9 +12,19 @@ let jerseyCount = 0;
 let town = '';
 let errorMessage = '';
 
+const checkoutCookieOk = sessionId
+  ? readCheckoutCookie(Astro.request.headers.get('cookie'), sessionId)
+  : false;
+
 if (!sessionId) {
   status = 'error';
   errorMessage = 'Missing session ID.';
+} else if (!checkoutCookieOk) {
+  // Fail closed: a session_id alone is not proof-of-purchase. The signed
+  // checkout cookie is set only on the browser that initiated the Stripe
+  // session, so this rejects link-sharing and history scraping.
+  status = 'error';
+  errorMessage = 'We could not verify this order from this browser. If you were charged, please call (978) 352-8240 — your order is safe.';
 } else if (!isStripeConfigured()) {
   status = 'error';
   errorMessage = 'Payment system is not configured.';

@@ -23,8 +23,35 @@
 [[headers]]
   for = "/*"
   [headers.values]
-    X-Frame-Options = "SAMEORIGIN"
+    X-Frame-Options = "DENY"
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "strict-origin-when-cross-origin"
-    Permissions-Policy = "camera=(), microphone=(), geolocation=()"
-    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' https://plausible.io https://cdn.jsdelivr.net; style-src 'self' https://fonts.googleapis.com 'unsafe-inline'; font-src https://fonts.gstatic.com; frame-src https://www.google.com/maps/; img-src 'self' data:; connect-src 'self' https://plausible.io;"
+    Permissions-Policy = "camera=(), microphone=(), geolocation=(), payment=(self \"https://js.stripe.com\")"
+    Strict-Transport-Security = "max-age=31536000; includeSubDomains; preload"
+    Cross-Origin-Opener-Policy = "same-origin"
+    Cross-Origin-Resource-Policy = "same-origin"
+    # CSP retains 'unsafe-inline' on script-src because the site has ~7 inline
+    # <script is:inline> blocks (admin SPA + page scripts). Migrating those to
+    # nonced/external scripts is tracked as a follow-up task. Stripe.js,
+    # checkout, and fonts are explicitly allowlisted. frame-ancestors blocks
+    # clickjacking on top of X-Frame-Options.
+    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' https://plausible.io https://cdn.jsdelivr.net https://js.stripe.com; style-src 'self' https://fonts.googleapis.com 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com; frame-src https://www.google.com/maps/ https://js.stripe.com https://hooks.stripe.com; img-src 'self' data: https:; connect-src 'self' https://plausible.io https://api.stripe.com; object-src 'none'; base-uri 'self'; form-action 'self' https://checkout.stripe.com; frame-ancestors 'none'; upgrade-insecure-requests"
+
+# Admin pages: extra protection. noindex + no caching by intermediaries.
+[[headers]]
+  for = "/admin/*"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow, noarchive"
+    Cache-Control = "private, no-store, max-age=0, must-revalidate"
+
+# Webhook endpoints must accept cross-origin POSTs from Stripe/Resend without
+# the strict same-origin CORP header above blocking response delivery.
+[[headers]]
+  for = "/api/stripe/webhook"
+  [headers.values]
+    Cross-Origin-Resource-Policy = "cross-origin"
+
+[[headers]]
+  for = "/api/inbox/inbound"
+  [headers.values]
+    Cross-Origin-Resource-Policy = "cross-origin"

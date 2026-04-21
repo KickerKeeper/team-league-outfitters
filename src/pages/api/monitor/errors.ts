@@ -1,12 +1,39 @@
 import type { APIRoute } from 'astro';
 import { getStore } from '@netlify/blobs';
+import { getSessionFromCookie } from '../../../lib/auth';
+import { checkRateLimit, getClientIp } from '../../../lib/ratelimit';
+
+export const prerender = false;
 
 const STORE_NAME = 'tlo-errors';
+const MAX_STACK = 1000;
+const MAX_MSG = 500;
+const MAX_URL = 500;
+const MAX_UA = 200;
+
+function clip(s: unknown, max: number): string {
+  if (typeof s !== 'string') return '';
+  return s.length > max ? s.slice(0, max) : s;
+}
 
 export const POST: APIRoute = async ({ request, clientAddress }) => {
+  // Throttle anonymous error reports — 30 errors/min per IP is plenty for
+  // legitimate client-side error capture and orders of magnitude below abuse.
+  const ip = getClientIp(request) || clientAddress || 'unknown';
+  if (!checkRateLimit(`monitor-errors:${ip}`, 30, 60 * 1000)) {
+    return new Response(null, { status: 429 });
+  }
+
   try {
     const body = await request.json();
-    const { message, stack, url, timestamp } = body;
+    const message = clip(body?.message, MAX_MSG);
+    const stack = clip(body?.stack, MAX_STACK);
+    const url = clip(body?.url, MAX_URL);
+    const timestamp = typeof body?.timestamp === 'string' ? body.timestamp.slice(0, 40) : new Date().toISOString();
+
+    if (!message) {
+      return new Response(null, { status: 400 });
+    }
 
     const store = getStore(STORE_NAME);
     const today = new Date().toISOString().split('T')[0];
@@ -14,11 +41,11 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
 
     await store.setJSON(key, {
       message,
-      stack: stack?.slice(0, 2000),
+      stack,
       url,
       ip: clientAddress,
-      timestamp: timestamp || new Date().toISOString(),
-      userAgent: request.headers.get('user-agent')?.slice(0, 200),
+      timestamp,
+      userAgent: clip(request.headers.get('user-agent'), MAX_UA),
     });
 
     return new Response(JSON.stringify({ received: true }), {
@@ -33,7 +60,16 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
   }
 };
 
-export const GET: APIRoute = async ({ url }) => {
+export const GET: APIRoute = async ({ request, url }) => {
+  // Stack traces can leak internal paths and request URLs — admin only.
+  const cookie = request.headers.get('cookie');
+  if (!getSessionFromCookie(cookie)) {
+    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+      status: 401,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
   try {
     const store = getStore(STORE_NAME);
     const days = parseInt(url.searchParams.get('days') || '1');

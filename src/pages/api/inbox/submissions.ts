@@ -11,7 +11,9 @@ export const GET: APIRoute = async ({ request }) => {
   }
 
   const submissions = await getSubmissions();
-  return new Response(JSON.stringify(submissions), {
+  // Hide soft-deleted records from the inbox listing.
+  const visible = submissions.filter(s => !s.deletedAt);
+  return new Response(JSON.stringify(visible), {
     headers: { 'Content-Type': 'application/json' },
   });
 };

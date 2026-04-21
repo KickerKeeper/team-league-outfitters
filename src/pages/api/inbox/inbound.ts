@@ -10,24 +10,28 @@ export const POST: APIRoute = async ({ request }) => {
   try {
     const rawBody = await request.text();
 
-    // Verify webhook signature if secret is configured
+    // Verify webhook signature. The secret is REQUIRED — without it, anyone can
+    // POST fake "inbound emails" that show up in the admin inbox.
     const webhookSecret = import.meta.env.RESEND_WEBHOOK_SECRET;
-    if (webhookSecret) {
-      const svixId = request.headers.get('svix-id');
-      const svixTimestamp = request.headers.get('svix-timestamp');
-      const svixSignature = request.headers.get('svix-signature');
+    if (!webhookSecret) {
+      console.error('[inbound] RESEND_WEBHOOK_SECRET is not set — refusing unsigned inbound webhook');
+      return new Response(JSON.stringify({ error: 'Webhook not configured' }), { status: 503 });
+    }
 
-      if (!svixId || !svixTimestamp || !svixSignature) {
-        return new Response(JSON.stringify({ error: 'Missing signature headers' }), { status: 401 });
-      }
+    const svixId = request.headers.get('svix-id');
+    const svixTimestamp = request.headers.get('svix-timestamp');
+    const svixSignature = request.headers.get('svix-signature');
 
-      try {
-        const wh = new Webhook(webhookSecret);
-        wh.verify(rawBody, { 'svix-id': svixId, 'svix-timestamp': svixTimestamp, 'svix-signature': svixSignature });
-      } catch {
-        console.error('Webhook signature verification failed');
-        return new Response(JSON.stringify({ error: 'Invalid signature' }), { status: 401 });
-      }
+    if (!svixId || !svixTimestamp || !svixSignature) {
+      return new Response(JSON.stringify({ error: 'Missing signature headers' }), { status: 401 });
+    }
+
+    try {
+      const wh = new Webhook(webhookSecret);
+      wh.verify(rawBody, { 'svix-id': svixId, 'svix-timestamp': svixTimestamp, 'svix-signature': svixSignature });
+    } catch {
+      console.error('Webhook signature verification failed');
+      return new Response(JSON.stringify({ error: 'Invalid signature' }), { status: 401 });
     }
 
     const webhook = JSON.parse(rawBody);
@@ -140,7 +144,9 @@ export const POST: APIRoute = async ({ request }) => {
 
     return new Response(JSON.stringify({ ok: true }), { status: 200 });
   } catch (e) {
-    console.error('Inbound email error:', e);
+    // Log only the error class, not the body or full Error message — webhook
+    // payloads contain customer email addresses and message bodies.
+    console.error('Inbound email error:', (e as Error)?.name || 'Unknown');
     return new Response(JSON.stringify({ error: 'Internal error' }), { status: 500 });
   }
 };

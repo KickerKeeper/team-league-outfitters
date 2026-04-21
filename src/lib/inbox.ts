@@ -9,6 +9,29 @@ export interface Submission {
   paid?: boolean;
   paidAt?: string;
   messages: Message[];
+  deletedAt?: string;
+}
+
+export interface AuditEntry {
+  ts: string;
+  actor: string;             // username from session
+  submissionId: string;
+  action: 'status' | 'paid' | 'delete' | 'restore';
+  before?: unknown;
+  after?: unknown;
+}
+
+const AUDIT_STORE = 'tlo-audit';
+
+export async function appendAudit(entry: AuditEntry): Promise<void> {
+  try {
+    const store = getStore(AUDIT_STORE);
+    const day = entry.ts.slice(0, 10);
+    const key = `${day}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    await store.setJSON(key, entry);
+  } catch (e) {
+    console.error('[audit] failed to write entry:', (e as Error)?.name);
+  }
 }
 
 export interface Message {
@@ -140,6 +163,18 @@ export async function addMessage(id: string, message: Message) {
 // Find a submission by customer email (for matching inbound replies)
 export async function findByEmail(email: string): Promise<Submission | null> {
   const submissions = await getSubmissions();
-  // Find the most recent submission from this email
-  return submissions.find(s => s.data.email?.toLowerCase() === email.toLowerCase()) || null;
+  // Find the most recent submission from this email — exclude soft-deleted.
+  return submissions.find(s => !s.deletedAt && s.data.email?.toLowerCase() === email.toLowerCase()) || null;
+}
+
+// Soft-delete: set deletedAt instead of removing. Lets us recover from
+// accidental deletions and keeps an order trail for any future payment dispute.
+export async function softDeleteSubmission(id: string): Promise<Submission | null> {
+  const store = getStore('inbox');
+  const data = await store.get(`submission/${id}`);
+  if (!data) return null;
+  const sub: Submission = JSON.parse(data);
+  sub.deletedAt = new Date().toISOString();
+  await store.set(`submission/${id}`, JSON.stringify(sub));
+  return sub;
 }

@@ -1,5 +1,5 @@
 import type { APIRoute } from 'astro';
-import { getStripe, isStripeConfigured, getSiteUrl } from '../../../lib/stripe';
+import { getStripe, isStripeConfigured, getSiteUrl, signCheckoutToken, checkoutCookieName } from '../../../lib/stripe';
 import { getTownPrice } from '../../../lib/pricing';
 import { getTown } from '../../../lib/towns';
 import { saveSubmission } from '../../../lib/inbox';
@@ -135,11 +135,22 @@ export const POST: APIRoute = async ({ request }) => {
       throw new Error('Stripe did not return a checkout URL');
     }
 
+    // Per-checkout cookie scoped to /order/success — proves the holder is the
+    // same browser that initiated this Stripe session, blocking IDOR via
+    // session_id leaks (browser history, referrer, screen-share).
+    const checkoutToken = signCheckoutToken(session.id);
+    const cookie = `${checkoutCookieName(session.id)}=${encodeURIComponent(checkoutToken)}; Path=/order/success; HttpOnly; SameSite=Lax; Secure; Max-Age=3600`;
+
     return new Response(JSON.stringify({ url: session.url, submissionId }), {
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'Set-Cookie': cookie,
+      },
     });
   } catch (e: any) {
-    console.error('Stripe Checkout Session create failed:', e);
+    // Stripe errors can echo back the request payload (which includes the
+    // parent's email and name). Log only the type/code, not the full error.
+    console.error('Stripe Checkout Session create failed:', e?.type || e?.name || 'Unknown', e?.code || '');
     return new Response(
       JSON.stringify({ error: 'Could not start checkout. Please try again or call (978) 352-8240.' }),
       { status: 502 },

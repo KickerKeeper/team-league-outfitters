@@ -4,28 +4,65 @@ import { addMessage, getSubmission } from '../../../lib/inbox';
 
 export const prerender = false;
 
+const ALLOWED_TYPES = new Set(['note', 'sent']);
+const MAX_BODY_LEN = 20_000;
+
+// RFC 5322 — practical email regex. Rejects multiple addresses, header
+// injection (CR/LF), and obviously malformed inputs.
+const EMAIL_RE = /^[^\s,<>"]{1,64}@[^\s,<>"]{1,255}$/;
+
+function isCleanHeaderField(s: string): boolean {
+  // Reject anything that could break out of a header into a new one.
+  return !/[\r\n\0]/.test(s);
+}
+
 export const POST: APIRoute = async ({ request }) => {
   const cookie = request.headers.get('cookie');
   if (!getSessionFromCookie(cookie)) {
     return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
   }
 
-  const { id, to, body: msgBody, type } = await request.json();
-  if (!id || !msgBody) {
+  let id: string, to: string | undefined, msgBody: string, type: string | undefined;
+  try {
+    ({ id, to, body: msgBody, type } = await request.json());
+  } catch {
+    return new Response(JSON.stringify({ error: 'Invalid JSON' }), { status: 400 });
+  }
+
+  if (typeof id !== 'string' || typeof msgBody !== 'string' || !id || !msgBody) {
     return new Response(JSON.stringify({ error: 'Missing fields' }), { status: 400 });
+  }
+  if (msgBody.length > MAX_BODY_LEN) {
+    return new Response(JSON.stringify({ error: 'Message too long' }), { status: 413 });
+  }
+  if (type !== undefined && !ALLOWED_TYPES.has(type)) {
+    return new Response(JSON.stringify({ error: 'Invalid type' }), { status: 400 });
   }
 
   const messageType = type || (to ? 'sent' : 'note');
 
   // If sending an email, use Resend
   if (messageType === 'sent' && to) {
+    if (typeof to !== 'string' || !EMAIL_RE.test(to) || !isCleanHeaderField(to)) {
+      return new Response(JSON.stringify({ error: 'Invalid recipient' }), { status: 400 });
+    }
+
+    // Recipient MUST match the customer email on the original submission.
+    // Without this check, a compromised admin session could exfiltrate
+    // conversation context to any address.
+    const subForRecipientCheck = await getSubmission(id);
+    const expectedTo = subForRecipientCheck?.data?.email?.toLowerCase();
+    if (!expectedTo || expectedTo !== to.toLowerCase()) {
+      return new Response(JSON.stringify({ error: 'Recipient does not match original conversation' }), { status: 400 });
+    }
+
     const resendKey = import.meta.env.RESEND_API_KEY;
     const fromAddress = import.meta.env.RESEND_FROM || 'Georgetown Jerseys <orders@gtownjerseys.com>';
     const replyTo = 'orders@gtownjerseys.com';
 
     if (resendKey) {
       // Look up the submission to find threading info
-      const sub = await getSubmission(id);
+      const sub = subForRecipientCheck;
       const msgs = sub?.messages || [];
 
       // Find the last message with a messageId for threading
@@ -59,6 +96,8 @@ export const POST: APIRoute = async ({ request }) => {
       if (originalSubject && !originalSubject.startsWith('Re:')) {
         subject = 'Re: ' + originalSubject;
       }
+      // Strip CR/LF from anything that lands in headers, defense in depth.
+      subject = subject.replace(/[\r\n]+/g, ' ').slice(0, 200);
 
       const emailPayload: any = {
         from: fromAddress,
@@ -70,8 +109,8 @@ export const POST: APIRoute = async ({ request }) => {
 
       // Add threading headers
       const headers: Record<string, string> = {};
-      if (inReplyTo) headers['In-Reply-To'] = inReplyTo;
-      if (references) headers['References'] = references;
+      if (inReplyTo && isCleanHeaderField(inReplyTo)) headers['In-Reply-To'] = inReplyTo;
+      if (references && isCleanHeaderField(references)) headers['References'] = references;
       if (Object.keys(headers).length) emailPayload.headers = headers;
 
       try {
@@ -104,7 +143,7 @@ export const POST: APIRoute = async ({ request }) => {
 
   // Save message to thread
   const updated = await addMessage(id, {
-    type: messageType,
+    type: messageType as 'note' | 'sent',
     body: msgBody,
     timestamp: new Date().toISOString(),
     to: to || undefined,

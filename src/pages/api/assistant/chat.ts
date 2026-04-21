@@ -57,13 +57,26 @@ export const POST: APIRoute = async ({ request }) => {
     return new Response(JSON.stringify({ error: 'GEMINI_API_KEY not configured' }), { status: 500 });
   }
 
+  const MAX_MESSAGES = 50;
+  const MAX_MSG_CHARS = 5000;
+
   try {
     const { messages } = await request.json();
-    if (!messages || !Array.isArray(messages)) {
+    if (!messages || !Array.isArray(messages) || messages.length > MAX_MESSAGES) {
       return new Response(JSON.stringify({ error: 'Invalid messages' }), { status: 400 });
     }
+    for (const m of messages) {
+      if (!m || typeof m.content !== 'string' || m.content.length > MAX_MSG_CHARS) {
+        return new Response(JSON.stringify({ error: 'Message too long' }), { status: 413 });
+      }
+    }
 
-    // Gather live context data
+    // Gather live context — aggregates only. Customer names, teams, sports,
+    // and emails are PII; the assistant doesn't need them to answer the
+    // owner's operational questions ("how many open orders?", "what's my
+    // paid rate?"). Keeping PII out of the LLM context prevents both
+    // accidental disclosure in responses and exfiltration via prompt
+    // injection. To look up a specific order, use the inbox UI.
     let contextData = '';
     try {
       const submissions = await getSubmissions();
@@ -72,21 +85,32 @@ export const POST: APIRoute = async ({ request }) => {
       const openCount = orders.filter(s => s.status !== 'completed').length;
       const closedCount = orders.filter(s => s.status === 'completed').length;
       const paidCount = orders.filter(s => s.paid).length;
+      const newCount = orders.filter(s => s.status === 'new').length;
 
-      const recentOrders = orders
-        .slice(0, 10)
-        .map(s => {
-          const status = s.status === 'completed' ? 'Closed' : 'Open';
-          const paid = s.paid ? 'Paid' : 'Unpaid';
-          return `- ${s.data.name || 'Unknown'} | ${s.data.team || ''} | ${s.data.sport || ''} | ${status} · ${paid} | ${new Date(s.createdAt).toLocaleDateString()}`;
-        })
+      // Town breakdown — slug only (no PII).
+      const byTown: Record<string, number> = {};
+      for (const s of orders) {
+        const town = s.data.town_slug || s.data.town || 'unknown';
+        byTown[town] = (byTown[town] || 0) + 1;
+      }
+      const townLines = Object.entries(byTown)
+        .sort((a, b) => b[1] - a[1])
+        .map(([t, n]) => `  - ${t}: ${n}`)
         .join('\n');
 
-      contextData = `\n\n## Live Data (as of now)
-Orders: ${orders.length} total (${openCount} open, ${closedCount} closed, ${paidCount} paid) | Email threads: ${emailCount}
+      // Recency — counts in time buckets, no individual records.
+      const now = Date.now();
+      const last24h = orders.filter(s => now - new Date(s.createdAt).getTime() < 86400_000).length;
+      const last7d = orders.filter(s => now - new Date(s.createdAt).getTime() < 7 * 86400_000).length;
 
-Recent orders:
-${recentOrders || 'No orders yet'}`;
+      contextData = `\n\n## Live Data (aggregates only — no customer PII)
+Orders: ${orders.length} total | new: ${newCount} | open: ${openCount} | closed: ${closedCount} | paid: ${paidCount}
+Email threads: ${emailCount}
+Recent volume: ${last24h} in last 24h, ${last7d} in last 7d
+By town:
+${townLines || '  (none)'}
+
+(For details on a specific order, look it up in the Inbox tab — those records contain customer PII and are not loaded here.)`;
     } catch {
       contextData = '\n\n(Could not load live data)';
     }

@@ -1,6 +1,6 @@
 import type { APIRoute } from 'astro';
-import { getSessionFromCookie } from '../../../lib/auth';
-import { updateSubmissionStatus, getSubmission, addMessage, setPaid } from '../../../lib/inbox';
+import { parseSessionFromCookie } from '../../../lib/auth';
+import { updateSubmissionStatus, getSubmission, addMessage, setPaid, appendAudit } from '../../../lib/inbox';
 
 export const prerender = false;
 
@@ -13,7 +13,8 @@ const completionEmail = {
 
 export const POST: APIRoute = async ({ request }) => {
   const cookie = request.headers.get('cookie');
-  if (!getSessionFromCookie(cookie)) {
+  const session = parseSessionFromCookie(cookie);
+  if (!session) {
     return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
   }
 
@@ -28,10 +29,22 @@ export const POST: APIRoute = async ({ request }) => {
 
   // Paid-only update: don't touch status, don't fire completion email
   if (typeof paid === 'boolean' && status === undefined) {
+    const beforePaid = await getSubmission(id);
+    if (!beforePaid) {
+      return new Response(JSON.stringify({ error: 'Not found' }), { status: 404 });
+    }
     const updated = await setPaid(id, paid);
     if (!updated) {
       return new Response(JSON.stringify({ error: 'Not found' }), { status: 404 });
     }
+    await appendAudit({
+      ts: new Date().toISOString(),
+      actor: session.username,
+      submissionId: id,
+      action: 'paid',
+      before: { paid: !!beforePaid.paid },
+      after: { paid },
+    });
     return new Response(JSON.stringify(updated), {
       headers: { 'Content-Type': 'application/json' },
     });
@@ -39,6 +52,7 @@ export const POST: APIRoute = async ({ request }) => {
 
   const before = await getSubmission(id);
   const previousStatus = before?.status;
+  const previousPaid = !!before?.paid;
 
   const updated = await updateSubmissionStatus(id, status || 'read');
   if (!updated) {
@@ -49,6 +63,16 @@ export const POST: APIRoute = async ({ request }) => {
   if (typeof paid === 'boolean') {
     await setPaid(id, paid);
   }
+
+  // Audit trail. Status change always logged; paid change logged if it actually changed.
+  await appendAudit({
+    ts: new Date().toISOString(),
+    actor: session.username,
+    submissionId: id,
+    action: 'status',
+    before: { status: previousStatus, paid: previousPaid },
+    after: { status: status || 'read', paid: typeof paid === 'boolean' ? paid : previousPaid },
+  });
 
   // Send completion email when order transitions to 'completed' (only for order submissions, not email threads)
   if (
