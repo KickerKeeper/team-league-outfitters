@@ -46,7 +46,7 @@ export interface Message {
 }
 
 export async function getSubmissions(): Promise<Submission[]> {
-  const store = getStore('inbox');
+  const store = getStore({ name: 'inbox', consistency: 'strong' });
 
   try {
     const index = await store.get('index');
@@ -83,7 +83,7 @@ export async function getSubmissions(): Promise<Submission[]> {
 }
 
 export async function getSubmission(id: string): Promise<Submission | null> {
-  const store = getStore('inbox');
+  const store = getStore({ name: 'inbox', consistency: 'strong' });
   try {
     const data = await store.get(`submission/${id}`);
     if (!data) return null;
@@ -105,7 +105,7 @@ export async function getSubmission(id: string): Promise<Submission | null> {
 }
 
 export async function saveSubmission(sub: Submission) {
-  const store = getStore('inbox');
+  const store = getStore({ name: 'inbox', consistency: 'strong' });
   await store.set(`submission/${sub.id}`, JSON.stringify(sub));
 
   let ids: string[] = [];
@@ -121,7 +121,7 @@ export async function saveSubmission(sub: Submission) {
 }
 
 export async function updateSubmissionStatus(id: string, status: Submission['status']) {
-  const store = getStore('inbox');
+  const store = getStore({ name: 'inbox', consistency: 'strong' });
   const data = await store.get(`submission/${id}`);
   if (!data) return null;
 
@@ -132,7 +132,7 @@ export async function updateSubmissionStatus(id: string, status: Submission['sta
 }
 
 export async function setPaid(id: string, paid: boolean): Promise<Submission | null> {
-  const store = getStore('inbox');
+  const store = getStore({ name: 'inbox', consistency: 'strong' });
   const data = await store.get(`submission/${id}`);
   if (!data) return null;
 
@@ -148,7 +148,7 @@ export async function setPaid(id: string, paid: boolean): Promise<Submission | n
 }
 
 export async function addMessage(id: string, message: Message) {
-  const store = getStore('inbox');
+  const store = getStore({ name: 'inbox', consistency: 'strong' });
   const data = await store.get(`submission/${id}`);
   if (!data) return null;
 
@@ -170,7 +170,7 @@ export async function findByEmail(email: string): Promise<Submission | null> {
 // Soft-delete: set deletedAt instead of removing. Lets us recover from
 // accidental deletions and keeps an order trail for any future payment dispute.
 export async function softDeleteSubmission(id: string): Promise<Submission | null> {
-  const store = getStore('inbox');
+  const store = getStore({ name: 'inbox', consistency: 'strong' });
   const data = await store.get(`submission/${id}`);
   if (!data) return null;
   const sub: Submission = JSON.parse(data);

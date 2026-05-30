@@ -28,7 +28,7 @@ export const POST: APIRoute = async ({ request }) => {
     return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
   }
 
-  const store = getStore('inbox');
+  const store = getStore({ name: 'inbox', consistency: 'strong' });
   const submissions = await getSubmissions();
   let cleaned = 0;
 

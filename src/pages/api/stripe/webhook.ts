@@ -149,6 +149,9 @@ Georgetown Jerseys
             subject,
             messageId: resData.id ? `<${resData.id}@resend.dev>` : '',
           });
+        } else {
+          const errText = await emailRes.text().catch(() => '');
+          console.error('Resend rejected confirmation email:', emailRes.status, errText);
         }
       } catch (e) {
         console.error('Confirmation email send failed:', e);
