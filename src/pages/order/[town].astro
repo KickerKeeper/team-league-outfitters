@@ -3,7 +3,7 @@ export const prerender = false;
 import Base from '../../layouts/Base.astro';
 import { getTown } from '../../lib/towns';
 import { getWeekOfLabel } from '../../lib/week';
-import { getTownPrice, formatPriceCents } from '../../lib/pricing';
+import { getCatalog, formatPriceCents, APPAREL_SIZES } from '../../lib/catalog';
 import { isStripeConfigured } from '../../lib/stripe';
 
 const { town: townSlug } = Astro.params;
@@ -14,35 +14,22 @@ if (!town) {
 }
 
 const weekOf = getWeekOfLabel();
-const priceInfo = await getTownPrice(town.slug);
-const unitPriceCents = priceInfo.jerseyPriceCents;
-const unitPriceDollars = formatPriceCents(unitPriceCents);
-const paymentEnabled = isStripeConfigured() && unitPriceCents > 0;
+const catalog = (await getCatalog(town.slug)).filter((p) => p.enabled);
+const jersey = catalog.find((p) => p.personalized) || catalog[0];
+const addons = catalog.filter((p) => !jersey || p.id !== jersey.id);
+const paymentEnabled = isStripeConfigured();
 const wasCanceled = Astro.url.searchParams.get('canceled') === '1';
-
-const SIZES = [
-  'Youth XS',
-  'Youth S',
-  'Youth M',
-  'Youth L',
-  'Youth XL',
-  'Adult S',
-  'Adult M',
-  'Adult L',
-  'Adult XL',
-  'Adult XXL',
-];
 ---
 
 <Base
-  title={`Order a Jersey — ${town.name} | Georgetown Jerseys`}
-  description={`Order your child's ${town.name} jersey. Fill out the form and check out securely.`}
+  title={`Order — ${town.name} | Georgetown Jerseys`}
+  description={`Order your child's ${town.name} uniform. Fill out the form and check out securely.`}
 >
   <section class="page-header">
     <div class="container">
       <p class="back-link"><a href="/order">&larr; Choose a different town</a></p>
-      <h1>{town.name} Jersey Order</h1>
-      <p>Tell us about your jersey order{paymentEnabled ? ' and check out securely.' : '.'}</p>
+      <h1>{town.name} Uniform Order</h1>
+      <p>Tell us about your order{paymentEnabled ? ' and check out securely.' : '.'}</p>
     </div>
   </section>
 
@@ -60,7 +47,6 @@ const SIZES = [
           data-payment-enabled={paymentEnabled ? '1' : '0'}
           data-town-slug={town.slug}
           data-town-name={town.name}
-          data-unit-price-cents={unitPriceCents}
         >
           <input type="hidden" name="form-name" value="parent-order" />
           <input type="hidden" name="town" value={town.name} />
@@ -81,46 +67,126 @@ const SIZES = [
                 <input type="email" id="email" name="email" required autocomplete="email" />
               </div>
               <div class="form-field">
-                <label for="phone">Phone <span class="req" aria-hidden="true">*</span></label>
+                <label for="phone">Cell # (if we need to text you) <span class="req" aria-hidden="true">*</span></label>
                 <input type="tel" id="phone" name="phone" required autocomplete="tel" />
               </div>
             </div>
           </fieldset>
 
           <fieldset class="form-section">
-            <legend>Jersey Details</legend>
+            <legend>Players</legend>
             <p class="section-hint">
-              One row per kid. Add another if you're ordering for more than one.
-              {paymentEnabled && <> Each jersey is <strong>${unitPriceDollars}</strong>.</>}
+              One block per player. Add another if you're ordering for more than one.
             </p>
 
-            <div id="jerseys-list">
-              <div class="jersey-row" data-jersey-row>
-                <div class="jersey-row-header">
-                  <span class="jersey-row-label" data-jersey-label>Jersey 1</span>
-                  <button type="button" class="jersey-remove" data-jersey-remove hidden>Remove</button>
+            <div id="players-list">
+              <div class="player-block" data-player-block>
+                <div class="player-block-header">
+                  <span class="player-block-label" data-player-label>Player 1</span>
+                  <button type="button" class="player-remove" data-player-remove hidden>Remove</button>
                 </div>
+
                 <div class="form-grid">
                   <div class="form-field">
                     <label>Player Name <span class="req" aria-hidden="true">*</span></label>
-                    <input type="text" name="jersey_name[]" required />
+                    <input type="text" data-field="player_name" required />
                   </div>
                   <div class="form-field">
-                    <label>Size <span class="req" aria-hidden="true">*</span></label>
-                    <select name="jersey_size[]" required>
-                      <option value="">Select a size</option>
-                      {SIZES.map((s) => <option value={s}>{s}</option>)}
+                    <label>Girl / Boy</label>
+                    <select data-field="gender">
+                      <option value="">—</option>
+                      <option value="Girl">Girl</option>
+                      <option value="Boy">Boy</option>
                     </select>
                   </div>
                   <div class="form-field">
-                    <label>Number <span class="req" aria-hidden="true">*</span></label>
-                    <input type="text" name="jersey_number[]" required inputmode="numeric" pattern="[0-9]{1,3}" placeholder="e.g., 7" />
+                    <label>School grade in the fall</label>
+                    <input type="text" data-field="grade" placeholder="e.g., 4th" />
                   </div>
                 </div>
+
+                {jersey && (
+                  <div
+                    class="product-line product-line-required"
+                    data-product={jersey.id}
+                    data-price-cents={jersey.priceCents}
+                    data-sizing={jersey.sizing}
+                    data-required="1"
+                  >
+                    <div class="product-line-head">
+                      <strong>{jersey.label}</strong>
+                      {paymentEnabled && <span class="product-price">${formatPriceCents(jersey.priceCents)}</span>}
+                    </div>
+                    <div class="form-grid">
+                      <div class="form-field">
+                        <label>Size <span class="req" aria-hidden="true">*</span></label>
+                        <select data-field="size" required>
+                          <option value="">Select a size</option>
+                          {APPAREL_SIZES.map((s) => <option value={s}>{s}</option>)}
+                        </select>
+                      </div>
+                      <div class="form-field">
+                        <label>Number <span class="req" aria-hidden="true">*</span></label>
+                        <input type="text" data-field="number" inputmode="numeric" pattern="[0-9]{1,3}" required placeholder="e.g., 7" />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {addons.map((p) => (
+                  <div
+                    class="product-line addon"
+                    data-product={p.id}
+                    data-price-cents={p.priceCents}
+                    data-sizing={p.sizing}
+                  >
+                    <label class="addon-toggle">
+                      <input type="checkbox" data-include />
+                      <span>
+                        Add {p.label}
+                        {paymentEnabled && <> &mdash; ${formatPriceCents(p.priceCents)}{p.sizing === 'none' ? ' each' : ''}</>}
+                      </span>
+                    </label>
+                    <div class="addon-fields" data-addon-fields hidden>
+                      <div class="form-grid">
+                        {p.sizing === 'apparel' && (
+                          <div class="form-field">
+                            <label>Size</label>
+                            <select data-field="size">
+                              <option value="">Select a size</option>
+                              {APPAREL_SIZES.map((s) => <option value={s}>{s}</option>)}
+                            </select>
+                          </div>
+                        )}
+                        {p.sizing === 'shoe' && (
+                          <div class="form-field">
+                            <label>Shoe size</label>
+                            <input type="text" data-field="size" placeholder="e.g., 5Y or 8" />
+                          </div>
+                        )}
+                        {p.options && (
+                          <div class="form-field">
+                            <label>{p.options.label}</label>
+                            <select data-field="option">
+                              <option value="">Select</option>
+                              {p.options.choices.map((c) => <option value={c}>{c}</option>)}
+                            </select>
+                          </div>
+                        )}
+                        {p.sizing === 'none' && (
+                          <div class="form-field">
+                            <label>Quantity</label>
+                            <input type="number" data-field="quantity" min="1" max="20" value="1" />
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
 
-            <button type="button" id="add-jersey" class="btn btn-secondary add-jersey-btn">+ Add another jersey</button>
+            <button type="button" id="add-player" class="btn btn-secondary add-player-btn">+ Add another player</button>
           </fieldset>
 
           <fieldset class="form-section">
@@ -135,13 +201,9 @@ const SIZES = [
 
           {paymentEnabled && (
             <div class="order-total" id="order-total" aria-live="polite">
-              <div class="order-total-row">
-                <span>Subtotal</span>
-                <span><span id="jersey-count">1</span> &times; ${unitPriceDollars}</span>
-              </div>
               <div class="order-total-row total">
                 <span>Subtotal</span>
-                <span id="subtotal-display">${unitPriceDollars}</span>
+                <span id="subtotal-display">$0.00</span>
               </div>
               <p class="tax-note">MA sales tax (where applicable) is calculated at checkout.</p>
             </div>
@@ -203,266 +265,80 @@ const SIZES = [
 </Base>
 
 <style>
-  .page-header {
-    background: var(--color-primary);
-    color: #fff;
-    padding: var(--space-10) var(--space-6) var(--space-12);
-    text-align: center;
-  }
-
+  .page-header { background: var(--color-primary); color: #fff; padding: var(--space-10) var(--space-6) var(--space-12); text-align: center; }
   .page-header h1 { color: #fff; margin-bottom: var(--space-3); }
   .page-header p { opacity: 0.9; max-width: 520px; margin: 0 auto; }
 
-  .back-link {
-    margin-bottom: var(--space-4);
-    font-size: var(--text-sm);
-    opacity: 0.85;
-  }
+  .back-link { margin-bottom: var(--space-4); font-size: var(--text-sm); opacity: 0.85; }
   .back-link a { color: #fff; text-decoration: underline; }
 
   .canceled-notice {
-    background: #fff8e6;
-    border-left: 4px solid var(--color-accent);
-    border-radius: var(--radius-md);
-    padding: var(--space-4) var(--space-5);
-    margin-bottom: var(--space-6);
-    font-size: var(--text-sm);
-    line-height: 1.5;
-    color: var(--color-neutral-900);
+    background: #fff8e6; border-left: 4px solid var(--color-accent); border-radius: var(--radius-md);
+    padding: var(--space-4) var(--space-5); margin-bottom: var(--space-6);
+    font-size: var(--text-sm); line-height: 1.5; color: var(--color-neutral-900);
   }
   .canceled-notice a { color: var(--color-primary); font-weight: 600; }
 
-  .order-layout {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: var(--space-8);
-  }
+  .order-layout { display: grid; grid-template-columns: 1fr; gap: var(--space-8); }
+  @media (min-width: 768px) { .order-layout { grid-template-columns: 1fr 300px; align-items: start; } }
 
-  @media (min-width: 768px) {
-    .order-layout {
-      grid-template-columns: 1fr 300px;
-      align-items: start;
-    }
-  }
+  .form-section { border: 1px solid var(--color-neutral-200); border-radius: var(--radius-xl); padding: var(--space-6); margin-bottom: var(--space-6); }
+  .form-section legend { font-family: var(--font-heading); font-weight: 600; font-size: var(--text-xl); color: var(--color-primary); padding: 0 var(--space-2); }
+  .section-hint { color: var(--color-neutral-600); font-size: var(--text-sm); margin-top: var(--space-2); }
 
-  .form-section {
-    border: 1px solid var(--color-neutral-200);
-    border-radius: var(--radius-xl);
-    padding: var(--space-6);
-    margin-bottom: var(--space-6);
-  }
-
-  .form-section legend {
-    font-family: var(--font-heading);
-    font-weight: 600;
-    font-size: var(--text-xl);
-    color: var(--color-primary);
-    padding: 0 var(--space-2);
-  }
-
-  .section-hint {
-    color: var(--color-neutral-600);
-    font-size: var(--text-sm);
-    margin-top: var(--space-2);
-  }
-
-  .form-grid {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: var(--space-4);
-    margin-top: var(--space-4);
-  }
-
-  @media (min-width: 768px) {
-    .form-grid {
-      grid-template-columns: repeat(2, 1fr);
-    }
-    .form-field.full-width { grid-column: 1 / -1; }
-  }
-
+  .form-grid { display: grid; grid-template-columns: 1fr; gap: var(--space-4); margin-top: var(--space-4); }
+  @media (min-width: 768px) { .form-grid { grid-template-columns: repeat(2, 1fr); } .form-field.full-width { grid-column: 1 / -1; } }
   .form-field label { margin-bottom: var(--space-1); }
   .req { color: var(--color-error); }
   .hidden { display: none !important; }
 
-  .jersey-row {
-    border: 1px solid var(--color-neutral-200);
-    border-radius: var(--radius-lg);
-    padding: var(--space-4);
-    margin-top: var(--space-4);
-    background: var(--color-neutral-50, #fafafa);
-  }
+  .player-block { border: 1px solid var(--color-neutral-200); border-radius: var(--radius-lg); padding: var(--space-5); margin-top: var(--space-4); background: var(--color-neutral-50, #fafafa); }
+  .player-block-header { display: flex; justify-content: space-between; align-items: center; }
+  .player-block-label { font-family: var(--font-heading); font-weight: 600; font-size: var(--text-lg); color: var(--color-primary); }
+  .player-remove { background: none; border: none; color: var(--color-error); font-size: var(--text-sm); cursor: pointer; padding: var(--space-1) var(--space-2); }
+  .player-remove:hover { text-decoration: underline; }
+  .add-player-btn { margin-top: var(--space-4); }
 
-  .jersey-row-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
+  .product-line { margin-top: var(--space-4); padding-top: var(--space-4); border-top: 1px dashed var(--color-neutral-200); }
+  .product-line-head { display: flex; justify-content: space-between; align-items: baseline; }
+  .product-line-head strong { font-family: var(--font-heading); color: var(--color-neutral-900); }
+  .product-price { font-family: var(--font-heading); font-weight: 600; color: var(--color-primary); }
+  .addon-toggle { display: flex; align-items: center; gap: var(--space-2); cursor: pointer; font-size: var(--text-sm); }
+  .addon-toggle input { width: auto; }
+  .addon-fields { margin-top: 0; }
 
-  .jersey-row-label {
-    font-family: var(--font-heading);
-    font-weight: 600;
-    color: var(--color-primary);
-  }
+  .order-total { border: 1px solid var(--color-neutral-200); border-radius: var(--radius-lg); padding: var(--space-4) var(--space-5); margin-bottom: var(--space-4); background: #fff; }
+  .order-total-row { display: flex; justify-content: space-between; font-size: var(--text-sm); color: var(--color-neutral-600); padding: var(--space-1) 0; }
+  .order-total-row.total { font-family: var(--font-heading); font-weight: 600; font-size: var(--text-lg); color: var(--color-neutral-900); }
+  .tax-note { font-size: var(--text-xs); color: var(--color-neutral-600); margin-top: var(--space-2); font-style: italic; }
 
-  .jersey-remove {
-    background: none;
-    border: none;
-    color: var(--color-error);
-    font-size: var(--text-sm);
-    cursor: pointer;
-    padding: var(--space-1) var(--space-2);
-  }
-  .jersey-remove:hover { text-decoration: underline; }
+  .final-sale-notice { background: var(--color-accent-light); border-left: 4px solid var(--color-accent); padding: var(--space-4) var(--space-5); border-radius: var(--radius-md); margin-bottom: var(--space-4); font-size: var(--text-sm); line-height: 1.55; color: var(--color-neutral-900); }
+  .final-sale-notice a { color: var(--color-primary); font-weight: 600; }
 
-  .add-jersey-btn { margin-top: var(--space-4); }
+  .acknowledge { display: flex; align-items: flex-start; gap: var(--space-2); margin-bottom: var(--space-4); padding: var(--space-3); border: 1px solid var(--color-neutral-200); border-radius: var(--radius-md); cursor: pointer; font-size: var(--text-sm); }
+  .acknowledge input { margin-top: 3px; width: auto; flex-shrink: 0; }
 
-  /* Order total summary */
-  .order-total {
-    border: 1px solid var(--color-neutral-200);
-    border-radius: var(--radius-lg);
-    padding: var(--space-4) var(--space-5);
-    margin-bottom: var(--space-4);
-    background: #fff;
-  }
-  .order-total-row {
-    display: flex;
-    justify-content: space-between;
-    font-size: var(--text-sm);
-    color: var(--color-neutral-600);
-    padding: var(--space-1) 0;
-  }
-  .order-total-row.total {
-    font-family: var(--font-heading);
-    font-weight: 600;
-    font-size: var(--text-lg);
-    color: var(--color-neutral-900);
-    border-top: 1px solid var(--color-neutral-200);
-    margin-top: var(--space-2);
-    padding-top: var(--space-2);
-  }
-  .tax-note {
-    font-size: var(--text-xs);
-    color: var(--color-neutral-600);
-    margin-top: var(--space-2);
-    font-style: italic;
-  }
-
-  /* Final-sale disclosure */
-  .final-sale-notice {
-    background: var(--color-accent-light);
-    border-left: 4px solid var(--color-accent);
-    padding: var(--space-4) var(--space-5);
-    border-radius: var(--radius-md);
-    margin-bottom: var(--space-4);
-    font-size: var(--text-sm);
-    line-height: 1.55;
-    color: var(--color-neutral-900);
-  }
-
-  .final-sale-notice a {
-    color: var(--color-primary);
-    font-weight: 600;
-  }
-
-  .acknowledge {
-    display: flex;
-    align-items: flex-start;
-    gap: var(--space-2);
-    margin-bottom: var(--space-4);
-    padding: var(--space-3);
-    border: 1px solid var(--color-neutral-200);
-    border-radius: var(--radius-md);
-    cursor: pointer;
-    font-size: var(--text-sm);
-  }
-
-  .acknowledge input {
-    margin-top: 3px;
-    width: auto;
-    flex-shrink: 0;
-  }
-
-  .submit-btn {
-    width: 100%;
-    padding: 16px;
-    font-size: var(--text-lg);
-    margin-top: var(--space-2);
-  }
+  .submit-btn { width: 100%; padding: 16px; font-size: var(--text-lg); margin-top: var(--space-2); }
   .submit-btn:disabled { opacity: 0.6; cursor: progress; }
+  .payment-note { margin-top: var(--space-3); font-size: var(--text-sm); color: var(--color-neutral-600); text-align: center; }
 
-  .payment-note {
-    margin-top: var(--space-3);
-    font-size: var(--text-sm);
-    color: var(--color-neutral-600);
-    text-align: center;
-  }
+  .form-success, .form-error { text-align: center; padding: var(--space-12) var(--space-6); }
+  .success-icon { width: 64px; height: 64px; background: var(--color-success); color: #fff; font-size: 2rem; border-radius: var(--radius-full); display: flex; align-items: center; justify-content: center; margin: 0 auto var(--space-4); }
+  .form-success h2, .form-error h2 { margin-bottom: var(--space-3); }
+  .form-success p, .form-error p { color: var(--color-neutral-600); margin-bottom: var(--space-6); }
 
-  /* Success / Error states */
-  .form-success,
-  .form-error {
-    text-align: center;
-    padding: var(--space-12) var(--space-6);
-  }
-
-  .success-icon {
-    width: 64px;
-    height: 64px;
-    background: var(--color-success);
-    color: #fff;
-    font-size: 2rem;
-    border-radius: var(--radius-full);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin: 0 auto var(--space-4);
-  }
-
-  .form-success h2,
-  .form-error h2 { margin-bottom: var(--space-3); }
-
-  .form-success p,
-  .form-error p {
-    color: var(--color-neutral-600);
-    margin-bottom: var(--space-6);
-  }
-
-  /* Sidebar */
-  .sidebar-card {
-    position: sticky;
-    top: calc(var(--header-height) + var(--space-6));
-  }
+  .sidebar-card { position: sticky; top: calc(var(--header-height) + var(--space-6)); }
   .sidebar-card h3 { font-size: var(--text-xl); margin-bottom: var(--space-2); }
   .sidebar-card h4 { font-size: var(--text-base); margin-bottom: var(--space-1); }
   .sidebar-card p { font-size: var(--text-sm); color: var(--color-neutral-600); }
-
-  .sidebar-phone a {
-    font-family: var(--font-heading);
-    font-weight: 600;
-    font-size: var(--text-lg);
-    color: var(--color-primary);
-  }
-
-  .sidebar-card hr {
-    border: none;
-    border-top: 1px solid var(--color-neutral-200);
-    margin: var(--space-4) 0;
-  }
-
-  .sidebar-hours-note {
-    font-size: var(--text-xs);
-    color: var(--color-neutral-900);
-    background: var(--color-accent-light);
-    border-left: 3px solid var(--color-accent);
-    padding: var(--space-2) var(--space-3);
-    border-radius: var(--radius-sm);
-    margin-top: var(--space-2);
-    line-height: 1.4;
-  }
+  .sidebar-phone a { font-family: var(--font-heading); font-weight: 600; font-size: var(--text-lg); color: var(--color-primary); }
+  .sidebar-card hr { border: none; border-top: 1px solid var(--color-neutral-200); margin: var(--space-4) 0; }
+  .sidebar-hours-note { font-size: var(--text-xs); color: var(--color-neutral-900); background: var(--color-accent-light); border-left: 3px solid var(--color-accent); padding: var(--space-2) var(--space-3); border-radius: var(--radius-sm); margin-top: var(--space-2); line-height: 1.4; }
 </style>
 
 <script>
-  const list = document.getElementById('jerseys-list') as HTMLElement;
-  const addBtn = document.getElementById('add-jersey') as HTMLButtonElement;
+  const playersList = document.getElementById('players-list')!;
+  const addBtn = document.getElementById('add-player') as HTMLButtonElement;
   const form = document.getElementById('order-form') as HTMLFormElement;
   const submitBtn = document.getElementById('submit-btn') as HTMLButtonElement;
   const successDiv = document.getElementById('form-success') as HTMLElement;
@@ -471,63 +347,111 @@ const SIZES = [
 
   const paymentEnabled = form.dataset.paymentEnabled === '1';
   const townSlug = form.dataset.townSlug || '';
-  const unitPriceCents = parseInt(form.dataset.unitPriceCents || '0', 10);
-
+  const townName = form.dataset.townName || '';
   const subtotalDisplay = document.getElementById('subtotal-display');
-  const jerseyCountDisplay = document.getElementById('jersey-count');
 
-  function updateTotals() {
-    const rows = list.querySelectorAll<HTMLElement>('[data-jersey-row]');
-    if (jerseyCountDisplay) jerseyCountDisplay.textContent = String(rows.length);
-    if (subtotalDisplay) {
-      const cents = rows.length * unitPriceCents;
-      subtotalDisplay.textContent = '$' + (cents / 100).toFixed(2);
-    }
+  function fieldVal(scope: Element, name: string): string {
+    const el = scope.querySelector('[data-field="' + name + '"]') as HTMLInputElement | HTMLSelectElement | null;
+    return el ? String(el.value || '').trim() : '';
   }
 
-  function relabelRows() {
-    const rows = list.querySelectorAll<HTMLElement>('[data-jersey-row]');
-    rows.forEach((row, i) => {
-      const label = row.querySelector<HTMLElement>('[data-jersey-label]');
-      const remove = row.querySelector<HTMLButtonElement>('[data-jersey-remove]');
-      if (label) label.textContent = `Jersey ${i + 1}`;
-      if (remove) remove.hidden = rows.length <= 1;
+  function updateTotals() {
+    let cents = 0;
+    playersList.querySelectorAll('[data-player-block]').forEach((block) => {
+      block.querySelectorAll('[data-product]').forEach((line) => {
+        const price = parseInt(line.getAttribute('data-price-cents') || '0', 10);
+        const required = line.getAttribute('data-required') === '1';
+        const include = line.querySelector('[data-include]') as HTMLInputElement | null;
+        if (required || (include && include.checked)) {
+          const qtyEl = line.querySelector('[data-field="quantity"]') as HTMLInputElement | null;
+          const qty = qtyEl ? Math.max(1, parseInt(qtyEl.value || '1', 10) || 1) : 1;
+          cents += price * qty;
+        }
+      });
+    });
+    if (subtotalDisplay) subtotalDisplay.textContent = '$' + (cents / 100).toFixed(2);
+  }
+
+  function relabelPlayers() {
+    const blocks = playersList.querySelectorAll('[data-player-block]');
+    blocks.forEach((b, i) => {
+      const label = b.querySelector('[data-player-label]') as HTMLElement | null;
+      const remove = b.querySelector('[data-player-remove]') as HTMLButtonElement | null;
+      if (label) label.textContent = 'Player ' + (i + 1);
+      if (remove) remove.hidden = blocks.length <= 1;
     });
     updateTotals();
   }
 
   addBtn.addEventListener('click', () => {
-    const first = list.querySelector<HTMLElement>('[data-jersey-row]');
+    const first = playersList.querySelector('[data-player-block]') as HTMLElement | null;
     if (!first) return;
     const clone = first.cloneNode(true) as HTMLElement;
-    clone.querySelectorAll<HTMLInputElement | HTMLSelectElement>('input, select').forEach((el) => {
-      el.value = '';
+    clone.querySelectorAll('input, select').forEach((el) => {
+      const input = el as HTMLInputElement;
+      if (input.type === 'checkbox') input.checked = false;
+      else if (input.getAttribute('data-field') === 'quantity') input.value = '1';
+      else input.value = '';
     });
-    list.appendChild(clone);
-    relabelRows();
-    clone.querySelector<HTMLInputElement>('input[name="jersey_name[]"]')?.focus();
+    clone.querySelectorAll('[data-addon-fields]').forEach((f) => { (f as HTMLElement).hidden = true; });
+    playersList.appendChild(clone);
+    relabelPlayers();
+    (clone.querySelector('[data-field="player_name"]') as HTMLInputElement | null)?.focus();
   });
 
-  list.addEventListener('click', (e) => {
+  playersList.addEventListener('click', (e) => {
     const target = e.target as HTMLElement;
-    if (target.matches('[data-jersey-remove]')) {
-      const row = target.closest<HTMLElement>('[data-jersey-row]');
-      if (row && list.querySelectorAll('[data-jersey-row]').length > 1) {
-        row.remove();
-        relabelRows();
+    if (target.matches('[data-player-remove]')) {
+      const block = target.closest('[data-player-block]');
+      if (block && playersList.querySelectorAll('[data-player-block]').length > 1) {
+        block.remove();
+        relabelPlayers();
       }
     }
   });
 
-  relabelRows();
+  playersList.addEventListener('change', (e) => {
+    const target = e.target as HTMLElement;
+    if (target.matches('[data-include]')) {
+      const line = target.closest('[data-product]');
+      const fields = line ? (line.querySelector('[data-addon-fields]') as HTMLElement | null) : null;
+      if (fields) fields.hidden = !(target as HTMLInputElement).checked;
+    }
+    updateTotals();
+  });
+  playersList.addEventListener('input', (e) => {
+    if ((e.target as HTMLElement).matches('[data-field="quantity"]')) updateTotals();
+  });
 
-  function collectJerseys() {
-    const rows = list.querySelectorAll<HTMLElement>('[data-jersey-row]');
-    return Array.from(rows).map((row) => ({
-      name: (row.querySelector<HTMLInputElement>('input[name="jersey_name[]"]')?.value || '').trim(),
-      size: row.querySelector<HTMLSelectElement>('select[name="jersey_size[]"]')?.value || '',
-      number: (row.querySelector<HTMLInputElement>('input[name="jersey_number[]"]')?.value || '').trim(),
-    }));
+  relabelPlayers();
+
+  function collectPlayers() {
+    const blocks = playersList.querySelectorAll('[data-player-block]');
+    return Array.from(blocks).map((b) => {
+      const items: any[] = [];
+      b.querySelectorAll('[data-product]').forEach((line) => {
+        const productId = line.getAttribute('data-product');
+        const required = line.getAttribute('data-required') === '1';
+        const include = line.querySelector('[data-include]') as HTMLInputElement | null;
+        if (!required && !(include && include.checked)) return;
+        const item: any = { productId };
+        const size = fieldVal(line, 'size');
+        const number = fieldVal(line, 'number');
+        const option = fieldVal(line, 'option');
+        const qtyEl = line.querySelector('[data-field="quantity"]') as HTMLInputElement | null;
+        if (size) item.size = size;
+        if (number) item.number = number;
+        if (option) item.option = option;
+        item.quantity = qtyEl ? Math.max(1, parseInt(qtyEl.value || '1', 10) || 1) : 1;
+        items.push(item);
+      });
+      return {
+        name: fieldVal(b, 'player_name'),
+        gender: fieldVal(b, 'gender'),
+        grade: fieldVal(b, 'grade'),
+        items,
+      };
+    });
   }
 
   function showError(msg: string) {
@@ -540,24 +464,24 @@ const SIZES = [
     e.preventDefault();
     submitBtn.disabled = true;
 
+    const players = collectPlayers();
+    const base = {
+      town_slug: townSlug,
+      name: (form.elements.namedItem('name') as HTMLInputElement).value.trim(),
+      email: (form.elements.namedItem('email') as HTMLInputElement).value.trim(),
+      phone: (form.elements.namedItem('phone') as HTMLInputElement).value.trim(),
+      notes: (form.elements.namedItem('notes') as HTMLTextAreaElement).value.trim(),
+      acknowledge_final_sale: (form.elements.namedItem('acknowledge_final_sale') as HTMLInputElement).checked,
+      players,
+    };
+
     try {
       if (paymentEnabled) {
-        const payload = {
-          town_slug: townSlug,
-          name: (form.elements.namedItem('name') as HTMLInputElement).value.trim(),
-          email: (form.elements.namedItem('email') as HTMLInputElement).value.trim(),
-          phone: (form.elements.namedItem('phone') as HTMLInputElement).value.trim(),
-          notes: (form.elements.namedItem('notes') as HTMLTextAreaElement).value.trim(),
-          acknowledge_final_sale: (form.elements.namedItem('acknowledge_final_sale') as HTMLInputElement).checked,
-          jerseys: collectJerseys(),
-        };
-
         const response = await fetch('/api/checkout/create-session', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
+          body: JSON.stringify(base),
         });
-
         const body = await response.json().catch(() => ({}));
         if (response.ok && body.url) {
           window.location.href = body.url;
@@ -566,11 +490,24 @@ const SIZES = [
         showError(body.error || 'Could not start checkout. Please try again.');
         submitBtn.disabled = false;
       } else {
-        const formData = new FormData(form);
+        // Degraded fallback (Stripe not configured): post a readable summary.
+        const summary = players.map((p, i) => {
+          const lines = p.items.map((it) => '  - ' + it.productId + (it.size ? ' ' + it.size : '') + (it.number ? ' #' + it.number : '') + (it.option ? ' [' + it.option + ']' : '') + (it.quantity > 1 ? ' x' + it.quantity : '')).join('\n');
+          return 'Player ' + (i + 1) + ': ' + p.name + (p.gender ? ' (' + p.gender + ')' : '') + (p.grade ? ', grade ' + p.grade : '') + '\n' + lines;
+        }).join('\n\n');
+        const fd = new URLSearchParams();
+        fd.set('form-name', 'parent-order');
+        fd.set('town', townName);
+        fd.set('town_slug', townSlug);
+        fd.set('name', base.name);
+        fd.set('email', base.email);
+        fd.set('phone', base.phone);
+        fd.set('notes', base.notes);
+        fd.set('order_summary', summary);
         const response = await fetch('/api/inbox/submit', {
           method: 'POST',
           headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          body: new URLSearchParams(formData as any).toString(),
+          body: fd.toString(),
         });
         if (response.ok) {
           form.hidden = true;

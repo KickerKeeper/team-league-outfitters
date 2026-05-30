@@ -154,6 +154,10 @@ import Admin from '../../layouts/Admin.astro';
   .od-table tbody tr:last-child td { border-bottom: none; }
   .od-table .od-num { width: 36px; color: var(--color-neutral-600); }
   .od-table .od-center { text-align: center; }
+  .od-table .od-right { text-align: right; }
+  .od-player { margin-bottom: var(--space-4); }
+  .od-player-name { font-size: var(--text-sm); font-weight: 700; color: var(--color-neutral-900); margin-bottom: var(--space-2); }
+  .od-player-meta { font-weight: 400; color: var(--color-neutral-600); font-size: var(--text-xs); }
   .od-raw { font-size: var(--text-sm); color: var(--color-neutral-900); white-space: pre-wrap; line-height: 1.6; background: var(--color-neutral-50); padding: 10px 14px; border-radius: var(--radius-md); border: 1px solid var(--color-neutral-200); }
   .od-pay { border: 1px solid var(--color-neutral-200); border-radius: var(--radius-md); overflow: hidden; }
   .od-payrow { display: flex; justify-content: space-between; align-items: center; padding: 8px 14px; font-size: var(--text-sm); color: var(--color-neutral-900); border-bottom: 1px solid var(--color-neutral-200); }
@@ -584,6 +588,27 @@ import Admin from '../../layouts/Admin.astro';
     return '';
   }
 
+  function getPlayers(sub) {
+    if (!sub.data || !sub.data.players_json) return [];
+    try { var arr = JSON.parse(sub.data.players_json); return Array.isArray(arr) ? arr : []; } catch (e) { return []; }
+  }
+
+  function renderPlayersHtml(sub) {
+    var players = getPlayers(sub);
+    if (!players.length) return '';
+    return players.map(function(p, pi) {
+      var meta = [p.gender || '', p.grade ? 'Grade ' + p.grade : ''].filter(Boolean).join(' · ');
+      var rows = (p.items || []).map(function(it) {
+        var detail = [it.size || '', it.number ? '#' + it.number : '', it.option || ''].filter(Boolean).join(' · ');
+        return '<tr><td>' + esc(it.label || it.productId || '') + '</td><td class="od-center">' + esc(detail) + '</td><td class="od-center">' + (it.quantity || 1) + '</td><td class="od-right">' + (money(it.priceCents) || '') + '</td></tr>';
+      }).join('');
+      return '<div class="od-player">' +
+        '<div class="od-player-name">' + esc(p.name || ('Player ' + (pi + 1))) + (meta ? ' <span class="od-player-meta">' + esc(meta) + '</span>' : '') + '</div>' +
+        '<table class="od-table"><thead><tr><th>Item</th><th class="od-center">Details</th><th class="od-center">Qty</th><th class="od-right">Price</th></tr></thead><tbody>' + rows + '</tbody></table>' +
+        '</div>';
+    }).join('');
+  }
+
   function renderOrderDetails(sub) {
     var d = sub.data || {};
     var items = getLineItems(sub);
@@ -599,24 +624,28 @@ import Admin from '../../layouts/Admin.astro';
 
     var chips = '<span class="od-chip">#' + esc(sub.id) + '</span>';
     if (d.town) chips += '<span class="od-chip">' + esc(d.town) + '</span>';
-    if (qty) chips += '<span class="od-chip">' + esc(qty) + (qty === '1' ? ' jersey' : ' jerseys') + '</span>';
+    if (qty) chips += '<span class="od-chip">' + esc(qty) + (qty === '1' ? ' player' : ' players') + '</span>';
     chips += sub.paid
       ? '<span class="od-chip od-chip-paid">✓ Paid' + (sub.paidAt ? ' · ' + new Date(sub.paidAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '') + '</span>'
       : '<span class="od-chip od-chip-unpaid">Unpaid</span>';
 
-    var tableHtml = '';
-    if (items.length) {
-      var rows = items.map(function(it, i) {
-        return '<tr><td class="od-num">' + (i + 1) + '</td><td>' + esc(it.name || '') + '</td><td class="od-center">#' + esc(it.number || '') + '</td><td class="od-center">' + esc(it.size || '') + '</td></tr>';
-      }).join('');
-      tableHtml = '<table class="od-table"><thead><tr><th class="od-num">#</th><th>Player</th><th class="od-center">Number</th><th class="od-center">Size</th></tr></thead><tbody>' + rows + '</tbody></table>';
-    } else if (d.jerseys) {
-      tableHtml = '<div class="od-raw">' + esc(d.jerseys).replace(/\n/g, '<br>') + '</div>';
+    var bodyHtml = renderPlayersHtml(sub);
+    if (!bodyHtml) {
+      if (items.length) {
+        var rows = items.map(function(it, i) {
+          return '<tr><td class="od-num">' + (i + 1) + '</td><td>' + esc(it.name || '') + '</td><td class="od-center">#' + esc(it.number || '') + '</td><td class="od-center">' + esc(it.size || '') + '</td></tr>';
+        }).join('');
+        bodyHtml = '<table class="od-table"><thead><tr><th class="od-num">#</th><th>Player</th><th class="od-center">Number</th><th class="od-center">Size</th></tr></thead><tbody>' + rows + '</tbody></table>';
+      } else if (d.jerseys) {
+        bodyHtml = '<div class="od-raw">' + esc(d.jerseys).replace(/\n/g, '<br>') + '</div>';
+      }
     }
 
     var payRows = '';
-    if (unit) payRows += '<div class="od-payrow"><span>Unit price</span><span>' + unit + '</span></div>';
-    if (qty) payRows += '<div class="od-payrow"><span>Quantity</span><span>' + esc(qty) + '</span></div>';
+    if (!getPlayers(sub).length) {
+      if (unit) payRows += '<div class="od-payrow"><span>Unit price</span><span>' + unit + '</span></div>';
+      if (qty) payRows += '<div class="od-payrow"><span>Quantity</span><span>' + esc(qty) + '</span></div>';
+    }
     if (subtotal) payRows += '<div class="od-payrow"><span>Subtotal</span><span>' + subtotal + '</span></div>';
     if (tax) payRows += '<div class="od-payrow"><span>Tax</span><span>' + tax + '</span></div>';
     if (total) payRows += '<div class="od-payrow od-payrow-total"><span>Total paid</span><span>' + total + '</span></div>';
@@ -626,7 +655,7 @@ import Admin from '../../layouts/Admin.astro';
     return '<div class="detail-section">' +
       '<div class="detail-section-title">Order Details</div>' +
       '<div class="od-chips">' + chips + '</div>' +
-      (tableHtml ? '<div class="od-block-label">Line items</div>' + tableHtml : '') +
+      (bodyHtml ? '<div class="od-block-label">Line items</div>' + bodyHtml : '') +
       '<div class="od-block-label">Payment</div><div class="od-pay">' + payRows + '</div>' +
       '</div>';
   }

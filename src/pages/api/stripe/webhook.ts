@@ -100,6 +100,9 @@ export const POST: APIRoute = async ({ request }) => {
       const jerseys = sub.data.jerseys || '';
       const notes = sub.data.notes || '';
 
+      let players: any[] = [];
+      try { players = sub.data.players_json ? JSON.parse(sub.data.players_json) : []; } catch { players = []; }
+
       const esc = (s: string) =>
         String(s).replace(/[&<>"]/g, (c) => {
           switch (c) {
@@ -112,9 +115,25 @@ export const POST: APIRoute = async ({ request }) => {
         });
       const jerseysHtml = esc(jerseys).replace(/\n/g, '<br>');
 
+      const playersText = players.map((p: any, i: number) => {
+        const head = `${p.name || 'Player ' + (i + 1)}${p.gender ? ` (${p.gender})` : ''}${p.grade ? `, grade ${p.grade}` : ''}`;
+        const lines = (p.items || []).map((it: any) => `  - ${it.label || it.productId}${it.size ? ` ${it.size}` : ''}${it.number ? ` #${it.number}` : ''}${it.option ? ` [${it.option}]` : ''}${it.quantity > 1 ? ` x${it.quantity}` : ''}`).join('\n');
+        return head + '\n' + lines;
+      }).join('\n\n');
+      const orderText = playersText || jerseys;
+
+      const playersHtml = players.map((p: any, i: number) => {
+        const meta = [p.gender || '', p.grade ? `Grade ${p.grade}` : ''].filter(Boolean).join(' · ');
+        const itemRows = (p.items || []).map((it: any) => {
+          const detail = [it.size || '', it.number ? `#${it.number}` : '', it.option || ''].filter(Boolean).join(' · ');
+          return `<tr><td style="padding:3px 0;color:#212529;font-size:14px;">${esc(it.label || it.productId || '')}${detail ? ` <span style="color:#6c757d;">— ${esc(detail)}</span>` : ''}${it.quantity > 1 ? ` &times;${it.quantity}` : ''}</td></tr>`;
+        }).join('');
+        return `<tr><td style="padding:10px 0;border-top:1px solid #e9ecef;"><strong style="font-size:14px;color:#1E4478;">${esc(p.name || ('Player ' + (i + 1)))}</strong>${meta ? ` <span style="color:#6c757d;font-size:12px;">${esc(meta)}</span>` : ''}<table role="presentation" width="100%" cellpadding="0" cellspacing="0">${itemRows}</table></td></tr>`;
+      }).join('');
+
       const summaryLines = [
         town ? `Town: ${town}` : '',
-        jerseys ? `Jerseys:\n${jerseys}` : '',
+        orderText ? `${players.length ? 'Order' : 'Jerseys'}:\n${orderText}` : '',
         notes ? `Notes: ${notes}` : '',
         `Total paid: $${totalDollars} (tax: $${taxDollars})`,
       ].filter(Boolean).join('\n\n');
@@ -142,7 +161,9 @@ gtownjerseys.com`;
 
       const summaryRowsHtml = [
         town ? `<tr><td style="padding:8px 0;color:#6c757d;font-size:14px;">Town</td><td style="padding:8px 0;color:#212529;font-size:14px;text-align:right;font-weight:600;">${esc(town)}</td></tr>` : '',
-        jerseys ? `<tr><td style="padding:8px 0;color:#6c757d;font-size:14px;vertical-align:top;">Jerseys</td><td style="padding:8px 0;color:#212529;font-size:14px;text-align:right;">${jerseysHtml}</td></tr>` : '',
+        players.length
+          ? `<tr><td colspan="2" style="padding:0;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0">${playersHtml}</table></td></tr>`
+          : (jerseys ? `<tr><td style="padding:8px 0;color:#6c757d;font-size:14px;vertical-align:top;">Jerseys</td><td style="padding:8px 0;color:#212529;font-size:14px;text-align:right;">${jerseysHtml}</td></tr>` : ''),
         notes ? `<tr><td style="padding:8px 0;color:#6c757d;font-size:14px;vertical-align:top;">Notes</td><td style="padding:8px 0;color:#212529;font-size:14px;text-align:right;">${esc(notes)}</td></tr>` : '',
       ].filter(Boolean).join('');
 
