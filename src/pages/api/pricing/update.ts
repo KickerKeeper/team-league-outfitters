@@ -1,6 +1,6 @@
 import type { APIRoute } from 'astro';
 import { getSessionFromCookie } from '../../../lib/auth';
-import { setTownPrice } from '../../../lib/pricing';
+import { setProductOverride } from '../../../lib/catalog';
 import { getTown } from '../../../lib/towns';
 
 export const prerender = false;
@@ -18,28 +18,33 @@ export const POST: APIRoute = async ({ request }) => {
     return new Response(JSON.stringify({ error: 'Invalid JSON' }), { status: 400 });
   }
 
-  const { slug, priceDollars } = body || {};
+  const { slug, productId, priceDollars, enabled } = body || {};
   if (typeof slug !== 'string' || !slug) {
     return new Response(JSON.stringify({ error: 'Missing slug' }), { status: 400 });
   }
-
-  // Slug must be one of the towns we actually serve. Without this, an attacker
-  // (or fat-fingered admin) could create price records for arbitrary slugs that
-  // confuse downstream reporting and pricing code.
+  // Slug must be a town we serve — guards against arbitrary records downstream.
   if (!getTown(slug)) {
     return new Response(JSON.stringify({ error: 'Unknown town' }), { status: 400 });
   }
-
-  const dollars = Number(priceDollars);
-  if (!Number.isFinite(dollars) || dollars < 0 || dollars > 1000) {
-    return new Response(JSON.stringify({ error: 'Price must be between $0 and $1000' }), { status: 400 });
+  if (typeof productId !== 'string' || !productId) {
+    return new Response(JSON.stringify({ error: 'Missing productId' }), { status: 400 });
   }
 
-  const cents = Math.round(dollars * 100);
+  const patch: { priceCents?: number; enabled?: boolean } = {};
+  if (priceDollars !== undefined) {
+    const dollars = Number(priceDollars);
+    if (!Number.isFinite(dollars) || dollars < 0 || dollars > 1000) {
+      return new Response(JSON.stringify({ error: 'Price must be between $0 and $1000' }), { status: 400 });
+    }
+    patch.priceCents = Math.round(dollars * 100);
+  }
+  if (enabled !== undefined) {
+    patch.enabled = !!enabled;
+  }
 
   try {
-    const updated = await setTownPrice(slug, cents);
-    return new Response(JSON.stringify({ ok: true, slug, price: updated }), {
+    const updated = await setProductOverride(slug, productId, patch);
+    return new Response(JSON.stringify({ ok: true, slug, productId, product: updated }), {
       headers: { 'Content-Type': 'application/json' },
     });
   } catch (e: any) {
