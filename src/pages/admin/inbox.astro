@@ -379,7 +379,7 @@ import Admin from '../../layouts/Admin.astro';
     var known = []; Object.values(fieldSections).forEach(function(s) { known = known.concat(s.fields); });
     if (itemType === 'order') known = known.concat(orderKeys);
     var extra = Object.keys(sub.data).filter(function(k) { return known.indexOf(k) === -1 && sub.data[k]; });
-    if (extra.length) {
+    if (extra.length && itemType !== 'order') {
       sectionsHtml += '<div class="detail-section"><div class="detail-section-title">Other</div><div class="detail-grid">';
       extra.forEach(function(f) { sectionsHtml += '<div class="field-item"><span class="field-label">' + formatLabel(f) + '</span><span class="field-value">' + esc(sub.data[f]) + '</span></div>'; });
       sectionsHtml += '</div></div>';
