@@ -93,6 +93,18 @@ export const POST: APIRoute = async ({ request }) => {
       const jerseys = sub.data.jerseys || '';
       const notes = sub.data.notes || '';
 
+      const esc = (s: string) =>
+        String(s).replace(/[&<>"]/g, (c) => {
+          switch (c) {
+            case '&': return '&amp;';
+            case '<': return '&lt;';
+            case '>': return '&gt;';
+            case '"': return '&quot;';
+            default: return c;
+          }
+        });
+      const jerseysHtml = esc(jerseys).replace(/\n/g, '<br>');
+
       const summaryLines = [
         town ? `Town: ${town}` : '',
         jerseys ? `Jerseys:\n${jerseys}` : '',
@@ -102,28 +114,91 @@ export const POST: APIRoute = async ({ request }) => {
 
       const emailBody = `Hi ${name},
 
-Thanks for your order — payment received!
+Thank you for your order — your payment has been received and we're getting started.
 
-Here's what we got:
-
+ORDER SUMMARY
 ${summaryLines}
 
-A few reminders:
+All custom jersey sales are final. Production starts with your child's name and number, so we can't accept returns or changes once we begin.
 
-• All custom jersey sales are final. Once we start production with your kid's name and number, we can't take it back.
-• Sizing questions or changes? Call us at (978) 352-8240 right away — the sooner we know, the better.
-• Stripe will email you a receipt separately for your records.
+What happens next
+• Need a sizing change? Call (978) 352-8240 as soon as possible.
+• Stripe has emailed your payment receipt separately.
 
-We'll be in touch when your order is ready.
+Thanks again,
+The Georgetown Jerseys Team
 
-Talk soon,
-Jamie Nadeau
 Georgetown Jerseys
+103 E Main St #2, Georgetown, MA 01833
 (978) 352-8240
-103 E Main St #2, Georgetown, MA 01833`;
+gtownjerseys.com`;
+
+      const summaryRowsHtml = [
+        town ? `<tr><td style="padding:8px 0;color:#6c757d;font-size:14px;">Town</td><td style="padding:8px 0;color:#212529;font-size:14px;text-align:right;font-weight:600;">${esc(town)}</td></tr>` : '',
+        jerseys ? `<tr><td style="padding:8px 0;color:#6c757d;font-size:14px;vertical-align:top;">Jerseys</td><td style="padding:8px 0;color:#212529;font-size:14px;text-align:right;">${jerseysHtml}</td></tr>` : '',
+        notes ? `<tr><td style="padding:8px 0;color:#6c757d;font-size:14px;vertical-align:top;">Notes</td><td style="padding:8px 0;color:#212529;font-size:14px;text-align:right;">${esc(notes)}</td></tr>` : '',
+      ].filter(Boolean).join('');
+
+      const emailHtml = `<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Order confirmed</title></head>
+<body style="margin:0;padding:0;background-color:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f4f5;padding:24px 12px;">
+    <tr><td align="center">
+      <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background-color:#ffffff;border-radius:8px;overflow:hidden;border-top:4px solid #2B5EA7;">
+        <tr><td align="center" style="padding:28px 32px 8px;">
+          <img src="https://gtownjerseys.com/images/logo/logo-horizontal.png" alt="Georgetown Jerseys" height="40" style="height:40px;width:auto;display:block;">
+        </td></tr>
+        <tr><td style="padding:16px 32px 0;">
+          <p style="margin:0;color:#28A745;font-size:14px;font-weight:700;letter-spacing:0.4px;">&#10003; PAYMENT RECEIVED</p>
+          <h1 style="margin:8px 0 0;color:#1E4478;font-size:22px;font-weight:700;">Your order is confirmed</h1>
+        </td></tr>
+        <tr><td style="padding:16px 32px 0;color:#212529;font-size:15px;line-height:1.6;">
+          <p style="margin:0 0 16px;">Hi ${esc(name)},</p>
+          <p style="margin:0 0 16px;">Thank you for your order &mdash; your payment has been received and we&rsquo;re getting started.</p>
+        </td></tr>
+        <tr><td style="padding:8px 32px 0;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e9ecef;border-radius:6px;">
+            <tr><td colspan="2" style="padding:14px 16px 8px;color:#1E4478;font-size:13px;font-weight:700;letter-spacing:0.5px;border-bottom:1px solid #e9ecef;">ORDER SUMMARY</td></tr>
+            <tr><td colspan="2" style="padding:0 16px;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+            ${summaryRowsHtml}
+            <tr><td style="padding:12px 0;color:#212529;font-size:15px;font-weight:700;border-top:2px solid #e9ecef;">Total paid</td><td style="padding:12px 0;color:#1E4478;font-size:15px;font-weight:700;text-align:right;border-top:2px solid #e9ecef;">$${totalDollars}</td></tr>
+            <tr><td style="padding:0 0 14px;color:#6c757d;font-size:13px;">Tax</td><td style="padding:0 0 14px;color:#6c757d;font-size:13px;text-align:right;">$${taxDollars}</td></tr>
+            </table></td></tr>
+          </table>
+        </td></tr>
+        <tr><td style="padding:20px 32px 0;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#FDF0D5;border-left:4px solid #E8A317;border-radius:4px;">
+            <tr><td style="padding:14px 16px;color:#5c4708;font-size:14px;line-height:1.5;">
+              <strong>All custom jersey sales are final.</strong> Production starts with your child&rsquo;s name and number, so we can&rsquo;t accept returns or changes once we begin.
+            </td></tr>
+          </table>
+        </td></tr>
+        <tr><td style="padding:24px 32px 0;color:#212529;font-size:15px;line-height:1.6;">
+          <p style="margin:0 0 10px;color:#1E4478;font-size:16px;font-weight:700;">What happens next</p>
+          <p style="margin:0 0 8px;">&bull; Need a sizing change? Call <a href="tel:+19783528240" style="color:#2B5EA7;text-decoration:none;">(978) 352-8240</a> as soon as possible.</p>
+          <p style="margin:0;">&bull; Stripe has emailed your payment receipt separately.</p>
+        </td></tr>
+        <tr><td style="padding:24px 32px 8px;color:#212529;font-size:15px;line-height:1.6;">
+          <p style="margin:0;">Thanks again,</p>
+          <p style="margin:0;font-weight:600;">The Georgetown Jerseys Team</p>
+        </td></tr>
+        <tr><td style="padding:20px 32px 32px;">
+          <hr style="border:none;border-top:1px solid #e9ecef;margin:0 0 16px;">
+          <p style="margin:0;color:#6c757d;font-size:12px;line-height:1.7;">
+            <strong style="color:#495057;">Georgetown Jerseys</strong><br>
+            103 E Main St #2, Georgetown, MA 01833<br>
+            <a href="tel:+19783528240" style="color:#6c757d;text-decoration:none;">(978) 352-8240</a> &middot; <a href="https://gtownjerseys.com" style="color:#2B5EA7;text-decoration:none;">gtownjerseys.com</a>
+          </p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`;
 
       try {
-        const subject = `Order received — Georgetown Jerseys`;
+        const subject = `Order confirmed — Georgetown Jerseys`;
         const emailRes = await fetch('https://api.resend.com/emails', {
           method: 'POST',
           headers: {
@@ -135,6 +210,7 @@ Georgetown Jerseys
             reply_to: replyTo,
             to: [email],
             subject,
+            html: emailHtml,
             text: emailBody,
           }),
         });
