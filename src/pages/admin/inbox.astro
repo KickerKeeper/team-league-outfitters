@@ -10,6 +10,7 @@ import Admin from '../../layouts/Admin.astro';
       <span class="inbox-count" id="inbox-count"></span>
       <button class="refresh-btn" id="refresh-btn" onclick="loadInbox()" title="Refresh">&#8635;</button>
       <a href="/api/inbox/export" class="refresh-btn" title="Export CSV" style="text-decoration:none;">&#8615;</a>
+      <button class="clear-all-btn" id="clear-all-btn" title="Permanently delete all orders">Clear all</button>
     </div>
     <span class="filter-count" id="count-new" style="display:none;"></span>
   </div>
@@ -45,6 +46,9 @@ import Admin from '../../layouts/Admin.astro';
   .inbox-header h1 { font-size: var(--text-2xl); }
   .inbox-count { font-size: var(--text-sm); color: var(--color-neutral-600); background: var(--color-neutral-50); padding: 2px 10px; border-radius: var(--radius-full); }
   .refresh-btn { background: none; border: 1px solid var(--color-neutral-200); border-radius: var(--radius-md); width: 32px; height: 32px; font-size: 1.1rem; cursor: pointer; color: var(--color-neutral-600); display: flex; align-items: center; justify-content: center; transition: all var(--transition-fast); }
+  .clear-all-btn { background: none; border: 1px solid var(--color-error); color: var(--color-error); border-radius: var(--radius-md); padding: 6px 12px; font-size: var(--text-xs); font-weight: 600; cursor: pointer; transition: all var(--transition-fast); }
+  .clear-all-btn:hover { background: var(--color-error); color: #fff; }
+  .clear-all-btn:disabled { opacity: 0.5; cursor: progress; }
   .refresh-btn:hover { color: var(--color-primary); border-color: var(--color-primary); }
   .refresh-btn.spinning { animation: spin 0.6s ease; }
   @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
@@ -658,6 +662,28 @@ import Admin from '../../layouts/Admin.astro';
       (bodyHtml ? '<div class="od-block-label">Line items</div>' + bodyHtml : '') +
       '<div class="od-block-label">Payment</div><div class="od-pay">' + payRows + '</div>' +
       '</div>';
+  }
+
+  // Clear all orders (permanent, typed-confirmation guarded)
+  var clearAllBtn = document.getElementById('clear-all-btn');
+  if (clearAllBtn) {
+    clearAllBtn.addEventListener('click', function() {
+      var typed = window.prompt('This PERMANENTLY deletes ALL orders and cannot be undone.\n\nType CLEAR to confirm:');
+      if (typed !== 'CLEAR') return;
+      clearAllBtn.disabled = true;
+      fetch('/api/inbox/clear', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ confirm: 'CLEAR' }),
+      })
+        .then(function(r) { return r.json().then(function(b) { return { ok: r.ok, b: b }; }); })
+        .then(function(res) {
+          clearAllBtn.disabled = false;
+          if (res.ok) { window.alert('Cleared ' + (res.b.count || 0) + ' order(s).'); loadInbox(); }
+          else { window.alert((res.b && res.b.error) || 'Failed to clear orders.'); }
+        })
+        .catch(function() { clearAllBtn.disabled = false; window.alert('Network error.'); });
+    });
   }
 
   // Type tabs

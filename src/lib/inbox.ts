@@ -160,6 +160,24 @@ export async function mergeSubmissionData(id: string, fields: Record<string, str
   return sub;
 }
 
+// Permanently delete every submission and reset the index. Irreversible —
+// used by the admin "Clear all orders" action. The audit store is untouched.
+export async function clearAllSubmissions(): Promise<number> {
+  const store = getStore({ name: 'inbox', consistency: 'strong' });
+  let ids: string[] = [];
+  try {
+    const index = await store.get('index');
+    if (index) ids = JSON.parse(index);
+  } catch { /* ignore */ }
+
+  let count = 0;
+  for (const id of ids) {
+    try { await store.delete(`submission/${id}`); count++; } catch { /* already gone */ }
+  }
+  await store.set('index', JSON.stringify([]));
+  return count;
+}
+
 export async function addMessage(id: string, message: Message) {
   const store = getStore({ name: 'inbox', consistency: 'strong' });
   const data = await store.get(`submission/${id}`);
