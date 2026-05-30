@@ -1,8 +1,10 @@
 ---
+export const prerender = false;
 import Base from '../layouts/Base.astro';
-import { TOWNS } from '../lib/towns';
+import { getTowns } from '../lib/towns';
 import { getWeekOfLabel } from '../lib/week';
 const weekOf = getWeekOfLabel();
+const towns = await getTowns();
 ---
 
 <Base
@@ -20,7 +22,7 @@ const weekOf = getWeekOfLabel();
     <div class="container order-layout">
       <div class="towns-area">
         <div class="towns-grid">
-          {TOWNS.map((town) => (
+          {towns.map((town) => (
             <a href={`/order/${town.slug}`} class="town-card">
               <h2>{town.name}</h2>
               <p>{town.blurb}</p>

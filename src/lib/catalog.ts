@@ -1,5 +1,5 @@
 import { getStore } from '@netlify/blobs';
-import { TOWNS } from './towns';
+import { getTown } from './towns';
 import { getAllPrices } from './pricing';
 
 export type Sizing = 'apparel' | 'shoe' | 'none';
@@ -27,31 +27,24 @@ export const APPAREL_SIZES = [
   'Adult XS', 'Adult S', 'Adult M', 'Adult L', 'Adult XL',
 ];
 
-const CATALOG_STORE_KEY = 'catalogs';
+// Global product definitions. Every town can offer any of these; per-town
+// price + availability are stored in Netlify Blobs and edited in /admin.
+type ProductDef = Omit<CatalogProduct, 'enabled'>;
 
-// Per-town default catalogs. Product STRUCTURE (sizing/tax/options/personalized)
-// is code-defined here; price + enabled can be overridden per town via the admin
-// editor and persisted to Netlify Blobs.
-export const DEFAULT_CATALOGS: Record<string, CatalogProduct[]> = {
-  georgetown: [
-    { id: 'jersey', label: 'Jersey', priceCents: 5000, sizing: 'apparel', taxCategory: 'clothing', personalized: true, enabled: true },
-  ],
-  masco: [
-    { id: 'jersey', label: 'Jersey', priceCents: 5000, sizing: 'apparel', taxCategory: 'clothing', personalized: true, enabled: true },
-  ],
-  swampscott: [
-    { id: 'jersey', label: 'Jersey', priceCents: 3000, sizing: 'apparel', taxCategory: 'clothing', personalized: true, enabled: true },
-    { id: 'shorts', label: 'Shorts', priceCents: 2000, sizing: 'apparel', taxCategory: 'clothing', enabled: true },
-    {
-      id: 'socks', label: 'Socks', priceCents: 1000, sizing: 'shoe', taxCategory: 'clothing', enabled: true,
-      options: { id: 'sock_style', label: 'Sock Style', choices: ['Tight Compression', 'No Compression'] },
-    },
-    { id: 'sweatshirt', label: 'Sweatshirt', priceCents: 3500, sizing: 'apparel', taxCategory: 'clothing', enabled: true },
-    { id: 'practice-tee', label: 'Practice Tee', priceCents: 2000, sizing: 'apparel', taxCategory: 'clothing', enabled: true },
-    { id: 'soccer-ball', label: 'Soccer Ball', priceCents: 2000, sizing: 'none', taxCategory: 'general', enabled: true },
-    { id: 'backpack', label: 'Backpack', priceCents: 6500, sizing: 'none', taxCategory: 'general', enabled: true },
-  ],
-};
+export const PRODUCTS: ProductDef[] = [
+  { id: 'jersey', label: 'Jersey', priceCents: 3000, sizing: 'apparel', taxCategory: 'clothing', personalized: true },
+  { id: 'shorts', label: 'Shorts', priceCents: 2000, sizing: 'apparel', taxCategory: 'clothing' },
+  {
+    id: 'socks', label: 'Socks', priceCents: 1000, sizing: 'shoe', taxCategory: 'clothing',
+    options: { id: 'sock_style', label: 'Sock Style', choices: ['Tight Compression', 'No Compression'] },
+  },
+  { id: 'sweatshirt', label: 'Sweatshirt', priceCents: 3500, sizing: 'apparel', taxCategory: 'clothing' },
+  { id: 'practice-tee', label: 'Practice Tee', priceCents: 2000, sizing: 'apparel', taxCategory: 'clothing' },
+  { id: 'soccer-ball', label: 'Soccer Ball', priceCents: 2000, sizing: 'none', taxCategory: 'general' },
+  { id: 'backpack', label: 'Backpack', priceCents: 6500, sizing: 'none', taxCategory: 'general' },
+];
+
+const CATALOG_STORE_KEY = 'catalogs';
 
 // Stored overrides: { [slug]: { [productId]: { priceCents?, enabled? } } }
 type CatalogOverrides = Record<string, Record<string, { priceCents?: number; enabled?: boolean }>>;
@@ -70,22 +63,23 @@ async function getOverrides(): Promise<CatalogOverrides> {
   }
 }
 
-function defaultsFor(slug: string): CatalogProduct[] {
-  // Deep-clone so callers can't mutate the module constant.
-  return (DEFAULT_CATALOGS[slug] || []).map((p) => ({
-    ...p,
-    options: p.options ? { ...p.options, choices: [...p.options.choices] } : undefined,
-  }));
+// Jersey is available for every town. Other products default OFF and are
+// switched on per town in the admin grid — except Swampscott, which keeps its
+// full launched kit on by default.
+function defaultEnabled(slug: string, productId: string): boolean {
+  if (productId === 'jersey') return true;
+  return slug === 'swampscott';
+}
+
+function cloneProduct(p: ProductDef): ProductDef {
+  return { ...p, options: p.options ? { ...p.options, choices: [...p.options.choices] } : undefined };
 }
 
 export async function getCatalog(slug: string): Promise<CatalogProduct[]> {
-  const products = defaultsFor(slug);
-  if (!products.length) return [];
-
   const overrides = (await getOverrides())[slug] || {};
 
-  // Legacy migration: if no stored jersey-price override, seed the jersey price
-  // from the old town-prices store so existing per-town prices carry over.
+  // Legacy migration: seed the jersey price from the old town-prices store when
+  // there's no explicit catalog override for it.
   let legacyJerseyCents: number | undefined;
   if (overrides.jersey?.priceCents == null) {
     try {
@@ -94,17 +88,15 @@ export async function getCatalog(slug: string): Promise<CatalogProduct[]> {
     } catch { /* ignore */ }
   }
 
-  return products.map((p) => {
+  return PRODUCTS.map((def) => {
+    const p = cloneProduct(def);
     const o = overrides[p.id] || {};
     let priceCents = o.priceCents != null ? o.priceCents : p.priceCents;
     if (p.id === 'jersey' && o.priceCents == null && legacyJerseyCents != null) {
       priceCents = legacyJerseyCents;
     }
-    return {
-      ...p,
-      priceCents,
-      enabled: o.enabled != null ? o.enabled : p.enabled,
-    };
+    const enabled = o.enabled != null ? o.enabled : defaultEnabled(slug, p.id);
+    return { ...p, priceCents, enabled };
   });
 }
 
@@ -118,9 +110,8 @@ export async function setProductOverride(
   productId: string,
   patch: { priceCents?: number; enabled?: boolean },
 ): Promise<CatalogProduct> {
-  if (!TOWNS.find((t) => t.slug === slug)) throw new Error(`Unknown town: ${slug}`);
-  const def = defaultsFor(slug).find((p) => p.id === productId);
-  if (!def) throw new Error(`Unknown product: ${productId} for ${slug}`);
+  if (!(await getTown(slug))) throw new Error(`Unknown town: ${slug}`);
+  if (!PRODUCTS.find((p) => p.id === productId)) throw new Error(`Unknown product: ${productId}`);
   if (patch.priceCents != null && (!Number.isInteger(patch.priceCents) || patch.priceCents < 0)) {
     throw new Error(`Invalid price: ${patch.priceCents}`);
   }

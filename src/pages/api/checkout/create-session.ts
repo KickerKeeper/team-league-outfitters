@@ -56,7 +56,7 @@ export const POST: APIRoute = async ({ request }) => {
     return err('Invalid request body', 400);
   }
 
-  const town = getTown(payload.town_slug);
+  const town = await getTown(payload.town_slug);
   if (!town) return err('Unknown town', 400);
   if (!payload.acknowledge_final_sale) {
     return err('You must acknowledge the final-sale policy before paying.', 400);

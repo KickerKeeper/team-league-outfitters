@@ -7,7 +7,7 @@ import { getCatalog, formatPriceCents, APPAREL_SIZES } from '../../lib/catalog';
 import { isStripeConfigured } from '../../lib/stripe';
 
 const { town: townSlug } = Astro.params;
-const town = getTown(townSlug!);
+const town = await getTown(townSlug!);
 
 if (!town) {
   return Astro.redirect('/order');

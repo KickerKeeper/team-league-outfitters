@@ -1,224 +1,189 @@
 ---
 export const prerender = false;
 import Admin from '../../layouts/Admin.astro';
-import { TOWNS } from '../../lib/towns';
-import { getCatalog, formatPriceCents } from '../../lib/catalog';
+import { getTowns } from '../../lib/towns';
+import { getCatalog, PRODUCTS, formatPriceCents } from '../../lib/catalog';
 
+const towns = await getTowns();
 const townCatalogs = await Promise.all(
-  TOWNS.map(async (t) => ({
+  towns.map(async (t) => ({
     slug: t.slug,
     name: t.name,
+    custom: !!t.custom,
     products: await getCatalog(t.slug),
   })),
 );
+const productCols = PRODUCTS;
 ---
 
 <Admin title="Pricing" activeTab="pricing">
   <div class="pricing-header">
-    <h1>Per-Town Product Catalog</h1>
+    <h1>Catalog &amp; Pricing</h1>
     <p class="pricing-sub">
-      Set the price and availability of each product per town. Disabled products are hidden from that town's order form. The jersey is always available.
+      Each row is a town, each column a product. Tick a product <strong>Available</strong> to put it on that town's order form, then set its price. Edits save automatically. The jersey is always available.
     </p>
   </div>
 
-  {townCatalogs.map((town) => (
-    <div class="catalog-card">
-      <div class="catalog-card-head">
-        <strong>{town.name}</strong>
-        <span class="town-slug">{town.slug}</span>
-      </div>
-      <div class="pricing-table">
-        <div class="pricing-row pricing-head">
-          <div>Product</div>
-          <div>Price</div>
-          <div>Available</div>
-          <div></div>
-        </div>
-        {town.products.map((p) => (
-          <form class="pricing-row" data-pricing-form data-slug={town.slug} data-product={p.id}>
-            <div class="product-cell">
-              <strong>{p.label}</strong>
-              <span class="product-meta">
-                {p.taxCategory === 'general' ? 'taxable' : 'clothing'}
-                {p.sizing !== 'none' ? ' · sized' : ''}
-                {p.personalized ? ' · name & number' : ''}
-              </span>
-            </div>
-            <div class="price-cell">
-              <span class="dollar">$</span>
-              <input
-                type="number"
-                name="priceDollars"
-                value={formatPriceCents(p.priceCents)}
-                min="0"
-                max="1000"
-                step="0.01"
-                inputmode="decimal"
-                required
-              />
-            </div>
-            <div class="enabled-cell">
-              {p.personalized ? (
-                <span class="required-badge">Required</span>
-              ) : (
-                <label class="toggle">
-                  <input type="checkbox" name="enabled" checked={p.enabled} />
-                  <span>Available</span>
-                </label>
-              )}
-            </div>
-            <div class="action-cell">
-              <button type="submit" class="btn-save">Save</button>
-              <span class="row-status" data-status></span>
-            </div>
-          </form>
+  <div class="matrix-wrap">
+    <table class="matrix">
+      <thead>
+        <tr>
+          <th class="corner">Town</th>
+          {productCols.map((p) => (
+            <th>
+              <span class="col-label">{p.label}</span>
+              <span class="col-meta">{p.taxCategory === 'general' ? 'taxable' : 'clothing'}</span>
+            </th>
+          ))}
+        </tr>
+      </thead>
+      <tbody>
+        {townCatalogs.map((town) => (
+          <tr>
+            <th class="row-head">
+              <span class="row-name">{town.name}</span>
+              <span class="row-slug">{town.slug}</span>
+            </th>
+            {town.products.map((p) => (
+              <td class="cell" data-slug={town.slug} data-product={p.id}>
+                {p.personalized ? (
+                  <span class="cell-req">Required</span>
+                ) : (
+                  <label class="cell-toggle">
+                    <input type="checkbox" data-enabled checked={p.enabled} />
+                    <span>Available</span>
+                  </label>
+                )}
+                <div class="cell-price">
+                  <span class="dollar">$</span>
+                  <input
+                    type="number"
+                    data-price
+                    value={formatPriceCents(p.priceCents)}
+                    min="0"
+                    max="1000"
+                    step="0.01"
+                    inputmode="decimal"
+                    disabled={!p.personalized && !p.enabled}
+                  />
+                </div>
+                <span class="cell-status" data-status></span>
+              </td>
+            ))}
+          </tr>
         ))}
-      </div>
-    </div>
-  ))}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="add-town">
+    <input type="text" id="new-town-name" placeholder="New town name (e.g., Beverly)" />
+    <button id="add-town-btn" class="btn-save" type="button">+ Add town</button>
+    <span id="add-town-status" class="add-town-status"></span>
+  </div>
 </Admin>
 
 <style is:global>
   .pricing-header { margin-bottom: var(--space-6); }
   .pricing-header h1 { font-size: var(--text-2xl); margin-bottom: var(--space-2); }
-  .pricing-sub { color: var(--color-neutral-600); font-size: var(--text-sm); max-width: 640px; }
+  .pricing-sub { color: var(--color-neutral-600); font-size: var(--text-sm); max-width: 720px; }
 
-  .catalog-card {
-    background: #fff;
-    border: 1px solid var(--color-neutral-200);
-    border-radius: var(--radius-xl);
-    overflow: hidden;
-    margin-bottom: var(--space-6);
-  }
-  .catalog-card-head {
-    display: flex;
-    align-items: baseline;
-    gap: var(--space-3);
-    padding: var(--space-4) var(--space-6);
-    background: var(--color-primary);
-    color: #fff;
-  }
-  .catalog-card-head strong { font-family: var(--font-heading); font-size: var(--text-lg); }
-  .catalog-card-head .town-slug { font-family: var(--font-mono, monospace); font-size: var(--text-xs); opacity: 0.8; }
+  .matrix-wrap { overflow-x: auto; border: 1px solid var(--color-neutral-200); border-radius: var(--radius-xl); background: #fff; }
+  .matrix { border-collapse: collapse; width: 100%; min-width: 760px; }
+  .matrix th, .matrix td { border-bottom: 1px solid var(--color-neutral-100); border-right: 1px solid var(--color-neutral-100); padding: var(--space-3) var(--space-4); text-align: left; vertical-align: top; }
+  .matrix thead th { background: var(--color-neutral-50); font-family: var(--font-heading); font-size: var(--text-xs); color: var(--color-neutral-600); text-transform: uppercase; letter-spacing: 0.5px; position: sticky; top: 0; }
+  .matrix .corner { background: var(--color-neutral-50); }
+  .col-label { display: block; color: var(--color-neutral-900); font-size: var(--text-sm); }
+  .col-meta { display: block; font-size: 10px; color: var(--color-neutral-600); font-weight: 400; text-transform: none; letter-spacing: 0; }
 
-  .pricing-row {
-    display: grid;
-    grid-template-columns: 1.6fr 1.2fr 1.2fr auto;
-    gap: var(--space-4);
-    align-items: center;
-    padding: var(--space-4) var(--space-6);
-    border-bottom: 1px solid var(--color-neutral-100);
-  }
-  .pricing-row:last-child { border-bottom: none; }
+  .row-head { background: #fff; min-width: 130px; }
+  .row-name { display: block; font-family: var(--font-heading); font-weight: 600; color: var(--color-neutral-900); }
+  .row-slug { display: block; font-family: var(--font-mono, monospace); font-size: var(--text-xs); color: var(--color-neutral-600); }
 
-  .pricing-head {
-    background: var(--color-neutral-50);
-    font-family: var(--font-heading);
-    font-weight: 600;
-    font-size: var(--text-xs);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    color: var(--color-neutral-600);
-  }
+  .cell { min-width: 120px; }
+  .cell-toggle { display: inline-flex; align-items: center; gap: 6px; font-size: var(--text-xs); color: var(--color-neutral-900); cursor: pointer; }
+  .cell-toggle input { width: 15px; height: 15px; cursor: pointer; }
+  .cell-req { display: inline-block; font-size: 10px; color: var(--color-primary); background: var(--color-neutral-50); border: 1px solid var(--color-neutral-200); border-radius: var(--radius-sm); padding: 1px 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .cell-price { display: flex; align-items: center; gap: 4px; margin-top: 6px; }
+  .cell-price .dollar { color: var(--color-neutral-600); font-size: var(--text-sm); }
+  .cell-price input { width: 72px; padding: 5px 8px; border: 1px solid var(--color-neutral-200); border-radius: var(--radius-md); font-size: var(--text-sm); }
+  .cell-price input:disabled { background: var(--color-neutral-50); color: var(--color-neutral-400, #aaa); }
+  .cell-status { display: inline-block; min-height: 14px; font-size: var(--text-xs); margin-top: 2px; }
+  .cell-status.ok { color: var(--color-success); }
+  .cell-status.err { color: var(--color-error); }
 
-  .product-cell { display: flex; flex-direction: column; gap: 2px; }
-  .product-meta {
-    font-size: var(--text-xs);
-    color: var(--color-neutral-600);
-    text-transform: capitalize;
-  }
-
-  .price-cell { display: flex; align-items: center; gap: var(--space-2); }
-  .price-cell .dollar { font-family: var(--font-heading); font-weight: 600; color: var(--color-neutral-600); }
-  .price-cell input {
-    width: 100px;
-    padding: 6px 10px;
-    border: 1px solid var(--color-neutral-200);
-    border-radius: var(--radius-md);
-    font-size: var(--text-base);
-  }
-
-  .enabled-cell { font-size: var(--text-sm); }
-  .toggle { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; color: var(--color-neutral-900); }
-  .toggle input { width: 16px; height: 16px; cursor: pointer; }
-  .required-badge {
-    font-size: var(--text-xs);
-    color: var(--color-primary);
-    background: var(--color-neutral-50);
-    border: 1px solid var(--color-neutral-200);
-    border-radius: var(--radius-sm);
-    padding: 2px 8px;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-  }
-
-  .action-cell { display: flex; align-items: center; gap: var(--space-3); justify-content: flex-end; }
-  .btn-save {
-    background: var(--color-primary);
-    color: #fff;
-    border: none;
-    padding: 8px 18px;
-    border-radius: var(--radius-md);
-    font-family: var(--font-heading);
-    font-weight: 600;
-    font-size: var(--text-sm);
-    cursor: pointer;
-  }
+  .add-town { display: flex; align-items: center; gap: var(--space-3); margin-top: var(--space-5); }
+  .add-town input { padding: 8px 12px; border: 1px solid var(--color-neutral-200); border-radius: var(--radius-md); font-size: var(--text-base); min-width: 240px; }
+  .btn-save { background: var(--color-primary); color: #fff; border: none; padding: 9px 18px; border-radius: var(--radius-md); font-family: var(--font-heading); font-weight: 600; font-size: var(--text-sm); cursor: pointer; }
   .btn-save:hover { opacity: 0.9; }
-  .btn-save:disabled { opacity: 0.5; cursor: not-allowed; }
-
-  .row-status { font-size: var(--text-sm); min-width: 60px; }
-  .row-status.ok { color: var(--color-success); }
-  .row-status.err { color: var(--color-error); }
-
-  @media (max-width: 767px) {
-    .pricing-row { grid-template-columns: 1fr; gap: var(--space-2); }
-    .pricing-head { display: none; }
-    .pricing-row[data-pricing-form] { padding: var(--space-5) var(--space-4); gap: var(--space-3); }
-    .action-cell { justify-content: flex-start; }
-  }
+  .add-town-status { font-size: var(--text-sm); color: var(--color-neutral-600); }
+  .add-town-status.err { color: var(--color-error); }
 </style>
 
 <script is:inline>
-  document.querySelectorAll('[data-pricing-form]').forEach(function(form) {
-    form.addEventListener('submit', function(e) {
-      e.preventDefault();
-      var slug = form.getAttribute('data-slug');
-      var productId = form.getAttribute('data-product');
-      var input = form.querySelector('input[name="priceDollars"]');
-      var enabledEl = form.querySelector('input[name="enabled"]');
-      var statusEl = form.querySelector('[data-status]');
-      var btn = form.querySelector('button');
+  function postUpdate(payload, statusEl) {
+    statusEl.className = 'cell-status';
+    statusEl.textContent = '…';
+    fetch('/api/pricing/update', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    })
+      .then(function(r) { return r.json().then(function(b) { return { ok: r.ok, b: b }; }); })
+      .then(function(res) {
+        if (res.ok) {
+          statusEl.className = 'cell-status ok';
+          statusEl.textContent = '✓ Saved';
+          setTimeout(function() { if (statusEl.textContent === '✓ Saved') statusEl.textContent = ''; }, 1500);
+        } else {
+          statusEl.className = 'cell-status err';
+          statusEl.textContent = (res.b && res.b.error) || 'Failed';
+        }
+      })
+      .catch(function() { statusEl.className = 'cell-status err'; statusEl.textContent = 'Error'; });
+  }
 
-      statusEl.className = 'row-status';
-      statusEl.textContent = '';
-      btn.disabled = true;
+  document.querySelectorAll('.cell').forEach(function(cell) {
+    var slug = cell.getAttribute('data-slug');
+    var productId = cell.getAttribute('data-product');
+    var enabledEl = cell.querySelector('[data-enabled]');
+    var priceEl = cell.querySelector('[data-price]');
+    var statusEl = cell.querySelector('[data-status]');
 
-      var payload = { slug: slug, productId: productId, priceDollars: parseFloat(input.value) };
-      if (enabledEl) payload.enabled = enabledEl.checked;
+    if (enabledEl) {
+      enabledEl.addEventListener('change', function() {
+        if (priceEl) priceEl.disabled = !enabledEl.checked;
+        postUpdate({ slug: slug, productId: productId, enabled: enabledEl.checked }, statusEl);
+      });
+    }
+    if (priceEl) {
+      priceEl.addEventListener('change', function() {
+        postUpdate({ slug: slug, productId: productId, priceDollars: parseFloat(priceEl.value) }, statusEl);
+      });
+    }
+  });
 
-      fetch('/api/pricing/update', {
+  var addBtn = document.getElementById('add-town-btn');
+  if (addBtn) {
+    addBtn.addEventListener('click', function() {
+      var input = document.getElementById('new-town-name');
+      var status = document.getElementById('add-town-status');
+      var name = (input.value || '').trim();
+      status.className = 'add-town-status';
+      if (!name) { status.className = 'add-town-status err'; status.textContent = 'Enter a town name'; return; }
+      status.textContent = 'Adding…';
+      addBtn.disabled = true;
+      fetch('/api/towns/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({ name: name }),
       })
-        .then(function(r) { return r.json().then(function(body) { return { ok: r.ok, body: body }; }); })
+        .then(function(r) { return r.json().then(function(b) { return { ok: r.ok, b: b }; }); })
         .then(function(res) {
-          btn.disabled = false;
-          if (res.ok) {
-            statusEl.className = 'row-status ok';
-            statusEl.textContent = 'Saved';
-            setTimeout(function() { if (statusEl.textContent === 'Saved') statusEl.textContent = ''; }, 2500);
-          } else {
-            statusEl.className = 'row-status err';
-            statusEl.textContent = (res.body && res.body.error) || 'Failed';
-          }
+          if (res.ok) { status.textContent = 'Added — reloading…'; location.reload(); }
+          else { addBtn.disabled = false; status.className = 'add-town-status err'; status.textContent = (res.b && res.b.error) || 'Failed'; }
         })
-        .catch(function() {
-          btn.disabled = false;
-          statusEl.className = 'row-status err';
-          statusEl.textContent = 'Network error';
-        });
+        .catch(function() { addBtn.disabled = false; status.className = 'add-town-status err'; status.textContent = 'Network error'; });
     });
-  });
+  }
 </script>

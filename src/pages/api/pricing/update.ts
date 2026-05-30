@@ -23,7 +23,7 @@ export const POST: APIRoute = async ({ request }) => {
     return new Response(JSON.stringify({ error: 'Missing slug' }), { status: 400 });
   }
   // Slug must be a town we serve — guards against arbitrary records downstream.
-  if (!getTown(slug)) {
+  if (!(await getTown(slug))) {
     return new Response(JSON.stringify({ error: 'Unknown town' }), { status: 400 });
   }
   if (typeof productId !== 'string' || !productId) {
