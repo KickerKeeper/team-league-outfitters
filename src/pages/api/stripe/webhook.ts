@@ -1,7 +1,7 @@
 import type { APIRoute } from 'astro';
 import type Stripe from 'stripe';
 import { getStripe, getWebhookSecret } from '../../../lib/stripe';
-import { getSubmission, setPaid, addMessage } from '../../../lib/inbox';
+import { getSubmission, setPaid, addMessage, mergeSubmissionData } from '../../../lib/inbox';
 
 export const prerender = false;
 
@@ -67,6 +67,13 @@ export const POST: APIRoute = async ({ request }) => {
     const taxDollars = session.total_details?.amount_tax != null
       ? (session.total_details.amount_tax / 100).toFixed(2)
       : '0.00';
+
+    await mergeSubmissionData(submissionId, {
+      amount_total_cents: session.amount_total != null ? String(session.amount_total) : '',
+      amount_tax_cents: session.total_details?.amount_tax != null ? String(session.total_details.amount_tax) : '',
+      receipt_url: receiptUrl || '',
+      stripe_session_id: session.id,
+    });
 
     await addMessage(submissionId, {
       type: 'note',

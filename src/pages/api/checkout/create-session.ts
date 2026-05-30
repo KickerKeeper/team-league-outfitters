@@ -89,6 +89,8 @@ export const POST: APIRoute = async ({ request }) => {
       jersey_count: String(jerseys.length),
       notes: payload.notes || '',
       unit_price_cents: String(unitPriceCents),
+      subtotal_cents: String(unitPriceCents * jerseys.length),
+      jerseys_json: JSON.stringify(jerseys.map((j) => ({ name: j.name, number: j.number, size: j.size }))),
       acknowledged_final_sale: 'yes',
     },
     createdAt: new Date().toISOString(),

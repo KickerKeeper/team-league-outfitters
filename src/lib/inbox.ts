@@ -147,6 +147,19 @@ export async function setPaid(id: string, paid: boolean): Promise<Submission | n
   return sub;
 }
 
+// Merge additional fields into a submission's data bag (e.g. payment totals
+// captured by the Stripe webhook). Strong-consistency read avoids lost updates.
+export async function mergeSubmissionData(id: string, fields: Record<string, string>): Promise<Submission | null> {
+  const store = getStore({ name: 'inbox', consistency: 'strong' });
+  const data = await store.get(`submission/${id}`);
+  if (!data) return null;
+
+  const sub: Submission = JSON.parse(data);
+  sub.data = { ...sub.data, ...fields };
+  await store.set(`submission/${id}`, JSON.stringify(sub));
+  return sub;
+}
+
 export async function addMessage(id: string, message: Message) {
   const store = getStore({ name: 'inbox', consistency: 'strong' });
   const data = await store.get(`submission/${id}`);
