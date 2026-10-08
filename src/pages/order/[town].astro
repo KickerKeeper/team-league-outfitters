@@ -82,9 +82,8 @@ if (program) {
 
         {paymentEnabled && catalog.length > 0 && (
           <p class="price-strip">
-            {catalog.map((p, i) => (
+            {catalog.map((p) => (
               <span class="price-strip-item">
-                {i > 0 && <span class="price-strip-sep" aria-hidden="true">·</span>}
                 {p.label} <strong>${formatPriceCents(p.priceCents)}</strong>{jersey && p.id !== jersey.id ? ' (optional)' : ''}
               </span>
             ))}
@@ -443,9 +442,9 @@ if (program) {
   .canceled-notice a { color: var(--color-primary); font-weight: 600; }
 
   .draft-notice { background: var(--color-neutral-50, #fafafa); border: 1px solid var(--color-neutral-200); border-radius: var(--radius-md); padding: var(--space-3) var(--space-4); margin-bottom: var(--space-4); font-size: var(--text-sm); color: var(--color-neutral-600); }
-  .price-strip { display: flex; flex-wrap: wrap; gap: var(--space-1) var(--space-2); margin-bottom: var(--space-6); font-size: var(--text-sm); color: var(--color-neutral-600); }
+  .price-strip { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-bottom: var(--space-6); font-size: var(--text-sm); color: var(--color-neutral-600); }
+  .price-strip-item { display: inline-flex; gap: var(--space-1); align-items: baseline; padding: 4px 12px; border: 1px solid var(--color-neutral-200); border-radius: var(--radius-full); background: #fff; white-space: nowrap; }
   .price-strip strong { color: var(--color-primary); }
-  .price-strip-sep { margin-right: var(--space-2); }
   .program-info {
     background: var(--color-neutral-50, #fafafa); border: 1px solid var(--color-neutral-200); border-radius: var(--radius-lg);
     padding: var(--space-4) var(--space-5); margin-bottom: var(--space-6); font-size: var(--text-sm); line-height: 1.55; color: var(--color-neutral-900);
