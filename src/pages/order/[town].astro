@@ -78,6 +78,7 @@ if (program) {
 
         <form
           id="order-form"
+          novalidate
           data-payment-enabled={paymentEnabled ? '1' : '0'}
           data-town-slug={town.slug}
           data-town-name={town.name}
@@ -91,7 +92,7 @@ if (program) {
 
           <fieldset class="form-section">
             <legend>Your Info</legend>
-            <p class="section-hint">We'll use this to reach you about pickup.</p>
+            <p class="section-hint">We'll use this to reach you about pickup. Fields marked <span class="req" aria-hidden="true">*</span> are required.</p>
             <div class="form-grid">
               <div class="form-field">
                 <label for="name">Parent / Guardian Name <span class="req" aria-hidden="true">*</span></label>
@@ -301,6 +302,8 @@ if (program) {
             <span>I understand all custom jersey sales are final.</span>
           </label>
 
+          <p class="form-validation-summary" id="form-validation-summary" role="alert" hidden></p>
+
           <button type="submit" class="btn btn-primary submit-btn" id="submit-btn">
             {paymentEnabled ? 'Continue to Payment' : 'Submit Order'}
           </button>
@@ -444,6 +447,10 @@ if (program) {
   .form-field label { margin-bottom: var(--space-1); }
   .req { color: var(--color-error); }
   .hidden { display: none !important; }
+  .field-error { display: block; color: var(--color-error); font-size: var(--text-sm); margin-top: var(--space-1); line-height: 1.4; }
+  .status-group.has-error .status-option { border-color: var(--color-error); }
+  .acknowledge.has-error { border-color: var(--color-error); box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.1); }
+  .form-validation-summary { background: #fdecee; border-left: 4px solid var(--color-error); color: var(--color-neutral-900); padding: var(--space-3) var(--space-4); border-radius: var(--radius-md); font-size: var(--text-sm); margin-bottom: var(--space-3); }
   .field-note { font-size: var(--text-sm); color: var(--color-neutral-600); line-height: 1.45; margin: 0; padding-top: var(--space-6); }
   .size-hint { font-size: var(--text-xs); color: var(--color-neutral-600); margin: var(--space-1) 0 0; line-height: 1.4; }
 
@@ -559,6 +566,8 @@ if (program) {
     if (!details) return;
     const status = checkedStatus(block);
     details.hidden = !status;
+    // Hidden controls are disabled so they can't be required-but-unfocusable.
+    details.querySelectorAll('input, select').forEach((el) => { (el as HTMLInputElement).disabled = !status; });
     const collects = status ? status.getAttribute('data-collects-number') === '1' : true;
     block.querySelectorAll('[data-number-field]').forEach((f) => {
       const wrap = f.querySelector('[data-number-input]') as HTMLElement | null;
@@ -739,9 +748,97 @@ if (program) {
     errorDiv.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
 
+  // --- Inline validation: errors stay next to the field until fixed ---
+  type Control = HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement;
+  const summary = document.getElementById('form-validation-summary') as HTMLElement;
+
+  function errorHost(c: Element): HTMLElement {
+    return (c.closest('[data-status-group], .acknowledge, .form-field') as HTMLElement | null) || (c.parentElement as HTMLElement);
+  }
+
+  function messageFor(c: Control): string {
+    const type = (c as HTMLInputElement).type;
+    if (type === 'radio') return 'Pick one to continue.';
+    if (type === 'checkbox') return 'Please check the box to continue.';
+    const v = c.validity;
+    if (v.valueMissing) return c.tagName === 'SELECT' ? 'Please choose one.' : 'This field is required.';
+    if (v.typeMismatch && type === 'email') return 'Enter a valid email, like name@example.com.';
+    if (v.patternMismatch) return 'Numbers only, 1–3 digits.';
+    return c.validationMessage || 'Please check this field.';
+  }
+
+  function setFieldError(c: Control, message: string) {
+    const host = errorHost(c);
+    c.classList.add('error');
+    c.setAttribute('aria-invalid', 'true');
+    host.classList.add('has-error');
+    let msg = host.querySelector(':scope > .field-error') as HTMLElement | null;
+    if (!msg) {
+      msg = document.createElement('span');
+      msg.className = 'field-error';
+      host.appendChild(msg);
+    }
+    msg.textContent = message;
+  }
+
+  function clearFieldError(target: Element) {
+    if (!target.matches('input, select, textarea')) return;
+    const host = errorHost(target);
+    const group = (target as HTMLInputElement).type === 'radio' ? Array.from(host.querySelectorAll('input[type="radio"]')) : [target];
+    group.forEach((el) => { el.classList.remove('error'); el.removeAttribute('aria-invalid'); });
+    if (host.querySelector('.error')) return;
+    host.classList.remove('has-error');
+    host.querySelectorAll(':scope > .field-error').forEach((m) => m.remove());
+    if (summary && !form.querySelector('.has-error')) summary.hidden = true;
+  }
+
+  function validateForm(): boolean {
+    const controls = Array.from(form.querySelectorAll('input, select, textarea')) as Control[];
+    controls.forEach(clearFieldError);
+    let first: HTMLElement | null = null;
+    let count = 0;
+    controls.forEach((c) => {
+      const type = (c as HTMLInputElement).type;
+      if (c.disabled || type === 'hidden' || c.name === 'bot-field') return;
+      if (c.checkValidity()) return;
+      const host = errorHost(c);
+      if (type === 'radio' && host.classList.contains('has-error')) return;
+      setFieldError(c, messageFor(c));
+      count++;
+      if (!first) first = type === 'radio' ? host : c;
+    });
+    if (!first) {
+      if (summary) summary.hidden = true;
+      return true;
+    }
+    if (summary) {
+      summary.textContent = count === 1
+        ? 'One field needs attention — it\'s highlighted above.'
+        : count + ' fields need attention — they\'re highlighted above.';
+      summary.hidden = false;
+    }
+    const target = first as HTMLElement;
+    target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    const focusable = target.matches('input, select, textarea') ? target : (target.querySelector('input, select, textarea') as HTMLElement | null);
+    focusable?.focus({ preventScroll: true });
+    return false;
+  }
+
+  form.addEventListener('input', (e) => clearFieldError(e.target as Element));
+  form.addEventListener('change', (e) => clearFieldError(e.target as Element));
+
+  const submitLabel = submitBtn.textContent || '';
+  function setBusy(busy: boolean) {
+    submitBtn.disabled = busy;
+    submitBtn.setAttribute('aria-busy', busy ? 'true' : 'false');
+    submitBtn.textContent = busy ? (paymentEnabled ? 'Opening secure checkout…' : 'Sending your order…') : submitLabel;
+  }
+
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
-    submitBtn.disabled = true;
+    errorDiv.hidden = true;
+    if (!validateForm()) return;
+    setBusy(true);
 
     const players = collectPlayers();
     const base = {
@@ -767,7 +864,7 @@ if (program) {
           return;
         }
         showError(body.error || 'Could not start checkout. Please try again.');
-        submitBtn.disabled = false;
+        setBusy(false);
       } else {
         // Degraded fallback (Stripe not configured): post a readable summary.
         const summary = players.map((p, i) => {
@@ -799,7 +896,7 @@ if (program) {
       }
     } catch {
       showError('Something went wrong. Please call (978) 352-8240 and we\'ll help you out.');
-      submitBtn.disabled = false;
+      setBusy(false);
     }
   });
 </script>
