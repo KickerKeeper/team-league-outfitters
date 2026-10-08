@@ -180,6 +180,7 @@ if (program) {
                     <div
                       class="product-line product-line-required"
                       data-product={jersey.id}
+                      data-label={jersey.label}
                       data-price-cents={jersey.priceCents}
                       data-sizing={jersey.sizing}
                       data-required="1"
@@ -214,6 +215,7 @@ if (program) {
                     <div
                       class="product-line addon"
                       data-product={p.id}
+                      data-label={p.label}
                       data-price-cents={p.priceCents}
                       data-sizing={p.sizing}
                     >
@@ -282,6 +284,7 @@ if (program) {
 
           {paymentEnabled && (
             <div class="order-total" id="order-total" aria-live="polite">
+              <div class="order-lines" id="order-lines"></div>
               <div class="order-total-row total">
                 <span>Subtotal</span>
                 <span id="subtotal-display">$0.00</span>
@@ -479,6 +482,10 @@ if (program) {
   .addon-fields { margin-top: 0; }
 
   .order-total { border: 1px solid var(--color-neutral-200); border-radius: var(--radius-lg); padding: var(--space-4) var(--space-5); margin-bottom: var(--space-4); background: #fff; }
+  .order-lines:not(:empty) { border-bottom: 1px solid var(--color-neutral-200); margin-bottom: var(--space-2); padding-bottom: var(--space-2); }
+  .order-line { display: flex; justify-content: space-between; gap: var(--space-4); font-size: var(--text-sm); color: var(--color-neutral-900); padding: var(--space-1) 0; }
+  .order-line-desc { min-width: 0; }
+  .order-line-amount { flex-shrink: 0; color: var(--color-neutral-600); }
   .order-total-row { display: flex; justify-content: space-between; font-size: var(--text-sm); color: var(--color-neutral-600); padding: var(--space-1) 0; }
   .order-total-row.total { font-family: var(--font-heading); font-weight: 600; font-size: var(--text-lg); color: var(--color-neutral-900); }
   .tax-note { font-size: var(--text-xs); color: var(--color-neutral-600); margin-top: var(--space-2); font-style: italic; }
@@ -598,9 +605,15 @@ if (program) {
     hintEl.hidden = !hint;
   }
 
+  const orderLines = document.getElementById('order-lines');
+  const submitBase = submitBtn.textContent || '';
+  const money = (cents: number) => '$' + (cents / 100).toFixed(2);
+
   function updateTotals() {
     let cents = 0;
-    playersList.querySelectorAll('[data-player-block]').forEach((block) => {
+    const rows: { desc: string; amount: number }[] = [];
+    playersList.querySelectorAll('[data-player-block]').forEach((block, i) => {
+      const pname = fieldVal(block, 'player_name') || 'Player ' + (i + 1);
       block.querySelectorAll('[data-product]').forEach((line) => {
         const price = parseInt(line.getAttribute('data-price-cents') || '0', 10);
         const required = line.getAttribute('data-required') === '1';
@@ -608,11 +621,33 @@ if (program) {
         if (required || (include && include.checked)) {
           const qtyEl = line.querySelector('[data-field="quantity"]') as HTMLInputElement | null;
           const qty = qtyEl ? Math.max(1, parseInt(qtyEl.value || '1', 10) || 1) : 1;
-          cents += price * qty;
+          const amount = price * qty;
+          cents += amount;
+          const size = fieldVal(line, 'size');
+          const desc = pname + ' · ' + (line.getAttribute('data-label') || '') + (size ? ' (' + size + ')' : '') + (qty > 1 ? ' ×' + qty : '');
+          rows.push({ desc, amount });
         }
       });
     });
-    if (subtotalDisplay) subtotalDisplay.textContent = '$' + (cents / 100).toFixed(2);
+    if (subtotalDisplay) subtotalDisplay.textContent = money(cents);
+    if (orderLines) {
+      orderLines.textContent = '';
+      rows.forEach((r) => {
+        const row = document.createElement('div');
+        row.className = 'order-line';
+        const d = document.createElement('span');
+        d.className = 'order-line-desc';
+        d.textContent = r.desc;
+        const a = document.createElement('span');
+        a.className = 'order-line-amount';
+        a.textContent = money(r.amount);
+        row.append(d, a);
+        orderLines.appendChild(row);
+      });
+    }
+    if (paymentEnabled && submitBtn.getAttribute('aria-busy') !== 'true') {
+      submitBtn.textContent = cents > 0 ? submitBase + ' · ' + money(cents) : submitBase;
+    }
   }
 
   function relabelPlayers() {
@@ -675,11 +710,13 @@ if (program) {
     }
     if (target.matches('select[data-field="size"]')) updateSizeHint(target as HTMLSelectElement);
     updateTotals();
+    saveDraft();
   });
   playersList.addEventListener('input', (e) => {
     const target = e.target as HTMLElement;
     if (target.matches('[data-field="quantity"]')) updateTotals();
     if (target.matches('[data-field="player_name"]')) relabelPlayers();
+    saveDraft();
   });
 
   playersList.querySelectorAll('[data-player-block]').forEach(applyStatus);
@@ -838,7 +875,8 @@ if (program) {
   function setBusy(busy: boolean) {
     submitBtn.disabled = busy;
     submitBtn.setAttribute('aria-busy', busy ? 'true' : 'false');
-    submitBtn.textContent = busy ? (paymentEnabled ? 'Opening secure checkout…' : 'Sending your order…') : submitLabel;
+    if (busy) submitBtn.textContent = paymentEnabled ? 'Opening secure checkout…' : 'Sending your order…';
+    else { submitBtn.textContent = submitLabel; updateTotals(); }
   }
 
   form.addEventListener('submit', async (e) => {
