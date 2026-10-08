@@ -456,7 +456,8 @@ if (program) {
   .form-field label { margin-bottom: var(--space-1); }
   .req { color: var(--color-error); }
   .hidden { display: none !important; }
-  .field-error { display: block; color: var(--color-error); font-size: var(--text-sm); margin-top: var(--space-1); line-height: 1.4; }
+  /* Elements created from the script don't get Astro's scoped attribute, hence :global */
+  .form-area :global(.field-error) { display: block; color: var(--color-error); font-size: var(--text-sm); margin-top: var(--space-1); line-height: 1.4; }
   .status-group.has-error .status-option { border-color: var(--color-error); }
   .acknowledge.has-error { border-color: var(--color-error); box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.1); }
   .form-validation-summary { background: #fdecee; border-left: 4px solid var(--color-error); color: var(--color-neutral-900); padding: var(--space-3) var(--space-4); border-radius: var(--radius-md); font-size: var(--text-sm); margin-bottom: var(--space-3); }
@@ -488,9 +489,9 @@ if (program) {
 
   .order-total { border: 1px solid var(--color-neutral-200); border-radius: var(--radius-lg); padding: var(--space-4) var(--space-5); margin-bottom: var(--space-4); background: #fff; }
   .order-lines:not(:empty) { border-bottom: 1px solid var(--color-neutral-200); margin-bottom: var(--space-2); padding-bottom: var(--space-2); }
-  .order-line { display: flex; justify-content: space-between; gap: var(--space-4); font-size: var(--text-sm); color: var(--color-neutral-900); padding: var(--space-1) 0; }
-  .order-line-desc { min-width: 0; }
-  .order-line-amount { flex-shrink: 0; color: var(--color-neutral-600); }
+  .order-lines :global(.order-line) { display: flex; justify-content: space-between; gap: var(--space-4); font-size: var(--text-sm); color: var(--color-neutral-900); padding: var(--space-1) 0; }
+  .order-lines :global(.order-line-desc) { min-width: 0; }
+  .order-lines :global(.order-line-amount) { flex-shrink: 0; color: var(--color-neutral-600); font-variant-numeric: tabular-nums; }
   .order-total-row { display: flex; justify-content: space-between; font-size: var(--text-sm); color: var(--color-neutral-600); padding: var(--space-1) 0; }
   .order-total-row.total { font-family: var(--font-heading); font-weight: 600; font-size: var(--text-lg); color: var(--color-neutral-900); }
   .tax-note { font-size: var(--text-xs); color: var(--color-neutral-600); margin-top: var(--space-2); font-style: italic; }
@@ -501,7 +502,7 @@ if (program) {
   .acknowledge { display: flex; align-items: flex-start; gap: var(--space-2); margin-bottom: var(--space-4); padding: var(--space-3); border: 1px solid var(--color-neutral-200); border-radius: var(--radius-md); cursor: pointer; font-size: var(--text-sm); }
   .acknowledge { flex-wrap: wrap; }
   .acknowledge input { margin-top: 3px; width: auto; flex-shrink: 0; }
-  .acknowledge .field-error { flex-basis: 100%; margin-top: var(--space-2); }
+  .acknowledge :global(.field-error) { flex-basis: 100%; margin-top: var(--space-2); }
 
   .submit-btn { width: 100%; padding: 16px; font-size: var(--text-lg); margin-top: var(--space-2); }
   .submit-btn:disabled { opacity: 0.6; cursor: progress; }
@@ -629,7 +630,7 @@ if (program) {
           const amount = price * qty;
           cents += amount;
           const size = fieldVal(line, 'size');
-          const desc = pname + ' · ' + (line.getAttribute('data-label') || '') + (size ? ' (' + size + ')' : '') + (qty > 1 ? ' ×' + qty : '');
+          const desc = pname + ' · ' + (line.getAttribute('data-label') || '') + (size ? ' · ' + size : '') + (qty > 1 ? ' ×' + qty : '');
           rows.push({ desc, amount });
         }
       });
