@@ -617,7 +617,9 @@ if (program) {
     blocks.forEach((b, i) => {
       const label = b.querySelector('[data-player-label]') as HTMLElement | null;
       const remove = b.querySelector('[data-player-remove]') as HTMLButtonElement | null;
-      if (label) label.textContent = 'Player ' + (i + 1);
+      const nameEl = b.querySelector('[data-field="player_name"]') as HTMLInputElement | null;
+      const pname = nameEl ? nameEl.value.trim() : '';
+      if (label) label.textContent = 'Player ' + (i + 1) + (pname ? ' · ' + pname : '');
       if (remove) remove.hidden = blocks.length <= 1;
       // Radio groups must be unique per player block.
       b.querySelectorAll('[data-field="player_status"]').forEach((r) => {
@@ -672,7 +674,9 @@ if (program) {
     updateTotals();
   });
   playersList.addEventListener('input', (e) => {
-    if ((e.target as HTMLElement).matches('[data-field="quantity"]')) updateTotals();
+    const target = e.target as HTMLElement;
+    if (target.matches('[data-field="quantity"]')) updateTotals();
+    if (target.matches('[data-field="player_name"]')) relabelPlayers();
   });
 
   playersList.querySelectorAll('[data-player-block]').forEach(applyStatus);
