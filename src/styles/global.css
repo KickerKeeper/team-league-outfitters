@@ -259,6 +259,11 @@ textarea {
   color: var(--color-neutral-900);
 }
 
+/* Buttons otherwise fall back to the browser's Arial. */
+button {
+  font-family: var(--font-body);
+}
+
 input:focus,
 select:focus,
 textarea:focus {
