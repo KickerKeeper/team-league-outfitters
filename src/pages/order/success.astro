@@ -70,7 +70,7 @@ if (!sessionId) {
             <h2>Thanks{parentName ? `, ${parentName}` : ''}!</h2>
             <p class="lede">
               We got your order
-              {jerseyCount > 0 && ` for ${jerseyCount} ${jerseyCount === 1 ? 'jersey' : 'jerseys'}`}
+              {jerseyCount > 0 && ` for ${jerseyCount} ${jerseyCount === 1 ? 'player' : 'players'}`}
               {totalDollars && <> (<strong>${totalDollars}</strong>)</>}.
               Stripe will email you a receipt, and we'll send a confirmation from <a href="mailto:orders@gtownjerseys.com">orders@gtownjerseys.com</a>.
             </p>
