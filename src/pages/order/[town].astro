@@ -827,6 +827,7 @@ if (program) {
   // --- Inline validation: errors stay next to the field until fixed ---
   type Control = HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement;
   const summary = document.getElementById('form-validation-summary') as HTMLElement;
+  let errorSeq = 0;
 
   function errorHost(c: Element): HTMLElement {
     return (c.closest('[data-status-group], .acknowledge, .form-field') as HTMLElement | null) || (c.parentElement as HTMLElement);
@@ -852,16 +853,18 @@ if (program) {
     if (!msg) {
       msg = document.createElement('span');
       msg.className = 'field-error';
+      msg.id = 'field-error-' + (++errorSeq);
       host.appendChild(msg);
     }
     msg.textContent = message;
+    c.setAttribute('aria-describedby', msg.id);
   }
 
   function clearFieldError(target: Element) {
     if (!target.matches('input, select, textarea')) return;
     const host = errorHost(target);
     const group = (target as HTMLInputElement).type === 'radio' ? Array.from(host.querySelectorAll('input[type="radio"]')) : [target];
-    group.forEach((el) => { el.classList.remove('error'); el.removeAttribute('aria-invalid'); });
+    group.forEach((el) => { el.classList.remove('error'); el.removeAttribute('aria-invalid'); el.removeAttribute('aria-describedby'); });
     if (host.querySelector('.error')) return;
     host.classList.remove('has-error');
     host.querySelectorAll(':scope > .field-error').forEach((m) => m.remove());
