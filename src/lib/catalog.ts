@@ -1,6 +1,7 @@
 import { getStore } from '@netlify/blobs';
 import { getTown } from './towns';
 import { getAllPrices } from './pricing';
+import { getProgram } from './programs';
 
 export type Sizing = 'apparel' | 'shoe' | 'none';
 export type TaxCategory = 'clothing' | 'general';
@@ -68,6 +69,8 @@ async function getOverrides(): Promise<CatalogOverrides> {
 // full launched kit on by default.
 function defaultEnabled(slug: string, productId: string): boolean {
   if (productId === 'jersey') return true;
+  const program = getProgram(slug);
+  if (program) return program.defaultEnabled.includes(productId);
   return slug === 'swampscott';
 }
 
@@ -77,11 +80,14 @@ function cloneProduct(p: ProductDef): ProductDef {
 
 export async function getCatalog(slug: string): Promise<CatalogProduct[]> {
   const overrides = (await getOverrides())[slug] || {};
+  const program = getProgram(slug);
+  const programPrices = program?.defaultPrices || {};
+  const programLabels = program?.productLabels || {};
 
   // Legacy migration: seed the jersey price from the old town-prices store when
-  // there's no explicit catalog override for it.
+  // there's no explicit catalog override (or program default) for it.
   let legacyJerseyCents: number | undefined;
-  if (overrides.jersey?.priceCents == null) {
+  if (overrides.jersey?.priceCents == null && programPrices.jersey == null) {
     try {
       const prices = await getAllPrices();
       legacyJerseyCents = prices[slug]?.jerseyPriceCents;
@@ -91,12 +97,14 @@ export async function getCatalog(slug: string): Promise<CatalogProduct[]> {
   return PRODUCTS.map((def) => {
     const p = cloneProduct(def);
     const o = overrides[p.id] || {};
-    let priceCents = o.priceCents != null ? o.priceCents : p.priceCents;
-    if (p.id === 'jersey' && o.priceCents == null && legacyJerseyCents != null) {
-      priceCents = legacyJerseyCents;
-    }
+    // Precedence: admin override > program default > legacy town price > global default.
+    let priceCents = p.priceCents;
+    if (o.priceCents != null) priceCents = o.priceCents;
+    else if (programPrices[p.id] != null) priceCents = programPrices[p.id];
+    else if (p.id === 'jersey' && legacyJerseyCents != null) priceCents = legacyJerseyCents;
     const enabled = o.enabled != null ? o.enabled : defaultEnabled(slug, p.id);
-    return { ...p, priceCents, enabled };
+    const label = programLabels[p.id] || p.label;
+    return { ...p, label, priceCents, enabled };
   });
 }
 

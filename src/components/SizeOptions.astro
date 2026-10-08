@@ -1,0 +1,20 @@
+---
+// Options for an apparel size <select>. Program towns get grouped,
+// shop-coded sizes; everyone else gets the generic Youth/Adult list.
+import { APPAREL_SIZES } from '../lib/catalog';
+import type { TownProgram } from '../lib/programs';
+
+interface Props {
+  program?: TownProgram;
+}
+const { program } = Astro.props;
+---
+
+<option value="">Select a size</option>
+{program
+  ? program.sizeGroups.map((g) => (
+      <optgroup label={g.label}>
+        {g.sizes.map((s) => <option value={s.label} data-group={g.id}>{s.label}</option>)}
+      </optgroup>
+    ))
+  : APPAREL_SIZES.map((s) => <option value={s}>{s}</option>)}

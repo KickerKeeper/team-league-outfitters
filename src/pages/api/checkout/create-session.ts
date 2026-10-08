@@ -2,6 +2,7 @@ import type { APIRoute } from 'astro';
 import { getStripe, isStripeConfigured, getSiteUrl, signCheckoutToken, checkoutCookieName } from '../../../lib/stripe';
 import { getTown } from '../../../lib/towns';
 import { getCatalog } from '../../../lib/catalog';
+import { getProgram, programSizeLabels, programStatus } from '../../../lib/programs';
 import { saveSubmission } from '../../../lib/inbox';
 import { checkRateLimit, getClientIp } from '../../../lib/ratelimit';
 
@@ -22,6 +23,7 @@ interface ItemInput {
 }
 interface PlayerInput {
   name: string;
+  playerStatus?: string; // program towns: new / existing
   gender?: string;
   grade?: string;
   items: ItemInput[];
@@ -58,6 +60,7 @@ export const POST: APIRoute = async ({ request }) => {
 
   const town = await getTown(payload.town_slug);
   if (!town) return err('Unknown town', 400);
+  if (town.comingSoon) return err(`${town.name} ordering isn't open yet.`, 400);
   if (!payload.acknowledge_final_sale) {
     return err('You must acknowledge the final-sale policy before paying.', 400);
   }
@@ -72,6 +75,11 @@ export const POST: APIRoute = async ({ request }) => {
   const catalog = await getCatalog(town.slug);
   const byId = new Map(catalog.filter((p) => p.enabled).map((p) => [p.id, p]));
 
+  // Town program rules (e.g. Masco Hoops): new/existing player, grade list,
+  // shop-coded sizes, number only collected for existing players.
+  const program = getProgram(town.slug);
+  const allowedSizes = program ? programSizeLabels(program) : null;
+
   const players = Array.isArray(payload.players) ? payload.players : [];
   if (players.length === 0) return err('Add at least one player', 400);
 
@@ -82,6 +90,17 @@ export const POST: APIRoute = async ({ request }) => {
   for (const player of players) {
     const pname = (player?.name || '').trim();
     if (!pname) return err('Each player needs a name', 400);
+
+    let status;
+    if (program) {
+      status = programStatus(program, (player.playerStatus || '').trim());
+      if (!status) return err(`Choose new or existing travel player for ${pname}`, 400);
+      const grade = (player.grade || '').trim();
+      if (program.grades.length && !program.grades.includes(grade)) {
+        return err(`Select a grade for ${pname}`, 400);
+      }
+    }
+    const collectsNumber = status ? status.collectsNumber : true;
 
     const rawItems = Array.isArray(player.items) ? player.items : [];
     const hasJersey = rawItems.some((it) => byId.get(it.productId)?.personalized);
@@ -97,19 +116,23 @@ export const POST: APIRoute = async ({ request }) => {
 
       const qty = Math.min(20, Math.max(1, Math.floor(Number(it.quantity) || 1)));
       const size = (it.size || '').trim();
-      const number = (it.number || '').trim();
+      const number = collectsNumber ? (it.number || '').trim() : '';
       const option = (it.option || '').trim();
+      const numberPending = Boolean(prod.personalized && !collectsNumber);
 
       if ((prod.sizing === 'apparel' || prod.sizing === 'shoe') && !size) {
         return err(`Select a size for ${pname}'s ${prod.label}`, 400);
       }
-      if (prod.personalized && !number) {
+      if (prod.sizing === 'apparel' && allowedSizes && !allowedSizes.has(size)) {
+        return err(`Select a valid size for ${pname}'s ${prod.label}`, 400);
+      }
+      if (prod.personalized && collectsNumber && !number) {
         return err(`Add a number for ${pname}'s ${prod.label}`, 400);
       }
 
       const descParts = [
         size ? (prod.sizing === 'shoe' ? `Shoe ${size}` : `Size ${size}`) : '',
-        number ? `#${number}` : '',
+        number ? `#${number}` : (numberPending ? 'Number TBD' : ''),
         option,
       ].filter(Boolean);
 
@@ -136,11 +159,13 @@ export const POST: APIRoute = async ({ request }) => {
         option,
         quantity: qty,
         priceCents: prod.priceCents,
+        ...(numberPending ? { numberPending: true } : {}),
       });
     }
 
     resolvedPlayers.push({
       name: pname,
+      ...(status ? { playerStatus: status.value, playerStatusLabel: status.label } : {}),
       gender: (player.gender || '').trim(),
       grade: (player.grade || '').trim(),
       items: resolvedItems,
@@ -155,9 +180,10 @@ export const POST: APIRoute = async ({ request }) => {
   // Human-readable summary stored on the submission for quick admin scanning.
   const orderSummary = resolvedPlayers
     .map((p, i) => {
-      const head = `Player ${i + 1}: ${p.name}${p.gender ? ` (${p.gender})` : ''}${p.grade ? `, grade ${p.grade}` : ''}`;
+      const meta = [p.playerStatusLabel, p.gender].filter(Boolean).join(', ');
+      const head = `Player ${i + 1}: ${p.name}${meta ? ` (${meta})` : ''}${p.grade ? `, grade ${p.grade}` : ''}`;
       const lines = p.items
-        .map((it: any) => `  - ${it.label}${it.size ? ` ${it.size}` : ''}${it.number ? ` #${it.number}` : ''}${it.option ? ` [${it.option}]` : ''}${it.quantity > 1 ? ` x${it.quantity}` : ''}`)
+        .map((it: any) => `  - ${it.label}${it.size ? ` ${it.size}` : ''}${it.number ? ` #${it.number}` : (it.numberPending ? ' #TBD' : '')}${it.option ? ` [${it.option}]` : ''}${it.quantity > 1 ? ` x${it.quantity}` : ''}`)
         .join('\n');
       return head + '\n' + lines;
     })

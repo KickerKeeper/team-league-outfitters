@@ -116,16 +116,17 @@ export const POST: APIRoute = async ({ request }) => {
       const jerseysHtml = esc(jerseys).replace(/\n/g, '<br>');
 
       const playersText = players.map((p: any, i: number) => {
-        const head = `${p.name || 'Player ' + (i + 1)}${p.gender ? ` (${p.gender})` : ''}${p.grade ? `, grade ${p.grade}` : ''}`;
-        const lines = (p.items || []).map((it: any) => `  - ${it.label || it.productId}${it.size ? ` ${it.size}` : ''}${it.number ? ` #${it.number}` : ''}${it.option ? ` [${it.option}]` : ''}${it.quantity > 1 ? ` x${it.quantity}` : ''}`).join('\n');
+        const headMeta = [p.playerStatusLabel, p.gender].filter(Boolean).join(', ');
+        const head = `${p.name || 'Player ' + (i + 1)}${headMeta ? ` (${headMeta})` : ''}${p.grade ? `, grade ${p.grade}` : ''}`;
+        const lines = (p.items || []).map((it: any) => `  - ${it.label || it.productId}${it.size ? ` ${it.size}` : ''}${it.number ? ` #${it.number}` : (it.numberPending ? ' #TBD' : '')}${it.option ? ` [${it.option}]` : ''}${it.quantity > 1 ? ` x${it.quantity}` : ''}`).join('\n');
         return head + '\n' + lines;
       }).join('\n\n');
       const orderText = playersText || jerseys;
 
       const playersHtml = players.map((p: any, i: number) => {
-        const meta = [p.gender || '', p.grade ? `Grade ${p.grade}` : ''].filter(Boolean).join(' · ');
+        const meta = [p.playerStatusLabel || '', p.gender || '', p.grade ? `Grade ${p.grade}` : ''].filter(Boolean).join(' · ');
         const itemRows = (p.items || []).map((it: any) => {
-          const detail = [it.size || '', it.number ? `#${it.number}` : '', it.option || ''].filter(Boolean).join(' · ');
+          const detail = [it.size || '', it.number ? `#${it.number}` : (it.numberPending ? 'No. TBD' : ''), it.option || ''].filter(Boolean).join(' · ');
           return `<tr><td style="padding:3px 0;color:#212529;font-size:14px;">${esc(it.label || it.productId || '')}${detail ? ` <span style="color:#6c757d;">— ${esc(detail)}</span>` : ''}${it.quantity > 1 ? ` &times;${it.quantity}` : ''}</td></tr>`;
         }).join('');
         return `<tr><td style="padding:10px 0;border-top:1px solid #e9ecef;"><strong style="font-size:14px;color:#1E4478;">${esc(p.name || ('Player ' + (i + 1)))}</strong>${meta ? ` <span style="color:#6c757d;font-size:12px;">${esc(meta)}</span>` : ''}<table role="presentation" width="100%" cellpadding="0" cellspacing="0">${itemRows}</table></td></tr>`;

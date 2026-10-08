@@ -5,12 +5,13 @@ export type Town = {
   name: string;
   blurb: string;
   custom?: boolean;
+  comingSoon?: boolean; // listed on /order but not accepting orders yet
 };
 
 export const DEFAULT_TOWNS: Town[] = [
-  { slug: 'georgetown', name: 'Georgetown', blurb: 'Royals jerseys for Georgetown youth athletes.' },
-  { slug: 'masco', name: 'Masco', blurb: 'Chieftains jerseys for Masco youth athletes.' },
-  { slug: 'swampscott', name: 'Swampscott', blurb: 'Big Blue jerseys for Swampscott youth athletes.' },
+  { slug: 'georgetown', name: 'Georgetown', blurb: 'Royals jerseys for Georgetown youth athletes.', comingSoon: true },
+  { slug: 'masco', name: 'Masco', blurb: 'Masco Hoops travel basketball uniforms, grades 5–8.' },
+  { slug: 'swampscott', name: 'Swampscott', blurb: 'Big Blue jerseys for Swampscott youth athletes.', comingSoon: true },
 ];
 
 // Back-compat alias (defaults only). Prefer getTowns() for the full live list.

@@ -601,9 +601,9 @@ import Admin from '../../layouts/Admin.astro';
     var players = getPlayers(sub);
     if (!players.length) return '';
     return players.map(function(p, pi) {
-      var meta = [p.gender || '', p.grade ? 'Grade ' + p.grade : ''].filter(Boolean).join(' · ');
+      var meta = [p.playerStatusLabel || '', p.gender || '', p.grade ? 'Grade ' + p.grade : ''].filter(Boolean).join(' · ');
       var rows = (p.items || []).map(function(it) {
-        var detail = [it.size || '', it.number ? '#' + it.number : '', it.option || ''].filter(Boolean).join(' · ');
+        var detail = [it.size || '', it.number ? '#' + it.number : (it.numberPending ? 'No. TBD' : ''), it.option || ''].filter(Boolean).join(' · ');
         return '<tr><td>' + esc(it.label || it.productId || '') + '</td><td class="od-center">' + esc(detail) + '</td><td class="od-center">' + (it.quantity || 1) + '</td><td class="od-right">' + (money(it.priceCents) || '') + '</td></tr>';
       }).join('');
       return '<div class="od-player">' +
