@@ -67,6 +67,10 @@ if (program) {
           </div>
         )}
 
+        <div class="draft-notice" id="draft-notice" role="status" hidden>
+          We restored the details you entered earlier. <button type="button" class="link-btn" id="draft-clear">Start over</button>
+        </div>
+
         {program && (
           <div class="program-info">
             <p>{program.description}</p>
@@ -427,6 +431,7 @@ if (program) {
   }
   .canceled-notice a { color: var(--color-primary); font-weight: 600; }
 
+  .draft-notice { background: var(--color-neutral-50, #fafafa); border: 1px solid var(--color-neutral-200); border-radius: var(--radius-md); padding: var(--space-3) var(--space-4); margin-bottom: var(--space-4); font-size: var(--text-sm); color: var(--color-neutral-600); }
   .program-info {
     background: var(--color-neutral-50, #fafafa); border: 1px solid var(--color-neutral-200); border-radius: var(--radius-lg);
     padding: var(--space-4) var(--space-5); margin-bottom: var(--space-6); font-size: var(--text-sm); line-height: 1.55; color: var(--color-neutral-900);
@@ -871,6 +876,93 @@ if (program) {
   form.addEventListener('input', (e) => clearFieldError(e.target as Element));
   form.addEventListener('change', (e) => clearFieldError(e.target as Element));
 
+  // --- Draft: keep what the parent typed across a Stripe cancel or a stray reload ---
+  const DRAFT_KEY = 'order-draft-' + townSlug;
+  const DRAFT_TTL = 24 * 60 * 60 * 1000;
+  const draftNotice = document.getElementById('draft-notice') as HTMLElement | null;
+  let draftTimer: number | undefined;
+
+  function baseFields() {
+    return {
+      name: (form.elements.namedItem('name') as HTMLInputElement).value,
+      email: (form.elements.namedItem('email') as HTMLInputElement).value,
+      phone: (form.elements.namedItem('phone') as HTMLInputElement).value,
+      notes: (form.elements.namedItem('notes') as HTMLTextAreaElement).value,
+    };
+  }
+
+  function writeDraft() {
+    try {
+      localStorage.setItem(DRAFT_KEY, JSON.stringify({ t: Date.now(), base: baseFields(), players: collectPlayers() }));
+    } catch { /* storage unavailable: nothing to do */ }
+  }
+
+  function saveDraft() {
+    window.clearTimeout(draftTimer);
+    draftTimer = window.setTimeout(writeDraft, 400);
+  }
+
+  function clearDraft() {
+    window.clearTimeout(draftTimer);
+    try { localStorage.removeItem(DRAFT_KEY); } catch { /* ignore */ }
+  }
+
+  function setVal(scope: Element, name: string, value: string | undefined) {
+    const el = scope.querySelector('[data-field="' + name + '"]') as HTMLInputElement | HTMLSelectElement | null;
+    if (el && value != null && el.type !== 'radio') el.value = value;
+  }
+
+  function restoreDraft() {
+    let draft: any = null;
+    try { draft = JSON.parse(localStorage.getItem(DRAFT_KEY) || 'null'); } catch { return; }
+    if (!draft || typeof draft !== 'object' || Date.now() - (draft.t || 0) > DRAFT_TTL) { clearDraft(); return; }
+    const base = draft.base || {};
+    const players = Array.isArray(draft.players) ? draft.players : [];
+    const filled = Object.values(base).some((v) => String(v || '').trim()) || players.some((p: any) => (p.name || '').trim());
+    if (!filled) return;
+
+    (form.elements.namedItem('name') as HTMLInputElement).value = base.name || '';
+    (form.elements.namedItem('email') as HTMLInputElement).value = base.email || '';
+    (form.elements.namedItem('phone') as HTMLInputElement).value = base.phone || '';
+    (form.elements.namedItem('notes') as HTMLTextAreaElement).value = base.notes || '';
+
+    while (players.length > playersList.querySelectorAll('[data-player-block]').length) addBtn.click();
+    const blocks = playersList.querySelectorAll('[data-player-block]');
+    players.forEach((p: any, i: number) => {
+      const b = blocks[i];
+      if (!b) return;
+      if (p.playerStatus) {
+        const radio = b.querySelector('[data-field="player_status"][value="' + p.playerStatus + '"]') as HTMLInputElement | null;
+        if (radio) { radio.checked = true; applyStatus(b); }
+      }
+      setVal(b, 'player_name', p.name);
+      setVal(b, 'gender', p.gender);
+      setVal(b, 'grade', p.grade);
+      (p.items || []).forEach((it: any) => {
+        const line = b.querySelector('[data-product="' + it.productId + '"]');
+        if (!line) return;
+        const include = line.querySelector('[data-include]') as HTMLInputElement | null;
+        const fields = line.querySelector('[data-addon-fields]') as HTMLElement | null;
+        if (include) { include.checked = true; if (fields) fields.hidden = false; }
+        setVal(line, 'size', it.size);
+        setVal(line, 'number', it.number);
+        setVal(line, 'option', it.option);
+        if (it.quantity) setVal(line, 'quantity', String(it.quantity));
+        const sizeSel = line.querySelector('select[data-field="size"]') as HTMLSelectElement | null;
+        if (sizeSel) updateSizeHint(sizeSel);
+      });
+    });
+    relabelPlayers();
+    if (draftNotice) draftNotice.hidden = false;
+  }
+
+  document.getElementById('draft-clear')?.addEventListener('click', () => {
+    clearDraft();
+    window.location.href = window.location.pathname;
+  });
+  form.addEventListener('input', saveDraft);
+  restoreDraft();
+
   const submitLabel = submitBtn.textContent || '';
   function setBusy(busy: boolean) {
     submitBtn.disabled = busy;
@@ -884,6 +976,7 @@ if (program) {
     errorDiv.hidden = true;
     if (!validateForm()) return;
     setBusy(true);
+    writeDraft();
 
     const players = collectPlayers();
     const base = {
@@ -932,6 +1025,7 @@ if (program) {
           body: fd.toString(),
         });
         if (response.ok) {
+          clearDraft();
           form.hidden = true;
           successDiv.hidden = false;
           successDiv.scrollIntoView({ behavior: 'smooth', block: 'center' });
