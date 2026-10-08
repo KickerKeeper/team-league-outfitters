@@ -1,10 +1,33 @@
 import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
 import { getStore } from '@netlify/blobs';
 
-// Credentials — set via environment variables in production
+// Credentials — set via environment variables in production.
+// ADMIN_USER / ADMIN_PASS is the primary account. ADMIN_ACCOUNTS adds more,
+// one `username:password` pair per line (or separated by `;`), e.g.
+//   jamienadeau@georgetownjerseys.com:a-long-random-password
 const ADMIN_USER = import.meta.env.ADMIN_USER || 'admin';
 const ADMIN_PASS = import.meta.env.ADMIN_PASS || 'TLO2026!';
 const SESSION_SECRET = import.meta.env.SESSION_SECRET || 'tlo-session-secret-change-me';
+
+interface AdminAccount { user: string; pass: string }
+
+function parseExtraAccounts(raw: string | undefined): AdminAccount[] {
+  if (!raw) return [];
+  return raw
+    .split(/[\n;]+/)
+    .map((pair) => pair.trim())
+    .filter(Boolean)
+    .map((pair) => {
+      const i = pair.indexOf(':');
+      return i > 0 ? { user: pair.slice(0, i).trim(), pass: pair.slice(i + 1) } : null;
+    })
+    .filter((a): a is AdminAccount => !!a && !!a.user && !!a.pass);
+}
+
+const ADMIN_ACCOUNTS: AdminAccount[] = [
+  { user: ADMIN_USER, pass: ADMIN_PASS },
+  ...parseExtraAccounts(import.meta.env.ADMIN_ACCOUNTS),
+];
 
 // Warn if defaults are in use
 if (ADMIN_PASS === 'TLO2026!') {
@@ -34,10 +57,17 @@ function safeEqual(a: string, b: string): boolean {
 }
 
 export function validateCredentials(username: string, password: string): boolean {
-  // Both comparisons run unconditionally to avoid leaking which field failed.
-  const userOk = safeEqual(username, ADMIN_USER);
-  const passOk = safeEqual(password, ADMIN_PASS);
-  return userOk && passOk;
+  // Every account is checked, and both fields of each, so timing doesn't
+  // reveal which username exists. Usernames match case-insensitively (they're
+  // email addresses); passwords are exact.
+  let ok = false;
+  const uname = username.trim().toLowerCase();
+  for (const account of ADMIN_ACCOUNTS) {
+    const userOk = safeEqual(uname, account.user.toLowerCase());
+    const passOk = safeEqual(password, account.pass);
+    if (userOk && passOk) ok = true;
+  }
+  return ok;
 }
 
 // Token format: <expiresMs>.<nonceHex>.<userB64url>.<sigHex>
