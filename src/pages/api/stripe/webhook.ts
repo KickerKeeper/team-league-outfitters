@@ -2,6 +2,23 @@ import type { APIRoute } from 'astro';
 import type Stripe from 'stripe';
 import { getStripe, getWebhookSecret } from '../../../lib/stripe';
 import { getSubmission, setPaid, addMessage, mergeSubmissionData } from '../../../lib/inbox';
+import { getDelivery } from '../../../lib/delivery';
+import { CONTACT_EMAIL } from '../../../lib/business';
+
+// Stripe moved the collected shipping address between API versions; read both.
+function shippingAddressText(session: Stripe.Checkout.Session): string {
+  const s: any = session;
+  const details = s.shipping_details || s.collected_information?.shipping_details;
+  const a = details?.address;
+  if (!a) return '';
+  const lines = [
+    details.name || '',
+    a.line1 || '',
+    a.line2 || '',
+    [a.city, a.state, a.postal_code].filter(Boolean).join(', '),
+  ].filter(Boolean);
+  return lines.join('\n');
+}
 
 export const prerender = false;
 
@@ -68,7 +85,9 @@ export const POST: APIRoute = async ({ request }) => {
       ? (session.total_details.amount_tax / 100).toFixed(2)
       : '0.00';
 
+    const shippingAddress = shippingAddressText(session);
     await mergeSubmissionData(submissionId, {
+      ...(shippingAddress ? { shipping_address: shippingAddress } : {}),
       amount_total_cents: session.amount_total != null ? String(session.amount_total) : '',
       amount_tax_cents: session.total_details?.amount_tax != null ? String(session.total_details.amount_tax) : '',
       receipt_url: receiptUrl || '',
@@ -99,6 +118,12 @@ export const POST: APIRoute = async ({ request }) => {
       const town = sub.data.town || '';
       const jerseys = sub.data.jerseys || '';
       const notes = sub.data.notes || '';
+      const delivery = getDelivery(sub.data.delivery);
+      const deliveryText = delivery
+        ? (delivery.id === 'ship'
+            ? `Ship to home${shippingAddress ? `\n${shippingAddress}` : ''}`
+            : `${delivery.label} — ${delivery.note}`)
+        : '';
 
       let players: any[] = [];
       try { players = sub.data.players_json ? JSON.parse(sub.data.players_json) : []; } catch { players = []; }
@@ -135,6 +160,7 @@ export const POST: APIRoute = async ({ request }) => {
       const summaryLines = [
         town ? `Town: ${town}` : '',
         orderText ? `${players.length ? 'Order' : 'Jerseys'}:\n${orderText}` : '',
+        deliveryText ? `Delivery: ${deliveryText}` : '',
         notes ? `Notes: ${notes}` : '',
         `Total paid: $${totalDollars} (tax: $${taxDollars})`,
       ].filter(Boolean).join('\n\n');
@@ -149,15 +175,14 @@ ${summaryLines}
 All custom jersey sales are final. Production starts with your child's name and number, so we can't accept returns or changes once we begin.
 
 What happens next
-• Need a sizing change? Call (978) 352-8240 as soon as possible.
+• Need a sizing change? Email ${CONTACT_EMAIL} as soon as possible.
 • Stripe has emailed your payment receipt separately.
 
 Thanks again,
 The Georgetown Jerseys Team
 
 Georgetown Jerseys
-103 E Main St #2, Georgetown, MA 01833
-(978) 352-8240
+${CONTACT_EMAIL}
 gtownjerseys.com`;
 
       const summaryRowsHtml = [
@@ -165,6 +190,7 @@ gtownjerseys.com`;
         players.length
           ? `<tr><td colspan="2" style="padding:0;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0">${playersHtml}</table></td></tr>`
           : (jerseys ? `<tr><td style="padding:8px 0;color:#6c757d;font-size:14px;vertical-align:top;">Jerseys</td><td style="padding:8px 0;color:#212529;font-size:14px;text-align:right;">${jerseysHtml}</td></tr>` : ''),
+        deliveryText ? `<tr><td style="padding:8px 0;color:#6c757d;font-size:14px;vertical-align:top;">Delivery</td><td style="padding:8px 0;color:#212529;font-size:14px;text-align:right;">${esc(deliveryText).replace(/\n/g, '<br>')}</td></tr>` : '',
         notes ? `<tr><td style="padding:8px 0;color:#6c757d;font-size:14px;vertical-align:top;">Notes</td><td style="padding:8px 0;color:#212529;font-size:14px;text-align:right;">${esc(notes)}</td></tr>` : '',
       ].filter(Boolean).join('');
 
@@ -205,7 +231,7 @@ gtownjerseys.com`;
         </td></tr>
         <tr><td style="padding:24px 32px 0;color:#212529;font-size:15px;line-height:1.6;">
           <p style="margin:0 0 10px;color:#1E4478;font-size:16px;font-weight:700;">What happens next</p>
-          <p style="margin:0 0 8px;">&bull; Need a sizing change? Call <a href="tel:+19783528240" style="color:#2B5EA7;text-decoration:none;">(978) 352-8240</a> as soon as possible.</p>
+          <p style="margin:0 0 8px;">&bull; Need a sizing change? Email <a href="mailto:${CONTACT_EMAIL}" style="color:#2B5EA7;text-decoration:none;">${CONTACT_EMAIL}</a> as soon as possible.</p>
           <p style="margin:0;">&bull; Stripe has emailed your payment receipt separately.</p>
         </td></tr>
         <tr><td style="padding:24px 32px 8px;color:#212529;font-size:15px;line-height:1.6;">
@@ -216,8 +242,7 @@ gtownjerseys.com`;
           <hr style="border:none;border-top:1px solid #e9ecef;margin:0 0 16px;">
           <p style="margin:0;color:#6c757d;font-size:12px;line-height:1.7;">
             <strong style="color:#495057;">Georgetown Jerseys</strong><br>
-            103 E Main St #2, Georgetown, MA 01833<br>
-            <a href="tel:+19783528240" style="color:#6c757d;text-decoration:none;">(978) 352-8240</a> &middot; <a href="https://gtownjerseys.com" style="color:#2B5EA7;text-decoration:none;">gtownjerseys.com</a>
+            <a href="mailto:${CONTACT_EMAIL}" style="color:#6c757d;text-decoration:none;">${CONTACT_EMAIL}</a> &middot; <a href="https://gtownjerseys.com" style="color:#2B5EA7;text-decoration:none;">gtownjerseys.com</a>
           </p>
         </td></tr>
       </table>

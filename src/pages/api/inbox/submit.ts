@@ -112,10 +112,13 @@ export const POST: APIRoute = async ({ request }) => {
       const town = data.town || '';
       const jerseys = data.jerseys || '';
       const notes = data.notes || '';
+      const orderSummary = data.order_summary || '';
+      const deliveryLabel = data.delivery_label || '';
 
       const summaryLines = [
         town ? `Town: ${town}` : '',
-        jerseys ? `Jerseys:\n${jerseys}` : '',
+        jerseys ? `Jerseys:\n${jerseys}` : (orderSummary ? `Order:\n${orderSummary}` : ''),
+        deliveryLabel ? `Delivery: ${deliveryLabel}` : '',
         notes ? `Notes: ${notes}` : '',
       ].filter(Boolean).join('\n\n');
 
@@ -132,8 +135,7 @@ If anything looks off or you have questions, just reply to this email and we'll 
 Talk soon,
 Jamie Nadeau
 Georgetown Jerseys
-(978) 352-8240
-103 E Main St #2, Georgetown, MA 01833`;
+jamienadeau@georgetownjerseys.com`;
 
       try {
         const confirmSubject = 'Your Order — Georgetown Jerseys';

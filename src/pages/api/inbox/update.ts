@@ -8,7 +8,7 @@ const validStatuses = ['new', 'read', 'completed'];
 
 const completionEmail = {
   subject: 'Your order is complete — Georgetown Jerseys',
-  body: (name: string) => `Hi ${name},\n\nYour order is complete! Thanks for choosing Georgetown Jerseys.\n\nIf you're picking up in store, please call (978) 352-8240 or reply to this email to confirm a time — our shop hours change week to week.\n\nIf you have a moment, a quick Google review really helps other local teams find us:\nhttps://g.page/r/teamleagueoutfitters/review\n\n— Jamie Nadeau\nGeorgetown Jerseys`,
+  body: (name: string) => `Hi ${name},\n\nYour order is complete! Thanks for choosing Georgetown Jerseys.\n\nIf you chose porch pickup in Georgetown, we'll email you the pickup details. If you chose shipping, it's on its way to the address you gave at checkout. Questions? Just reply to this email.\n\nIf you have a moment, a quick Google review really helps other local teams find us:\nhttps://g.page/r/teamleagueoutfitters/review\n\n— Jamie Nadeau\nGeorgetown Jerseys`,
 };
 
 export const POST: APIRoute = async ({ request }) => {

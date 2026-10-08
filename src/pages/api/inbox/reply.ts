@@ -104,7 +104,7 @@ export const POST: APIRoute = async ({ request }) => {
         reply_to: replyTo,
         to: [to],
         subject: subject,
-        text: msgBody + '\n\n—\nGeorgetown Jerseys\n(978) 352-8240\n103 E Main St #2, Georgetown, MA 01833',
+        text: msgBody + '\n\n—\nGeorgetown Jerseys\njamienadeau@georgetownjerseys.com',
       };
 
       // Add threading headers

@@ -5,10 +5,11 @@ export const SITE_DOCUMENTATION = `
 ## Business Overview
 Georgetown Jerseys is a sports team uniform and custom apparel shop in Georgetown, MA.
 Owner: Jamie Nadeau. Founded 2013 (formerly The Soccer Shoppe).
-Address: 103 E Main St #2, Georgetown Building Supply Plaza, Georgetown, MA 01833
-Phone: (978) 352-8240 / (978) 360-4359
-Email: orders@gtownjerseys.com
-Hours: Wed-Fri 11am-5pm, Sat 8am-Noon
+Location: Fully remote since November 1, 2026 (the Georgetown storefront at 103 E Main St closed). No walk-in hours and no public phone number.
+Contact: Jamie Nadeau — jamienadeau@georgetownjerseys.com (the only public contact channel)
+System email: orders@gtownjerseys.com (order confirmations / replies)
+Delivery: Porch pickup in Georgetown (free, parent is emailed pickup details) or ship to home ($10 flat). Chosen on the order form.
+Timing: Orders placed by November 9, 2026 are ready before the first weekend in December.
 
 ## Services Offered
 1. Team Uniforms — jerseys, shorts, socks for soccer, basketball, baseball
@@ -22,9 +23,9 @@ Hours: Wed-Fri 11am-5pm, Sat 8am-Noon
 1. Customer submits order form on the website (or emails directly)
 2. Order appears in the admin inbox at /admin/inbox
 3. Jamie reviews and confirms the order details
-4. Customer comes in for fittings if needed
+4. Sizing questions are handled by email using the online size charts
 5. Order goes into production (heat press, embroidery, etc.)
-6. Customer picks up at the shop or order is shipped
+6. Order is shipped to the customer or left for porch pickup in Georgetown
 
 ## Website Pages (Public)
 - / (Homepage) — hero, trust bar, services overview, how it works, testimonials, CTA

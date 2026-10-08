@@ -2,8 +2,8 @@
 export const prerender = false;
 import Base from '../layouts/Base.astro';
 import { getTowns } from '../lib/towns';
-import { getWeekOfLabel } from '../lib/week';
-const weekOf = getWeekOfLabel();
+import { ORDER_TIMING_NOTE } from '../lib/delivery';
+import { CONTACT_EMAIL, CONTACT_MAILTO } from '../lib/business';
 const towns = await getTowns();
 const soonSlug = Astro.url.searchParams.get('soon') || '';
 const soonTown = towns.find((t) => t.slug === soonSlug && t.comingSoon);
@@ -25,7 +25,7 @@ const soonTown = towns.find((t) => t.slug === soonSlug && t.comingSoon);
       <div class="towns-area">
         {soonTown && (
           <div class="soon-notice" role="status">
-            <strong>{soonTown.name} ordering isn't open yet.</strong> Check back soon, or call <a href="tel:+19783528240">(978) 352-8240</a> with questions.
+            <strong>{soonTown.name} ordering isn't open yet.</strong> Check back soon, or email <a href={CONTACT_MAILTO}>{CONTACT_EMAIL}</a> with questions.
           </div>
         )}
         <div class="towns-grid">
@@ -51,17 +51,12 @@ const soonTown = towns.find((t) => t.slug === soonSlug && t.comingSoon);
 
       <aside class="order-sidebar">
         <div class="sidebar-card card">
-          <h3>Prefer to call?</h3>
-          <p>We're happy to help over the phone.</p>
-          <p class="sidebar-phone"><a href="tel:+19783528240">(978) 352-8240</a></p>
-          <p class="sidebar-phone"><a href="tel:+19783604359">(978) 360-4359</a></p>
+          <h3>Questions?</h3>
+          <p>Email Jamie at <a class="sidebar-email" href={CONTACT_MAILTO}>{CONTACT_EMAIL}</a> and we'll get right back to you.</p>
           <hr />
-          <h4>Hours &mdash; Week of {weekOf}</h4>
-          <p>Wed &ndash; Fri: 11am &ndash; 5pm<br />Sat: 8am &ndash; Noon</p>
-          <p class="sidebar-hours-note">Hours vary weekly &mdash; call ahead to confirm.</p>
-          <hr />
-          <h4>Visit Us</h4>
-          <p>103 E Main St #2<br />Georgetown, MA 01833</p>
+          <h4>Getting your order</h4>
+          <p>Porch pickup in Georgetown is free, or we'll ship to your home for a flat $10.</p>
+          <p class="sidebar-hours-note">{ORDER_TIMING_NOTE}</p>
         </div>
       </aside>
     </div>
