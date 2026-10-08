@@ -4,6 +4,8 @@ import { getTown } from '../../../lib/towns';
 import { getCatalog } from '../../../lib/catalog';
 import { getProgram, programSizeLabels, programStatus } from '../../../lib/programs';
 import { saveSubmission } from '../../../lib/inbox';
+import { getDelivery, deliverySummary } from '../../../lib/delivery';
+import { CONTACT_EMAIL } from '../../../lib/business';
 import { checkRateLimit, getClientIp } from '../../../lib/ratelimit';
 
 export const prerender = false;
@@ -12,6 +14,7 @@ export const prerender = false;
 // code applies the MA apparel exemption (clothing <= $175/item is tax-exempt).
 const TAX_CODE_GENERAL = 'txcd_99999999'; // taxable physical goods (ball, backpack)
 const TAX_CODE_CLOTHING = 'txcd_30011000'; // clothing & footwear (jersey, shorts, socks, sweatshirt, tee)
+const TAX_CODE_SHIPPING = 'txcd_92010001'; // shipping charge
 const MAX_LINE_ITEMS = 50;
 
 interface ItemInput {
@@ -35,6 +38,7 @@ interface CheckoutPayload {
   phone: string;
   notes?: string;
   acknowledge_final_sale: boolean;
+  delivery?: string; // pickup | ship
   players: PlayerInput[];
 }
 
@@ -43,7 +47,7 @@ const err = (message: string, status: number) =>
 
 export const POST: APIRoute = async ({ request }) => {
   if (!isStripeConfigured()) {
-    return err('Payments not yet configured. Please call (978) 352-8240 to place your order.', 503);
+    return err(`Payments not yet configured. Please email ${CONTACT_EMAIL} to place your order.`, 503);
   }
 
   const ip = getClientIp(request);
@@ -71,6 +75,9 @@ export const POST: APIRoute = async ({ request }) => {
   if (!name || !email || !phone) {
     return err('Missing parent contact info', 400);
   }
+
+  const delivery = getDelivery(payload.delivery);
+  if (!delivery) return err('Choose how you want to receive your order', 400);
 
   const catalog = await getCatalog(town.slug);
   const byId = new Map(catalog.filter((p) => p.enabled).map((p) => [p.id, p]));
@@ -103,15 +110,13 @@ export const POST: APIRoute = async ({ request }) => {
     const collectsNumber = status ? status.collectsNumber : true;
 
     const rawItems = Array.isArray(player.items) ? player.items : [];
-    const hasJersey = rawItems.some((it) => byId.get(it.productId)?.personalized);
-    if (!hasJersey) return err(`Add a jersey for ${pname}`, 400);
 
     const resolvedItems: any[] = [];
     for (const it of rawItems) {
       const prod = byId.get(it.productId);
       if (!prod) continue; // ignore unknown / disabled products
       if (prod.priceCents <= 0) {
-        return err(`Pricing not set for ${prod.label}. Please call (978) 352-8240.`, 503);
+        return err(`Pricing not set for ${prod.label}. Please email ${CONTACT_EMAIL}.`, 503);
       }
 
       const qty = Math.min(20, Math.max(1, Math.floor(Number(it.quantity) || 1)));
@@ -163,6 +168,9 @@ export const POST: APIRoute = async ({ request }) => {
       });
     }
 
+    // Shorts-only (or socks-only) is fine; an empty player is not.
+    if (!resolvedItems.length) return err(`Tick at least one item for ${pname}`, 400);
+
     resolvedPlayers.push({
       name: pname,
       ...(status ? { playerStatus: status.value, playerStatusLabel: status.label } : {}),
@@ -174,7 +182,7 @@ export const POST: APIRoute = async ({ request }) => {
 
   if (lineItems.length === 0) return err('Your order is empty', 400);
   if (lineItems.length > MAX_LINE_ITEMS) {
-    return err('Order too large — please call the shop at (978) 352-8240.', 400);
+    return err(`Order too large — please email ${CONTACT_EMAIL}.`, 400);
   }
 
   // Human-readable summary stored on the submission for quick admin scanning.
@@ -187,7 +195,29 @@ export const POST: APIRoute = async ({ request }) => {
         .join('\n');
       return head + '\n' + lines;
     })
-    .join('\n\n');
+    .join('\n\n') + `\n\nDelivery: ${deliverySummary(delivery)}`;
+
+  const jerseyCount = resolvedPlayers.reduce(
+    (n, p) => n + p.items.filter((it: any) => byId.get(it.productId)?.personalized).reduce((q: number, it: any) => q + it.quantity, 0),
+    0,
+  );
+
+  // Shipping is a Stripe shipping rate so it's taxed and receipted correctly;
+  // porch pickup adds nothing and collects no address.
+  const shippingParams = delivery.priceCents > 0
+    ? {
+        shipping_address_collection: { allowed_countries: ['US'] },
+        shipping_options: [{
+          shipping_rate_data: {
+            type: 'fixed_amount',
+            display_name: delivery.label,
+            fixed_amount: { amount: delivery.priceCents, currency: 'usd' },
+            tax_behavior: 'exclusive',
+            tax_code: TAX_CODE_SHIPPING,
+          },
+        }],
+      }
+    : {};
 
   // Save the inbox submission first so the webhook can flip it to paid.
   const submissionId = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
@@ -202,9 +232,13 @@ export const POST: APIRoute = async ({ request }) => {
       town: town.name,
       town_slug: town.slug,
       player_count: String(resolvedPlayers.length),
-      jersey_count: String(resolvedPlayers.length), // one jersey per player; keeps inbox list preview accurate
+      jersey_count: String(jerseyCount),
+      item_count: String(lineItems.length),
+      delivery: delivery.id,
+      delivery_label: delivery.label,
+      shipping_cents: String(delivery.priceCents),
       notes: payload.notes || '',
-      subtotal_cents: String(subtotalCents),
+      subtotal_cents: String(subtotalCents + delivery.priceCents),
       players_json: JSON.stringify(resolvedPlayers),
       order_summary: orderSummary,
       acknowledged_final_sale: 'yes',
@@ -225,15 +259,18 @@ export const POST: APIRoute = async ({ request }) => {
       customer_email: email,
       line_items: lineItems,
       automatic_tax: { enabled: true },
+      ...(shippingParams as any),
       success_url: `${siteUrl}/order/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${siteUrl}/order/${town.slug}?canceled=1`,
       metadata: {
         submission_id: submissionId,
         town_slug: town.slug,
-        jersey_count: String(resolvedPlayers.length),
+        player_count: String(resolvedPlayers.length),
+        jersey_count: String(jerseyCount),
+        delivery: delivery.id,
       },
       payment_intent_data: {
-        description: `${town.name} order — ${resolvedPlayers.length} ${resolvedPlayers.length === 1 ? 'player' : 'players'}, ${lineItems.length} item(s). All custom jersey sales are final.`,
+        description: `${town.name} order — ${resolvedPlayers.length} ${resolvedPlayers.length === 1 ? 'player' : 'players'}, ${lineItems.length} item(s), ${delivery.label.toLowerCase()}. All custom jersey sales are final.`,
         metadata: { submission_id: submissionId },
       },
     });
@@ -258,6 +295,6 @@ export const POST: APIRoute = async ({ request }) => {
     // Stripe errors can echo back the request payload (parent email/name).
     // Log only the type/code, not the full error.
     console.error('Stripe Checkout Session create failed:', e?.type || e?.name || 'Unknown', e?.code || '');
-    return err('Could not start checkout. Please try again or call (978) 352-8240.', 502);
+    return err(`Could not start checkout. Please try again or email ${CONTACT_EMAIL}.`, 502);
   }
 };

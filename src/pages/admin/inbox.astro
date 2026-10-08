@@ -299,8 +299,13 @@ import Admin from '../../layouts/Admin.astro';
       var date = new Date(s.createdAt);
       var now = new Date();
       var dateStr = date.toDateString() === now.toDateString() ? date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-      var orderPreview = s.data.town || s.data.jersey_count
-        ? [s.data.town, s.data.jersey_count ? s.data.jersey_count + (s.data.jersey_count === '1' ? ' jersey' : ' jerseys') : ''].filter(Boolean).join(' · ')
+      var orderPreview = s.data.town || s.data.jersey_count || s.data.player_count
+        ? [
+            s.data.town,
+            s.data.player_count ? s.data.player_count + (s.data.player_count === '1' ? ' player' : ' players') : (s.data.jersey_count ? s.data.jersey_count + (s.data.jersey_count === '1' ? ' jersey' : ' jerseys') : ''),
+            s.data.item_count ? s.data.item_count + (s.data.item_count === '1' ? ' item' : ' items') : '',
+            s.data.delivery === 'ship' ? 'ship' : (s.data.delivery === 'pickup' ? 'pickup' : ''),
+          ].filter(Boolean).join(' · ')
         : [s.data.team, s.data.sport, s.data.players ? s.data.players + ' players' : ''].filter(Boolean).join(' · ');
       var preview = currentType === 'order' ? orderPreview : ((s.messages || []).slice(-1)[0] || {}).body || s.data.email || '';
       if (preview.length > 80) preview = preview.substring(0, 80) + '...';
@@ -616,7 +621,7 @@ import Admin from '../../layouts/Admin.astro';
   function renderOrderDetails(sub) {
     var d = sub.data || {};
     var items = getLineItems(sub);
-    var qty = d.jersey_count || (items.length ? String(items.length) : '');
+    var qty = d.player_count || d.jersey_count || (items.length ? String(items.length) : '');
     var unit = money(d.unit_price_cents);
     var subtotal = money(d.subtotal_cents);
     if (!subtotal && d.unit_price_cents && qty) {
@@ -646,6 +651,10 @@ import Admin from '../../layouts/Admin.astro';
     }
 
     var payRows = '';
+    if (d.delivery_label) {
+      var addr = d.shipping_address ? '<br><span class="od-muted">' + esc(d.shipping_address).replace(/\n/g, '<br>') + '</span>' : '';
+      payRows += '<div class="od-payrow od-payrow-delivery"><span>Delivery</span><span>' + esc(d.delivery_label) + (d.shipping_cents && d.shipping_cents !== '0' ? ' · ' + money(d.shipping_cents) : ' · free') + addr + '</span></div>';
+    }
     if (!getPlayers(sub).length) {
       if (unit) payRows += '<div class="od-payrow"><span>Unit price</span><span>' + unit + '</span></div>';
       if (qty) payRows += '<div class="od-payrow"><span>Quantity</span><span>' + esc(qty) + '</span></div>';

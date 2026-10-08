@@ -3,10 +3,11 @@ export const prerender = false;
 import Base from '../../layouts/Base.astro';
 import SizeOptions from '../../components/SizeOptions.astro';
 import { getTown } from '../../lib/towns';
-import { getWeekOfLabel } from '../../lib/week';
 import { getCatalog, formatPriceCents, APPAREL_SIZES } from '../../lib/catalog';
 import { getProgram, sizeHint } from '../../lib/programs';
 import { isStripeConfigured } from '../../lib/stripe';
+import { DELIVERY_OPTIONS, ORDER_TIMING_NOTE } from '../../lib/delivery';
+import { CONTACT_EMAIL, CONTACT_MAILTO } from '../../lib/business';
 
 const { town: townSlug } = Astro.params;
 const town = await getTown(townSlug!);
@@ -18,10 +19,10 @@ if (town.comingSoon) {
   return Astro.redirect(`/order?soon=${town.slug}`);
 }
 
-const weekOf = getWeekOfLabel();
 const catalog = (await getCatalog(town.slug)).filter((p) => p.enabled);
+// The personalized product (jersey) is pre-ticked; every product, including
+// the jersey, can be left out so a player can order shorts alone.
 const jersey = catalog.find((p) => p.personalized) || catalog[0];
-const addons = catalog.filter((p) => !jersey || p.id !== jersey.id);
 const paymentEnabled = isStripeConfigured();
 const wasCanceled = Astro.url.searchParams.get('canceled') === '1';
 
@@ -63,7 +64,7 @@ if (program) {
       <div class="form-area">
         {wasCanceled && (
           <div class="canceled-notice" role="alert">
-            <strong>Payment canceled.</strong> No charge was made. Your details below are still here — adjust anything and try again, or call <a href="tel:+19783528240">(978) 352-8240</a> if you'd rather order over the phone.
+            <strong>Payment canceled.</strong> No charge was made. Your details below are still here — adjust anything and try again, or email <a href={CONTACT_MAILTO}>{CONTACT_EMAIL}</a> if you have questions.
           </div>
         )}
 
@@ -84,7 +85,7 @@ if (program) {
           <p class="price-strip">
             {catalog.map((p) => (
               <span class="price-strip-item">
-                {p.label} <strong>${formatPriceCents(p.priceCents)}</strong>{jersey && p.id !== jersey.id ? ' (optional)' : ''}
+                {p.label} <strong>${formatPriceCents(p.priceCents)}</strong>
               </span>
             ))}
           </p>
@@ -106,7 +107,7 @@ if (program) {
 
           <fieldset class="form-section">
             <legend>Your Info</legend>
-            <p class="section-hint">We'll use this to reach you about pickup. Fields marked <span class="req" aria-hidden="true">*</span> are required.</p>
+            <p class="section-hint">We'll use this to reach you about your order. Fields marked <span class="req" aria-hidden="true">*</span> are required.</p>
             <div class="form-grid">
               <div class="form-field">
                 <label for="name">Parent / Guardian Name <span class="req" aria-hidden="true">*</span></label>
@@ -126,7 +127,7 @@ if (program) {
           <fieldset class="form-section">
             <legend>Players</legend>
             <p class="section-hint">
-              One block per player. Add another if you're ordering for more than one.
+              One block per player. Tick the jersey, the shorts, or both &mdash; add another block if you're ordering for more than one player.
             </p>
 
             <div id="players-list">
@@ -190,100 +191,94 @@ if (program) {
                     )}
                   </div>
 
-                  {jersey && (
-                    <div
-                      class="product-line product-line-required"
-                      data-product={jersey.id}
-                      data-label={jersey.label}
-                      data-price-cents={jersey.priceCents}
-                      data-sizing={jersey.sizing}
-                      data-required="1"
-                    >
-                      <div class="product-line-head">
-                        <strong>{jersey.label}</strong>
-                        {paymentEnabled && <span class="product-price">${formatPriceCents(jersey.priceCents)}</span>}
-                      </div>
-                      <div class="form-grid">
-                        <div class="form-field">
-                          <label>
-                            Size <span class="req" aria-hidden="true">*</span>
-                            {program && <button type="button" class="link-btn size-chart-btn" data-open-chart>Size chart</button>}
+                  <div class="product-lines" data-items-group>
+                    {catalog.map((p) => {
+                      const isJersey = !!jersey && p.id === jersey.id;
+                      return (
+                        <div
+                          class="product-line"
+                          data-product={p.id}
+                          data-label={p.label}
+                          data-price-cents={p.priceCents}
+                          data-sizing={p.sizing}
+                          data-default-on={isJersey ? '1' : '0'}
+                        >
+                          <label class="product-toggle">
+                            <input type="checkbox" data-include checked={isJersey} />
+                            <span class="product-toggle-label">{p.label}</span>
+                            {paymentEnabled && <span class="product-price">${formatPriceCents(p.priceCents)}{p.sizing === 'none' ? ' each' : ''}</span>}
                           </label>
-                          <select data-field="size" required>
-                            <SizeOptions program={program} />
-                          </select>
-                          {program && <p class="size-hint" data-size-hint hidden></p>}
-                        </div>
-                        <div class="form-field" data-number-field>
-                          <div data-number-input>
-                            <label>{program ? 'Current jersey number' : 'Number'} <span class="req" aria-hidden="true">*</span></label>
-                            <input type="text" data-field="number" inputmode="numeric" pattern="[0-9]{1,3}" maxlength="3" autocomplete="off" required placeholder="e.g., 7" />
+                          <div class="product-fields" data-addon-fields hidden={!isJersey}>
+                            <div class="form-grid">
+                              {p.sizing === 'apparel' && (
+                                <div class="form-field">
+                                  <label>
+                                    Size <span class="req" aria-hidden="true">*</span>
+                                    {program && <button type="button" class="link-btn size-chart-btn" data-open-chart>Size chart</button>}
+                                  </label>
+                                  <select data-field="size" required>
+                                    <SizeOptions program={program} />
+                                  </select>
+                                  {program && <p class="size-hint" data-size-hint hidden></p>}
+                                </div>
+                              )}
+                              {p.sizing === 'shoe' && (
+                                <div class="form-field">
+                                  <label>Shoe size <span class="req" aria-hidden="true">*</span></label>
+                                  <input type="text" data-field="size" placeholder="e.g., 5Y or 8" required />
+                                </div>
+                              )}
+                              {isJersey && (
+                                <div class="form-field" data-number-field>
+                                  <div data-number-input>
+                                    <label>{program ? 'Current jersey number' : 'Number'} <span class="req" aria-hidden="true">*</span></label>
+                                    <input type="text" data-field="number" inputmode="numeric" pattern="[0-9]{1,3}" maxlength="3" autocomplete="off" required placeholder="e.g., 7" />
+                                  </div>
+                                  {program && <p class="field-note" data-number-note hidden></p>}
+                                </div>
+                              )}
+                              {p.options && (
+                                <div class="form-field">
+                                  <label>{p.options.label}</label>
+                                  <select data-field="option">
+                                    <option value="">Select</option>
+                                    {p.options.choices.map((c) => <option value={c}>{c}</option>)}
+                                  </select>
+                                </div>
+                              )}
+                              {p.sizing === 'none' && (
+                                <div class="form-field">
+                                  <label>Quantity</label>
+                                  <input type="number" data-field="quantity" min="1" max="20" value="1" />
+                                </div>
+                              )}
+                            </div>
                           </div>
-                          {program && <p class="field-note" data-number-note hidden></p>}
                         </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {addons.map((p) => (
-                    <div
-                      class="product-line addon"
-                      data-product={p.id}
-                      data-label={p.label}
-                      data-price-cents={p.priceCents}
-                      data-sizing={p.sizing}
-                    >
-                      <label class="addon-toggle">
-                        <input type="checkbox" data-include />
-                        <span>
-                          Add {p.label}
-                          {paymentEnabled && <> &mdash; ${formatPriceCents(p.priceCents)}{p.sizing === 'none' ? ' each' : ''}</>}
-                        </span>
-                      </label>
-                      <div class="addon-fields" data-addon-fields hidden>
-                        <div class="form-grid">
-                          {p.sizing === 'apparel' && (
-                            <div class="form-field">
-                              <label>
-                                Size
-                                {program && <button type="button" class="link-btn size-chart-btn" data-open-chart>Size chart</button>}
-                              </label>
-                              <select data-field="size">
-                                <SizeOptions program={program} />
-                              </select>
-                              {program && <p class="size-hint" data-size-hint hidden></p>}
-                            </div>
-                          )}
-                          {p.sizing === 'shoe' && (
-                            <div class="form-field">
-                              <label>Shoe size</label>
-                              <input type="text" data-field="size" placeholder="e.g., 5Y or 8" />
-                            </div>
-                          )}
-                          {p.options && (
-                            <div class="form-field">
-                              <label>{p.options.label}</label>
-                              <select data-field="option">
-                                <option value="">Select</option>
-                                {p.options.choices.map((c) => <option value={c}>{c}</option>)}
-                              </select>
-                            </div>
-                          )}
-                          {p.sizing === 'none' && (
-                            <div class="form-field">
-                              <label>Quantity</label>
-                              <input type="number" data-field="quantity" min="1" max="20" value="1" />
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
             </div>
 
             <button type="button" id="add-player" class="btn btn-secondary add-player-btn">+ Add another player</button>
+          </fieldset>
+
+          <fieldset class="form-section" data-radio-group>
+            <legend>How would you like to receive your order?</legend>
+            <p class="section-hint">{ORDER_TIMING_NOTE}</p>
+            <div class="delivery-options">
+              {DELIVERY_OPTIONS.map((d) => (
+                <label class="delivery-option">
+                  <input type="radio" name="delivery" value={d.id} data-price-cents={d.priceCents} required />
+                  <span class="delivery-text">
+                    <span class="delivery-label">{d.label} <strong>{d.priceCents > 0 ? `$${formatPriceCents(d.priceCents)}` : 'Free'}</strong></span>
+                    <span class="delivery-note">{d.note}</span>
+                  </span>
+                </label>
+              ))}
+            </div>
           </fieldset>
 
           <fieldset class="form-section">
@@ -311,7 +306,7 @@ if (program) {
             <strong>All custom jersey sales are final.</strong>
             Once an order is placed, it goes straight into production with your kid's name and number &mdash; we can't take it back.
             <br />
-            <strong>Not sure on sizing?</strong> Call the shop at <a href="tel:+19783528240">(978) 352-8240</a> <em>before</em> you order and we'll walk you through it.
+            <strong>Not sure on sizing?</strong> Email Jamie at <a href={CONTACT_MAILTO}>{CONTACT_EMAIL}</a> <em>before</em> you order and we'll walk you through it.
           </div>
 
           <label class="acknowledge">
@@ -341,7 +336,7 @@ if (program) {
 
         <div class="form-error" id="form-error" hidden>
           <h2>Something went wrong</h2>
-          <p id="form-error-msg">Please call us at <a href="tel:+19783528240">(978) 352-8240</a> and we'll get you sorted.</p>
+          <p id="form-error-msg">Please email <a href={CONTACT_MAILTO}>{CONTACT_EMAIL}</a> and we'll get you sorted.</p>
         </div>
       </div>
 
@@ -359,17 +354,12 @@ if (program) {
               <hr />
             </>
           )}
-          <h3>Prefer to call?</h3>
-          <p>We're happy to help over the phone.</p>
-          <p class="sidebar-phone"><a href="tel:+19783528240">(978) 352-8240</a></p>
-          <p class="sidebar-phone"><a href="tel:+19783604359">(978) 360-4359</a></p>
+          <h3>Questions?</h3>
+          <p>Email Jamie at <a class="sidebar-email" href={CONTACT_MAILTO}>{CONTACT_EMAIL}</a> and we'll get right back to you.</p>
           <hr />
-          <h4>Hours &mdash; Week of {weekOf}</h4>
-          <p>Wed &ndash; Fri: 11am &ndash; 5pm<br />Sat: 8am &ndash; Noon</p>
-          <p class="sidebar-hours-note">Hours vary weekly &mdash; call ahead to confirm.</p>
-          <hr />
-          <h4>Visit Us</h4>
-          <p>103 E Main St #2<br />Georgetown, MA 01833</p>
+          <h4>Getting your order</h4>
+          <p>Porch pickup in Georgetown is free, or we'll ship to your home for a flat $10. You'll pick one on the form.</p>
+          <p class="sidebar-hours-note">{ORDER_TIMING_NOTE}</p>
         </div>
       </aside>
     </div>
@@ -417,7 +407,7 @@ if (program) {
               </div>
             );
           })}
-          <p class="chart-note">These are garment measurements from A4. Still unsure? Call the shop at <a href="tel:+19783528240">(978) 352-8240</a> before you order.</p>
+          <p class="chart-note">These are garment measurements from A4. Still unsure? Email <a href={CONTACT_MAILTO}>{CONTACT_EMAIL}</a> before you order.</p>
         </div>
       ))}
     </dialog>
@@ -492,13 +482,25 @@ if (program) {
   .status-option input { width: auto; margin: 0; }
   .status-option:has(input:checked) { border-color: var(--color-primary); box-shadow: 0 0 0 2px var(--color-primary-light, rgba(30, 68, 120, 0.15)); }
 
-  .product-line { margin-top: var(--space-4); padding-top: var(--space-4); border-top: 1px dashed var(--color-neutral-200); }
-  .product-line-head { display: flex; justify-content: space-between; align-items: baseline; }
-  .product-line-head strong { font-family: var(--font-heading); color: var(--color-neutral-900); }
-  .product-price { font-family: var(--font-heading); font-weight: 600; color: var(--color-primary); }
-  .addon-toggle { display: flex; align-items: center; gap: var(--space-2); cursor: pointer; font-size: var(--text-sm); }
-  .addon-toggle input { width: auto; }
-  .addon-fields { margin-top: 0; }
+  .product-lines { margin-top: var(--space-4); }
+  .product-line { margin-top: var(--space-3); padding: var(--space-3) var(--space-4); border: 1px solid var(--color-neutral-200); border-radius: var(--radius-md); background: #fff; }
+  .product-line:has([data-include]:checked) { border-color: var(--color-primary); box-shadow: 0 0 0 2px var(--color-primary-light); }
+  .product-toggle { display: flex; align-items: center; gap: var(--space-3); cursor: pointer; font-family: var(--font-heading); font-weight: 600; color: var(--color-neutral-900); }
+  .product-toggle input { width: auto; margin: 0; flex-shrink: 0; }
+  .product-price { font-family: var(--font-heading); font-weight: 600; color: var(--color-primary); margin-left: auto; white-space: nowrap; }
+  .product-fields { margin-top: var(--space-3); }
+  .product-lines :global(.field-error) { display: block; margin-top: var(--space-2); }
+
+  .delivery-options { display: grid; grid-template-columns: 1fr; gap: var(--space-2); }
+  .delivery-option { display: flex; align-items: flex-start; gap: var(--space-3); padding: var(--space-3) var(--space-4); border: 1px solid var(--color-neutral-200); border-radius: var(--radius-md); background: #fff; cursor: pointer; }
+  .delivery-option input { width: auto; margin: 4px 0 0; flex-shrink: 0; }
+  .delivery-option:has(input:checked) { border-color: var(--color-primary); box-shadow: 0 0 0 2px var(--color-primary-light); }
+  .delivery-text { display: flex; flex-direction: column; gap: 2px; }
+  .delivery-label { font-weight: 600; color: var(--color-neutral-900); }
+  .delivery-label strong { color: var(--color-primary); margin-left: var(--space-1); }
+  .delivery-note { font-size: var(--text-sm); color: var(--color-neutral-600); }
+  .form-section[data-radio-group] :global(.field-error) { display: block; margin-top: var(--space-2); }
+  .sidebar-email { word-break: break-all; }
 
   .order-total { border: 1px solid var(--color-neutral-200); border-radius: var(--radius-lg); padding: var(--space-4) var(--space-5); margin-bottom: var(--space-4); background: #fff; }
   .order-lines:not(:empty) { border-bottom: 1px solid var(--color-neutral-200); margin-bottom: var(--space-2); padding-bottom: var(--space-2); }
@@ -589,14 +591,29 @@ if (program) {
 
   // Program towns: nothing else shows until new/existing is picked, and the
   // jersey number is only asked for when that choice collects one.
+  // A product only counts (and only validates) while its box is ticked. Its
+  // fields are disabled when hidden so a required size can't block submit.
+  function applyInclude(line: Element) {
+    const include = line.querySelector('[data-include]') as HTMLInputElement | null;
+    const fields = line.querySelector('[data-addon-fields]') as HTMLElement | null;
+    if (!include || !fields) return;
+    const on = include.checked && !include.disabled;
+    fields.hidden = !on;
+    fields.querySelectorAll('input, select').forEach((el) => { (el as HTMLInputElement).disabled = !on; });
+  }
+
   function applyStatus(block: Element) {
-    if (!block.querySelector('[data-status-group]')) return;
+    if (!block.querySelector('[data-status-group]')) {
+      block.querySelectorAll('[data-product]').forEach(applyInclude);
+      return;
+    }
     const details = block.querySelector('[data-player-details]') as HTMLElement | null;
     if (!details) return;
     const status = checkedStatus(block);
     details.hidden = !status;
     // Hidden controls are disabled so they can't be required-but-unfocusable.
     details.querySelectorAll('input, select').forEach((el) => { (el as HTMLInputElement).disabled = !status; });
+    block.querySelectorAll('[data-product]').forEach(applyInclude);
     const collects = status ? status.getAttribute('data-collects-number') === '1' : true;
     block.querySelectorAll('[data-number-field]').forEach((f) => {
       const wrap = f.querySelector('[data-number-input]') as HTMLElement | null;
@@ -625,6 +642,14 @@ if (program) {
   }
 
   const orderLines = document.getElementById('order-lines');
+  function selectedDelivery(): HTMLInputElement | null {
+    return form.querySelector('input[name="delivery"]:checked') as HTMLInputElement | null;
+  }
+  function deliveryLabel(radio: HTMLInputElement): string {
+    const text = radio.closest('.delivery-option')?.querySelector('.delivery-label');
+    // First text node only — the <strong> after it is the price, shown in the amount column.
+    return text && text.firstChild ? (text.firstChild.textContent || '').trim() : 'Delivery';
+  }
   const submitBase = submitBtn.textContent || '';
   const money = (cents: number) => '$' + (cents / 100).toFixed(2);
 
@@ -635,9 +660,8 @@ if (program) {
       const pname = fieldVal(block, 'player_name') || 'Player ' + (i + 1);
       block.querySelectorAll('[data-product]').forEach((line) => {
         const price = parseInt(line.getAttribute('data-price-cents') || '0', 10);
-        const required = line.getAttribute('data-required') === '1';
         const include = line.querySelector('[data-include]') as HTMLInputElement | null;
-        if (required || (include && include.checked)) {
+        if (include && include.checked) {
           const qtyEl = line.querySelector('[data-field="quantity"]') as HTMLInputElement | null;
           const qty = qtyEl ? Math.max(1, parseInt(qtyEl.value || '1', 10) || 1) : 1;
           const amount = price * qty;
@@ -648,6 +672,12 @@ if (program) {
         }
       });
     });
+    const delivery = selectedDelivery();
+    if (delivery && rows.length) {
+      const shipCents = parseInt(delivery.getAttribute('data-price-cents') || '0', 10);
+      cents += shipCents;
+      rows.push({ desc: deliveryLabel(delivery), amount: shipCents });
+    }
     if (subtotalDisplay) subtotalDisplay.textContent = money(cents);
     if (orderLines) {
       orderLines.textContent = '';
@@ -696,7 +726,10 @@ if (program) {
       else if (input.getAttribute('data-field') === 'quantity') input.value = '1';
       else input.value = '';
     });
-    clone.querySelectorAll('[data-addon-fields]').forEach((f) => { (f as HTMLElement).hidden = true; });
+    clone.querySelectorAll('[data-product]').forEach((line) => {
+      const include = line.querySelector('[data-include]') as HTMLInputElement | null;
+      if (include) include.checked = line.getAttribute('data-default-on') === '1';
+    });
     clone.querySelectorAll('[data-size-hint]').forEach((h) => { (h as HTMLElement).hidden = true; (h as HTMLElement).textContent = ''; });
     const cloneRemove = clone.querySelector('[data-player-remove]') as HTMLElement | null;
     if (cloneRemove) { cloneRemove.removeAttribute('data-confirm'); cloneRemove.textContent = 'Remove'; }
@@ -732,8 +765,9 @@ if (program) {
     const target = e.target as HTMLElement;
     if (target.matches('[data-include]')) {
       const line = target.closest('[data-product]');
-      const fields = line ? (line.querySelector('[data-addon-fields]') as HTMLElement | null) : null;
-      if (fields) fields.hidden = !(target as HTMLInputElement).checked;
+      if (line) applyInclude(line);
+      const group = target.closest('[data-items-group]') as HTMLElement | null;
+      if (group) clearGroupError(group);
     }
     if (target.matches('[data-field="player_status"]')) {
       const block = target.closest('[data-player-block]');
@@ -748,6 +782,14 @@ if (program) {
     if (target.matches('[data-field="quantity"]')) updateTotals();
     if (target.matches('[data-field="player_name"]')) relabelPlayers();
     saveDraft();
+  });
+
+  // The delivery choice lives outside the players list but feeds the total.
+  form.addEventListener('change', (e) => {
+    if ((e.target as HTMLElement).matches('input[name="delivery"]')) {
+      updateTotals();
+      saveDraft();
+    }
   });
 
   playersList.querySelectorAll('[data-player-block]').forEach(applyStatus);
@@ -792,9 +834,8 @@ if (program) {
       const items: any[] = [];
       b.querySelectorAll('[data-product]').forEach((line) => {
         const productId = line.getAttribute('data-product');
-        const required = line.getAttribute('data-required') === '1';
         const include = line.querySelector('[data-include]') as HTMLInputElement | null;
-        if (!required && !(include && include.checked)) return;
+        if (!(include && include.checked)) return;
         const item: any = { productId };
         const size = fieldVal(line, 'size');
         const number = fieldVal(line, 'number');
@@ -829,7 +870,7 @@ if (program) {
   let errorSeq = 0;
 
   function errorHost(c: Element): HTMLElement {
-    return (c.closest('[data-status-group], .acknowledge, .form-field') as HTMLElement | null) || (c.parentElement as HTMLElement);
+    return (c.closest('[data-status-group], [data-radio-group], .acknowledge, .form-field') as HTMLElement | null) || (c.parentElement as HTMLElement);
   }
 
   function messageFor(c: Control): string {
@@ -859,6 +900,24 @@ if (program) {
     c.setAttribute('aria-describedby', msg.id);
   }
 
+  function setGroupError(host: HTMLElement, message: string) {
+    host.classList.add('has-error');
+    let msg = host.querySelector(':scope > .field-error') as HTMLElement | null;
+    if (!msg) {
+      msg = document.createElement('span');
+      msg.className = 'field-error';
+      msg.setAttribute('role', 'alert');
+      host.appendChild(msg);
+    }
+    msg.textContent = message;
+  }
+
+  function clearGroupError(host: HTMLElement) {
+    host.classList.remove('has-error');
+    host.querySelectorAll(':scope > .field-error').forEach((m) => m.remove());
+    if (summary && !form.querySelector('.has-error')) summary.hidden = true;
+  }
+
   function clearFieldError(target: Element) {
     if (!target.matches('input, select, textarea')) return;
     const host = errorHost(target);
@@ -873,8 +932,19 @@ if (program) {
   function validateForm(): boolean {
     const controls = Array.from(form.querySelectorAll('input, select, textarea')) as Control[];
     controls.forEach(clearFieldError);
+    form.querySelectorAll('[data-items-group]').forEach((g) => clearGroupError(g as HTMLElement));
     let first: HTMLElement | null = null;
     let count = 0;
+    // Each visible player needs at least one item ticked.
+    playersList.querySelectorAll('[data-player-block]').forEach((block) => {
+      const group = block.querySelector('[data-items-group]') as HTMLElement | null;
+      if (!group) return;
+      const gated = block.querySelector('[data-status-group]') && !checkedStatus(block);
+      if (gated || group.querySelector('[data-include]:checked')) return;
+      setGroupError(group, 'Tick at least one item for this player.');
+      count++;
+      if (!first) first = group;
+    });
     controls.forEach((c) => {
       const type = (c as HTMLInputElement).type;
       if (c.disabled || type === 'hidden' || c.name === 'bot-field') return;
@@ -917,6 +987,7 @@ if (program) {
       email: (form.elements.namedItem('email') as HTMLInputElement).value,
       phone: (form.elements.namedItem('phone') as HTMLInputElement).value,
       notes: (form.elements.namedItem('notes') as HTMLTextAreaElement).value,
+      delivery: selectedDelivery()?.value || '',
     };
   }
 
@@ -954,6 +1025,10 @@ if (program) {
     (form.elements.namedItem('email') as HTMLInputElement).value = base.email || '';
     (form.elements.namedItem('phone') as HTMLInputElement).value = base.phone || '';
     (form.elements.namedItem('notes') as HTMLTextAreaElement).value = base.notes || '';
+    if (base.delivery) {
+      const radio = form.querySelector('input[name="delivery"][value="' + base.delivery + '"]') as HTMLInputElement | null;
+      if (radio) radio.checked = true;
+    }
 
     while (players.length > playersList.querySelectorAll('[data-player-block]').length) addBtn.click();
     const blocks = playersList.querySelectorAll('[data-player-block]');
@@ -967,12 +1042,17 @@ if (program) {
       setVal(b, 'player_name', p.name);
       setVal(b, 'gender', p.gender);
       setVal(b, 'grade', p.grade);
+      // The draft is the source of truth for what's ticked — a shorts-only
+      // player must come back without the pre-ticked jersey.
+      b.querySelectorAll('[data-product]').forEach((line) => {
+        const include = line.querySelector('[data-include]') as HTMLInputElement | null;
+        if (include) { include.checked = false; applyInclude(line); }
+      });
       (p.items || []).forEach((it: any) => {
         const line = b.querySelector('[data-product="' + it.productId + '"]');
         if (!line) return;
         const include = line.querySelector('[data-include]') as HTMLInputElement | null;
-        const fields = line.querySelector('[data-addon-fields]') as HTMLElement | null;
-        if (include) { include.checked = true; if (fields) fields.hidden = false; }
+        if (include) { include.checked = true; applyInclude(line); }
         setVal(line, 'size', it.size);
         setVal(line, 'number', it.number);
         setVal(line, 'option', it.option);
@@ -1015,6 +1095,7 @@ if (program) {
       phone: (form.elements.namedItem('phone') as HTMLInputElement).value.trim(),
       notes: (form.elements.namedItem('notes') as HTMLTextAreaElement).value.trim(),
       acknowledge_final_sale: (form.elements.namedItem('acknowledge_final_sale') as HTMLInputElement).checked,
+      delivery: selectedDelivery()?.value || '',
       players,
     };
 
@@ -1047,6 +1128,9 @@ if (program) {
         fd.set('email', base.email);
         fd.set('phone', base.phone);
         fd.set('notes', base.notes);
+        fd.set('delivery', base.delivery);
+        const deliveryRadio = selectedDelivery();
+        fd.set('delivery_label', deliveryRadio ? deliveryLabel(deliveryRadio) : '');
         fd.set('order_summary', summary);
         const response = await fetch('/api/inbox/submit', {
           method: 'POST',
@@ -1063,7 +1147,7 @@ if (program) {
         }
       }
     } catch {
-      showError('Something went wrong. Please call (978) 352-8240 and we\'ll help you out.');
+      showError('Something went wrong. Please email jamienadeau@georgetownjerseys.com and we\'ll help you out.');
       setBusy(false);
     }
   });

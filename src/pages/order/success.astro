@@ -1,6 +1,7 @@
 ---
 export const prerender = false;
 import Base from '../../layouts/Base.astro';
+import { CONTACT_EMAIL, CONTACT_MAILTO } from '../../lib/business';
 import { getStripe, isStripeConfigured, readCheckoutCookie } from '../../lib/stripe';
 
 const sessionId = Astro.url.searchParams.get('session_id');
@@ -24,7 +25,7 @@ if (!sessionId) {
   // checkout cookie is set only on the browser that initiated the Stripe
   // session, so this rejects link-sharing and history scraping.
   status = 'error';
-  errorMessage = 'We could not verify this order from this browser. If you were charged, please call (978) 352-8240 — your order is safe.';
+  errorMessage = `We could not verify this order from this browser. If you were charged, please email ${CONTACT_EMAIL} — your order is safe.`;
 } else if (!isStripeConfigured()) {
   status = 'error';
   errorMessage = 'Payment system is not configured.';
@@ -38,7 +39,7 @@ if (!sessionId) {
       status = 'paid';
       parentName = session.customer_details?.name || '';
       totalDollars = session.amount_total != null ? (session.amount_total / 100).toFixed(2) : '';
-      jerseyCount = Number(session.metadata?.jersey_count || session.line_items?.data?.length || 0);
+      jerseyCount = Number(session.metadata?.player_count || session.metadata?.jersey_count || 0);
       town = session.metadata?.town_slug || '';
     } else {
       status = 'pending';
@@ -46,7 +47,7 @@ if (!sessionId) {
   } catch (e: any) {
     console.error('Could not retrieve checkout session:', e?.message);
     status = 'error';
-    errorMessage = 'We could not look up your order. If you were charged, please call (978) 352-8240.';
+    errorMessage = `We could not look up your order. If you were charged, please email ${CONTACT_EMAIL}.`;
   }
 }
 ---
@@ -79,7 +80,8 @@ if (!sessionId) {
               <h3>A couple reminders</h3>
               <ul>
                 <li><strong>All custom jersey sales are final.</strong> Once production starts with your kid's name and number, we can't take it back.</li>
-                <li><strong>Sizing questions or changes?</strong> Call <a href="tel:+19783528240">(978) 352-8240</a> right away — the sooner the better.</li>
+                <li><strong>Sizing questions or changes?</strong> Email <a href={CONTACT_MAILTO}>{CONTACT_EMAIL}</a> right away — the sooner the better.</li>
+                <li><strong>Chose porch pickup?</strong> We'll email you the pickup details once your order is ready.</li>
               </ul>
             </div>
 
@@ -93,7 +95,7 @@ if (!sessionId) {
         {status === 'pending' && (
           <>
             <h2>We're processing your payment.</h2>
-            <p>This usually only takes a moment. Refresh in a few seconds, or check your email for the Stripe receipt. If something looks off, call <a href="tel:+19783528240">(978) 352-8240</a>.</p>
+            <p>This usually only takes a moment. Refresh in a few seconds, or check your email for the Stripe receipt. If something looks off, email <a href={CONTACT_MAILTO}>{CONTACT_EMAIL}</a>.</p>
             <a href="/" class="btn btn-secondary">Back to Home</a>
           </>
         )}
@@ -102,7 +104,7 @@ if (!sessionId) {
           <>
             <h2>We hit a snag confirming your order</h2>
             <p>{errorMessage}</p>
-            <p>If you were charged, your order is safe — call <a href="tel:+19783528240">(978) 352-8240</a> and we'll sort it out.</p>
+            <p>If you were charged, your order is safe — email <a href={CONTACT_MAILTO}>{CONTACT_EMAIL}</a> and we'll sort it out.</p>
             <a href="/" class="btn btn-secondary">Back to Home</a>
           </>
         )}
@@ -110,7 +112,7 @@ if (!sessionId) {
         {status === 'unknown' && (
           <>
             <h2>Order status unknown</h2>
-            <p>We couldn't find a session ID. If you just placed an order, call <a href="tel:+19783528240">(978) 352-8240</a> to confirm.</p>
+            <p>We couldn't find a session ID. If you just placed an order, email <a href={CONTACT_MAILTO}>{CONTACT_EMAIL}</a> to confirm.</p>
             <a href="/" class="btn btn-secondary">Back to Home</a>
           </>
         )}
