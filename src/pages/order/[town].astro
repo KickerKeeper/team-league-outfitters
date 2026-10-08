@@ -699,6 +699,8 @@ if (program) {
     });
     clone.querySelectorAll('[data-addon-fields]').forEach((f) => { (f as HTMLElement).hidden = true; });
     clone.querySelectorAll('[data-size-hint]').forEach((h) => { (h as HTMLElement).hidden = true; (h as HTMLElement).textContent = ''; });
+    const cloneRemove = clone.querySelector('[data-player-remove]') as HTMLElement | null;
+    if (cloneRemove) { cloneRemove.removeAttribute('data-confirm'); cloneRemove.textContent = 'Remove'; }
     playersList.appendChild(clone);
     applyStatus(clone);
     relabelPlayers();
@@ -710,10 +712,20 @@ if (program) {
     const target = e.target as HTMLElement;
     if (target.matches('[data-player-remove]')) {
       const block = target.closest('[data-player-block]');
-      if (block && playersList.querySelectorAll('[data-player-block]').length > 1) {
-        block.remove();
-        relabelPlayers();
+      if (!block || playersList.querySelectorAll('[data-player-block]').length <= 1) return;
+      // A filled-in player needs a second tap so a slip doesn't wipe their details.
+      if (fieldVal(block, 'player_name') && target.getAttribute('data-confirm') !== '1') {
+        target.setAttribute('data-confirm', '1');
+        target.textContent = 'Tap again to remove';
+        window.setTimeout(() => {
+          target.removeAttribute('data-confirm');
+          target.textContent = 'Remove';
+        }, 4000);
+        return;
       }
+      block.remove();
+      relabelPlayers();
+      saveDraft();
     }
   });
 
