@@ -5,9 +5,17 @@ import { getStore } from '@netlify/blobs';
 // ADMIN_USER / ADMIN_PASS is the primary account. ADMIN_ACCOUNTS adds more,
 // one `username:password` pair per line (or separated by `;`), e.g.
 //   jamienadeau@georgetownjerseys.com:a-long-random-password
+//
+// There are NO production fallbacks. This repo is public, so any value
+// written here is a published credential. In `astro dev` only, placeholder
+// values are used so the admin UI can be exercised locally without a .env.
+// In production builds, missing ADMIN_PASS or SESSION_SECRET makes every
+// login attempt and every session check fail closed.
+const DEV_FALLBACK = import.meta.env.DEV;
 const ADMIN_USER = import.meta.env.ADMIN_USER || 'admin';
-const ADMIN_PASS = import.meta.env.ADMIN_PASS || 'TLO2026!';
-const SESSION_SECRET = import.meta.env.SESSION_SECRET || 'tlo-session-secret-change-me';
+const ADMIN_PASS = import.meta.env.ADMIN_PASS || (DEV_FALLBACK ? 'dev-only-password' : '');
+export const SESSION_SECRET = import.meta.env.SESSION_SECRET || (DEV_FALLBACK ? 'dev-only-session-secret' : '');
+const AUTH_CONFIGURED = Boolean(ADMIN_PASS && SESSION_SECRET);
 
 interface AdminAccount { user: string; pass: string }
 
@@ -29,12 +37,11 @@ const ADMIN_ACCOUNTS: AdminAccount[] = [
   ...parseExtraAccounts(import.meta.env.ADMIN_ACCOUNTS),
 ];
 
-// Warn if defaults are in use
-if (ADMIN_PASS === 'TLO2026!') {
-  console.warn('[AUTH WARNING] Using default admin password. Set ADMIN_PASS environment variable in Netlify.');
+if (!import.meta.env.ADMIN_PASS) {
+  console.warn('[AUTH WARNING] ADMIN_PASS is not set. Admin login is disabled in production until it is configured in Netlify.');
 }
-if (SESSION_SECRET === 'tlo-session-secret-change-me') {
-  console.warn('[AUTH WARNING] Using default session secret. Set SESSION_SECRET environment variable in Netlify.');
+if (!import.meta.env.SESSION_SECRET) {
+  console.warn('[AUTH WARNING] SESSION_SECRET is not set. Admin sessions are disabled in production until it is configured in Netlify.');
 }
 
 const SESSION_DURATION = 8 * 60 * 60 * 1000; // 8 hours
@@ -57,6 +64,7 @@ function safeEqual(a: string, b: string): boolean {
 }
 
 export function validateCredentials(username: string, password: string): boolean {
+  if (!AUTH_CONFIGURED) return false;
   // Every account is checked, and both fields of each, so timing doesn't
   // reveal which username exists. Usernames match case-insensitively (they're
   // email addresses); passwords are exact.
@@ -91,6 +99,7 @@ export interface SessionInfo {
 }
 
 function parseSession(token: string): SessionInfo | null {
+  if (!AUTH_CONFIGURED) return null;
   const parts = token.split('.');
   if (parts.length !== 4) return null;
   const [expiresStr, nonce, userPart, sig] = parts;

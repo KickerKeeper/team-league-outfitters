@@ -307,7 +307,11 @@ import Admin from '../../layouts/Admin.astro';
     entries.slice(0, max).forEach(function(e) {
       var row = document.createElement('div');
       row.className = 'table-row';
-      row.innerHTML = '<span class="table-row-label">' + e[0] + '</span><span class="table-row-value">' + e[1] + '</span>';
+      // e[0] is a page path or referrer host reported by anonymous visitors —
+      // never trust it as HTML.
+      var label = document.createElement('span'); label.className = 'table-row-label'; label.textContent = e[0];
+      var value = document.createElement('span'); value.className = 'table-row-value'; value.textContent = String(e[1]);
+      row.appendChild(label); row.appendChild(value);
       el.appendChild(row);
     });
     if (entries.length === 0) {

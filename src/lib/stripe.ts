@@ -1,5 +1,6 @@
 import Stripe from 'stripe';
 import { createHmac, timingSafeEqual } from 'node:crypto';
+import { SESSION_SECRET } from './auth';
 
 let cached: Stripe | null = null;
 
@@ -39,7 +40,9 @@ export function getSiteUrl(): string {
 const CHECKOUT_TOKEN_TTL_MS = 60 * 60 * 1000; // 1 hour — Stripe Checkout times out before this
 
 function checkoutKey(): string {
-  return import.meta.env.SESSION_SECRET || 'tlo-session-secret-change-me';
+  // Empty in production when SESSION_SECRET is unset — verification then
+  // always fails, so /order/success shows the "could not verify" fallback.
+  return SESSION_SECRET;
 }
 
 export function signCheckoutToken(sessionId: string): string {
@@ -49,7 +52,7 @@ export function signCheckoutToken(sessionId: string): string {
 }
 
 export function verifyCheckoutToken(sessionId: string, token: string | null | undefined): boolean {
-  if (!token) return false;
+  if (!token || !checkoutKey()) return false;
   const parts = token.split('.');
   if (parts.length !== 2) return false;
   const [issuedStr, sig] = parts;
