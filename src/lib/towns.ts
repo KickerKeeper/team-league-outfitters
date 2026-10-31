@@ -10,7 +10,7 @@ export type Town = {
 
 export const DEFAULT_TOWNS: Town[] = [
   { slug: 'georgetown', name: 'Georgetown', blurb: 'Royals jerseys for Georgetown youth athletes.', comingSoon: true },
-  { slug: 'masco', name: 'Masco', blurb: 'Masco Hoops travel basketball uniforms, grades 5–8.' },
+  { slug: 'masco', name: 'Masco', blurb: 'Masco Hoops travel basketball uniforms, grades 4–8.' },
   { slug: 'swampscott', name: 'Swampscott', blurb: 'Big Blue jerseys for Swampscott youth athletes.', comingSoon: true },
 ];
 

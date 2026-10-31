@@ -65,7 +65,7 @@ const CHARTS = '/size-charts';
 
 const MASCO: TownProgram = {
   heading: 'Masco Hoops Travel Basketball Uniform',
-  eligibility: 'Grades 5–8 Travel Basketball only',
+  eligibility: 'Grades 4–8 Travel Basketball only',
   description:
     'A4 red & white reversible uniform. Masco Hoops logo on the front, player name and number on the back. Jerseys and shorts are ordered separately.',
   playerStatus: {
@@ -84,7 +84,7 @@ const MASCO: TownProgram = {
       },
     ],
   },
-  grades: ['5th', '6th', '7th', '8th'],
+  grades: ['4th', '5th', '6th', '7th', '8th'],
   collectGender: false,
   sizeGroups: [
     { id: 'youth', label: 'Youth', sizes: sizes('Y', 'Youth', [['S', 'S'], ['M', 'M'], ['L', 'L'], ['XL', 'XL']]) },
