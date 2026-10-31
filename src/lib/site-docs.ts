@@ -44,7 +44,7 @@ Section 3 "How You Want It": Customization Type (Heat Press/Embroidery/Screen Pr
 
 ## Admin Portal (/admin)
 Login: /admin/login
-Default credentials: admin / TLO2026! (change via ADMIN_USER and ADMIN_PASS env vars)
+Credentials: set via ADMIN_USER / ADMIN_PASS env vars in Netlify (extra logins via ADMIN_ACCOUNTS)
 Session: 8 hours, HttpOnly cookie
 
 ### Admin Dashboard (/admin/dashboard)
