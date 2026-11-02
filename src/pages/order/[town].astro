@@ -166,14 +166,17 @@ if (program) {
                       <input type="text" data-field="player_name" required />
                     </div>
                     {showGender && (
-                      <div class="form-field">
-                        <label>Girl / Boy</label>
-                        <select data-field="gender">
-                          <option value="">—</option>
-                          <option value="Girl">Girl</option>
-                          <option value="Boy">Boy</option>
-                        </select>
-                      </div>
+                      <fieldset class="form-field status-group gender-group" data-radio-group>
+                        <legend>Boy or girl? <span class="req" aria-hidden="true">*</span></legend>
+                        <div class="status-options">
+                          {['Boy', 'Girl'].map((g) => (
+                            <label class="status-option">
+                              <input type="radio" name="gender_1" value={g} data-field="gender" required />
+                              <span>{g}</span>
+                            </label>
+                          ))}
+                        </div>
+                      </fieldset>
                     )}
                     {program ? (
                       <div class="form-field">
@@ -475,6 +478,8 @@ if (program) {
   .add-player-btn { margin-top: var(--space-4); }
 
   .status-group { border: none; padding: 0; margin: var(--space-4) 0 0; }
+  .gender-group { margin: 0; min-width: 0; }
+  .gender-group legend { margin-bottom: var(--space-1); }
   .status-group legend { font-weight: 600; font-size: var(--text-base); color: var(--color-neutral-900); padding: 0; margin-bottom: var(--space-2); }
   .status-options { display: grid; grid-template-columns: 1fr; gap: var(--space-2); }
   @media (min-width: 480px) { .status-options { grid-template-columns: repeat(2, 1fr); } }
@@ -582,7 +587,12 @@ if (program) {
 
   function fieldVal(scope: Element, name: string): string {
     const el = scope.querySelector('[data-field="' + name + '"]') as HTMLInputElement | HTMLSelectElement | null;
-    return el ? String(el.value || '').trim() : '';
+    if (!el) return '';
+    if ((el as HTMLInputElement).type === 'radio') {
+      const checked = scope.querySelector('[data-field="' + name + '"]:checked') as HTMLInputElement | null;
+      return checked ? String(checked.value || '').trim() : '';
+    }
+    return String(el.value || '').trim();
   }
 
   function checkedStatus(block: Element): HTMLInputElement | null {
@@ -711,6 +721,9 @@ if (program) {
       // Radio groups must be unique per player block.
       b.querySelectorAll('[data-field="player_status"]').forEach((r) => {
         (r as HTMLInputElement).name = 'player_status_' + (i + 1);
+      });
+      b.querySelectorAll('[data-field="gender"]').forEach((r) => {
+        (r as HTMLInputElement).name = 'gender_' + (i + 1);
       });
     });
     updateTotals();
@@ -1009,7 +1022,13 @@ if (program) {
 
   function setVal(scope: Element, name: string, value: string | undefined) {
     const el = scope.querySelector('[data-field="' + name + '"]') as HTMLInputElement | HTMLSelectElement | null;
-    if (el && value != null && el.type !== 'radio') el.value = value;
+    if (!el || value == null) return;
+    if (el.type === 'radio') {
+      const radio = scope.querySelector('[data-field="' + name + '"][value="' + value.replace(/"/g, '') + '"]') as HTMLInputElement | null;
+      if (radio) radio.checked = true;
+      return;
+    }
+    el.value = value;
   }
 
   function restoreDraft() {

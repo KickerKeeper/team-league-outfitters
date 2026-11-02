@@ -17,6 +17,8 @@ const TAX_CODE_CLOTHING = 'txcd_30011000'; // clothing & footwear (jersey, short
 const TAX_CODE_SHIPPING = 'txcd_92010001'; // shipping charge
 const MAX_LINE_ITEMS = 50;
 
+const GENDERS = ['Boy', 'Girl'];
+
 interface ItemInput {
   productId: string;
   size?: string;
@@ -105,6 +107,9 @@ export const POST: APIRoute = async ({ request }) => {
       const grade = (player.grade || '').trim();
       if (program.grades.length && !program.grades.includes(grade)) {
         return err(`Select a grade for ${pname}`, 400);
+      }
+      if (program.collectGender && !GENDERS.includes((player.gender || '').trim())) {
+        return err(`Select boy or girl for ${pname}`, 400);
       }
     }
     const collectsNumber = status ? status.collectsNumber : true;

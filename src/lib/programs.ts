@@ -85,7 +85,7 @@ const MASCO: TownProgram = {
     ],
   },
   grades: ['4th', '5th', '6th', '7th', '8th'],
-  collectGender: false,
+  collectGender: true, // shop needs boy/girl even for youth sizes
   sizeGroups: [
     { id: 'youth', label: 'Youth', sizes: sizes('Y', 'Youth', [['S', 'S'], ['M', 'M'], ['L', 'L'], ['XL', 'XL']]) },
     // Owner's sheet lists MS, MM, ML, MXXL (no MXL) — kept exactly as written.
